@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Budget Meal Planner</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
+        body { font-family: sans-serif; display: flex; margin: 0; background: var(--bg); height: 100vh; color: var(--text); border: 2px solid var(--border); }
+        nav { width: 160px; background: var(--nav-color); color: var(--text); padding: 15px; flex-shrink: 0; border-right: 2px solid var(--border); }
+        nav h2 { font-size: 1.1rem; }
+        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 8px; margin-bottom: 8px; text-decoration: none; border-radius: 0; cursor: pointer; font-size: 0.8rem; box-sizing: border-box; font-weight: bold; }
+        nav a:hover { filter: brightness(90%); }
+        .content { flex-grow: 1; padding: 30px; overflow-y: auto; border-right: 2px solid var(--border); background: var(--bg); }
+        aside { width: 250px; padding: 15px; background: #e0e0e0; flex-shrink: 0; }
+        .ad-box { background: var(--bg); border: 2px solid var(--border); padding: 20px 10px; text-align: center; margin-bottom: 15px; color: var(--text); font-size: 0.75rem; }
+        .btn-container { display: flex; flex-wrap: wrap; max-width: 700px; margin-bottom: 20px; }
+        button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; }
+        button:hover { filter: brightness(90%); }
+        textarea, input { width: 100%; max-width: 450px; border: 2px solid var(--border); padding: 8px; margin-bottom: 10px; background: #fff; }
+    </style>
+</head>
+<body>
+<div id="country-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+    <div id="modal-content" style="background: var(--nav-color); padding: 40px; border: 2px solid var(--border); text-align: center;">
+        <h2 style="color: var(--text);">Select Your Country & Color Scheme</h2>
+        <select id="modal-country-select" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 10px;"></select><br>
+        <select id="modal-color-select" onchange="previewTheme()" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 10px;">
+            <option value="pink">Pastel Pink</option><option value="blue">Pastel Blue</option><option value="green">Pastel Green</option><option value="darkgrey">Dark Grey</option>
+            <option value="purple">Dark Purple</option><option value="orange">Dark Orange</option><option value="teal">Dark Teal</option>
+        </select><br>
+        <button onclick="confirmCountry()" style="padding: 10px 20px; background: var(--btn-grey); border: 2px solid var(--border); cursor: pointer; font-weight: bold; margin: 0;">Confirm</button>
+    </div>
+</div>
+<nav>
+    <h2>Menu</h2>
+    <a href="#" onclick="showPage('home')">Home</a>
+    <a href="#" onclick="showPage('find-recipes')">Find Recipes</a>
+    <a href="#" onclick="addRecipeMenu()">Add Recipe</a>
+    <a href="#" onclick="showPage('find-budget-meals')">Find Budget Meals</a>
+    <a href="#" onclick="showPage('add-budget-meal')">Add Budget Meal</a>
+    <a href="#" onclick="showPage('my-activity')">My Activity</a>
+    <a href="#" onclick="showPage('contact')">Contact</a>
+</nav>
+<div class="content"><div id="main-view"><h1>Welcome</h1></div></div>
+<aside><div class="ad-box">Premium Ad Space</div><div class="ad-box">Local Deal Space</div></aside>
+<script src="app.js"></script>
+</body>
+</html>
