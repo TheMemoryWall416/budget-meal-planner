@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; margin: 0; padding: 0; color: #333; }
+        .container { max-width: 1000px; margin: 40px auto; padding: 20px; background: #fff; border: 2px solid #000; box-shadow: 5px 5px 0px #000; }
+        h1 { border-bottom: 2px solid #000; padding-bottom: 10px; }
+        input { width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #000; box-sizing: border-box; }
+        button { background: #000; color: #fff; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #333; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-tabs button { background: #e0e0e0; color: #000; border: 2px solid #000; }
+        .nav-tabs button.active { background: #000; color: #fff; }
+        .card { border: 2px solid #000; padding: 15px; margin-bottom: 15px; background: #fafafa; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-title { font-weight: bold; font-size: 1.2rem; margin: 0; }
+        .meta { font-size: 0.85rem; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="login-screen">
+    <h1>Admin Login</h1>
+    <p>Authorized personnel only.</p>
+    <input type="email" id="admin-email" placeholder="Email">
+    <input type="password" id="admin-password" placeholder="Password">
+    <button onclick="loginAdmin()">Login</button>
+</div>
+
+<div class="container" id="dashboard-screen" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Admin Dashboard</h1>
+        <button onclick="logoutAdmin()">Logout</button>
+    </div>
+    
+    <div class="nav-tabs">
+        <button id="tab-inbox" class="active" onclick="switchTab('inbox')">📥 Inbox (Messages)</button>
+        <button id="tab-recipes" onclick="switchTab('recipes')">🍔 Manage Recipes</button>
+    </div>
+
+    <div id="view-inbox">
+        <h2>Recent Messages</h2>
+        <div id="messages-list">Loading...</div>
+    </div>
+
+    <div id="view-recipes" style="display: none;">
+        <h2>All Database Records</h2>
+        <div id="recipes-list">Loading...</div>
+    </div>
+</div>
+
+<script>
+    const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
+    const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    window.onload = async function() {
+        const { data: { session } } = await myDatabase.auth.getSession();
+        if (session) showDashboard();
+    };
+
+    async function loginAdmin() {
+        const email = document.getElementById('admin-email').value;
+        const password = document.getElementById('admin-password').value;
+        
+        const { data, error } = await myDatabase.auth.signInWithPassword({ email, password });
+        
+        if (error) alert("Login Failed: " + error.message);
+        else showDashboard();
+    }
+
+    async function logoutAdmin() {
+        await myDatabase.auth.signOut();
+        document.getElementById('dashboard-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'block';
+    }
+
+    function showDashboard() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard-screen').style.display = 'block';
+        loadMessages();
+    }
+
+    function switchTab(tab) {
+        document.getElementById('tab-inbox').classList.remove('active');
+        document.getElementById('tab-recipes').classList.remove('active');
+        document.getElementById('view-inbox').style.display = 'none';
+        document.getElementById('view-recipes').style.display = 'none';
+
+        if (tab === 'inbox') {
+            document.getElementById('tab-inbox').classList.add('active');
+            document.getElementById('view-inbox').style.display = 'block';
+            loadMessages();
+        } else {
+            document.getElementById('tab-recipes').classList.add('active');
+            document.getElementById('view-recipes').style.display = 'block';
+            loadRecipes();
+        }
+    }
+
+    async function loadMessages() {
+        const list = document.getElementById('messages-list');
+        list.innerHTML = "Loading messages...";
+        
+        const { data, error } = await myDatabase.from('messages').select('*').order('created_at', { ascending: false });
+        
+        if (error) { list.innerHTML = `<p>Error loading: ${error.message}</p>`; return; }
+        if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
+
+        let html = '';
+        data.forEach(msg => {
+            const date = new Date(msg.created_at).toLocaleString();
+            html += `
+            <div class="card" id="msg-${msg.id}">
+                <div class="card-header">
+                    <div>
+                        <p class="card-title">${msg.name} <span class="meta">(${msg.email})</span></p>
+                        <p class="meta">${date}</p>
+                    </div>
+                    <button class="btn-danger" onclick="deleteRecord('messages', ${msg.id}, 'msg-${msg.id}')">Delete</button>
+                </div>
+                <p style="white-space: pre-wrap;">${msg.message}</p>
+            </div>`;
+        });
+        list.innerHTML = html;
+    }
+
+    async function loadRecipes() {
+        const list = document.getElementById('recipes-list');
+        list.innerHTML = "Loading database records...";
+        
+        const { data, error } = await myDatabase.from('meals').select('id, title, category, country, created_at').order('created_at', { ascending: false });
+        
+        if (error) { list.innerHTML = `<p>Error loading: ${error.message}</p>`; return; }
+        if (data.length === 0) { list.innerHTML = `<p>Database is empty.</p>`; return; }
+
+        let html = '';
+        data.forEach(meal => {
+            const typeInfo = meal.category === 'budget' ? `Budget Meal (${meal.country})` : `Global Recipe (${meal.category})`;
+            html += `
+            <div class="card" id="meal-${meal.id}" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p class="card-title">ID ${meal.id}: ${meal.title}</p>
+                    <p class="meta">Type: ${typeInfo}</p>
+                </div>
+                <button class="btn-danger" onclick="deleteRecord('meals', ${meal.id}, 'meal-${meal.id}')">Delete Post</button>
+            </div>`;
+        });
+        list.innerHTML = html;
+    }
+
+    async function deleteRecord(table, id, elementId) {
+        if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
+
+        const { error } = await myDatabase.from(table).delete().eq('id', id);
+        if (error) alert("Error deleting: " + error.message);
+        else document.getElementById(elementId).remove();
+    }
+</script>
+</body>
+</html>
