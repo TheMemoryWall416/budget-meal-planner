@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Contact Us - Budget Meal Planner</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         body { font-family: sans-serif; display: flex; margin: 0; background: var(--bg); height: 100vh; color: var(--text); border: 2px solid var(--border); }
@@ -11,6 +12,11 @@
         nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 8px; margin-bottom: 8px; text-decoration: none; box-sizing: border-box; font-weight: bold; font-size: 0.8rem;}
         nav a:hover { filter: brightness(90%); }
         .content { flex-grow: 1; padding: 40px; overflow-y: auto; background: var(--bg); }
+        
+        /* Form Styling */
+        input, textarea { width: 100%; max-width: 500px; border: 2px solid var(--border); padding: 10px; margin-bottom: 15px; background: #fff; font-family: sans-serif; box-sizing: border-box; font-size: 1rem; }
+        button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 10px 20px; font-size: 1rem; font-weight: bold; box-sizing: border-box; margin-top: 10px; }
+        button:hover { filter: brightness(90%); }
     </style>
 </head>
 <body>
@@ -26,14 +32,53 @@
 <div class="content">
     <h1 style="margin-top: 0; font-size: 2.5rem;">Contact Us</h1>
     <div style="max-width: 600px; line-height: 1.8; font-size: 1.1rem; background: #fff; padding: 30px; border: 2px solid var(--border);">
-        <p>Have a question, suggestion, or need to report a bug? We are constantly improving the platform and would love to hear from you.</p>
+        <p>Have a question, suggestion, or need to report a bug? Send us a message directly using the form below. Our administration team receives these messages directly in our dashboard and will review them shortly.</p>
         
-        <p style="font-size: 1.3rem; margin: 25px 0;"><strong>Email:</strong> admin@budgetmealplanner.co.za</p>
+        <div id="form-container" style="margin-top: 25px;">
+            <input type="text" id="contact-name" placeholder="Your Name" required>
+            <input type="email" id="contact-email" placeholder="Your Email Address" required>
+            <textarea id="contact-message" rows="6" placeholder="How can we help you?" required></textarea>
+            <button onclick="submitMessage()">Send Message</button>
+        </div>
+
+        <div id="success-message" style="display: none; margin-top: 20px; padding: 15px; background: #d4edda; border: 2px solid #28a745; color: #155724; font-weight: bold;">
+            Thank you! Your message has been sent successfully. Our team will review it shortly.
+        </div>
         
-        <div style="background: var(--bg); padding: 15px; border: 2px solid var(--border); font-size: 0.9rem;">
-            <strong>Please note:</strong> As a free, community-driven platform, we process a high volume of inquiries. Please allow 24-48 hours for our administration team to respond. 
+        <div style="background: var(--bg); padding: 15px; border: 2px solid var(--border); font-size: 0.9rem; margin-top: 30px;">
+            <strong>Note:</strong> We prioritize user feedback. Please allow 24-48 hours for a response via the email address you provided above.
         </div>
     </div>
 </div>
+
+<script>
+    const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
+    const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function submitMessage() {
+        const name = document.getElementById('contact-name').value.trim();
+        const email = document.getElementById('contact-email').value.trim();
+        const message = document.getElementById('contact-message').value.trim();
+
+        if (!name || !email || !message) {
+            alert("Please fill out all fields before sending.");
+            return;
+        }
+
+        const { error } = await myDatabase.from('messages').insert([{ 
+            name: name, 
+            email: email, 
+            message: message 
+        }]);
+
+        if (error) {
+            alert("Something went wrong: " + error.message);
+        } else {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('success-message').style.display = 'block';
+        }
+    }
+</script>
 </body>
 </html>
