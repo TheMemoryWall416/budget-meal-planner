@@ -8,13 +8,15 @@
         body { font-family: sans-serif; background: #f4f4f9; margin: 0; padding: 0; color: #333; }
         .container { max-width: 1000px; margin: 40px auto; padding: 20px; background: #fff; border: 2px solid #000; box-shadow: 5px 5px 0px #000; }
         h1 { border-bottom: 2px solid #000; padding-bottom: 10px; margin-top: 0; }
-        input { width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #000; box-sizing: border-box; font-size: 1rem; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #000; box-sizing: border-box; font-size: 1rem; font-family: sans-serif; }
         button { background: #000; color: #fff; border: 2px solid #000; padding: 8px 16px; font-weight: bold; cursor: pointer; }
         button:hover { background: #333; }
         .btn-success { background: #28a745; color: white; border-color: #1e7e34; }
         .btn-success:hover { background: #218838; }
         .btn-danger { background: #dc3545; color: white; border-color: #bd2130; }
         .btn-danger:hover { background: #c82333; }
+        .btn-edit { background: #ffc107; color: #000; border-color: #d39e00; }
+        .btn-edit:hover { background: #e0a800; }
         .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 15px; }
         .nav-tabs button { background: #e0e0e0; color: #000; border: 2px solid #000; font-size: 1rem; }
         .nav-tabs button.active { background: #000; color: #fff; }
@@ -68,6 +70,41 @@
         </div>
         <div id="library-list">Loading...</div>
     </div>
+
+    <div id="view-edit" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin: 0;">Edit Record</h2>
+            <button onclick="switchTab('library')" style="background: #e0e0e0; color: #000;">Cancel & Return</button>
+        </div>
+        
+        <input type="hidden" id="edit-id">
+        <input type="hidden" id="edit-category">
+        
+        <label style="font-weight: bold; font-size: 0.9rem;">Title</label>
+        <input type="text" id="edit-title" placeholder="Recipe Title">
+        
+        <div id="edit-budget-fields" style="display:none; gap: 10px; margin-bottom: 15px;">
+            <div style="flex:1;">
+                <label style="font-weight: bold; font-size: 0.9rem;">Cost</label>
+                <input type="number" id="edit-cost" placeholder="Cost" step="any" style="margin-bottom: 0;">
+            </div>
+            <div style="flex:1;">
+                <label style="font-weight: bold; font-size: 0.9rem;">Servings</label>
+                <input type="number" id="edit-servings" placeholder="Servings" style="margin-bottom: 0;">
+            </div>
+        </div>
+
+        <div style="background: #fff; border: 2px solid #000; padding: 15px; margin-bottom: 15px;">
+            <h3 style="margin-top: 0;">Ingredients</h3>
+            <div id="edit-ingredients-list"></div>
+            <button onclick="adminAddIngredientRow()" style="margin-top: 10px; background: #e0e0e0; color: #000; border: 1px solid #000; padding: 5px 10px; font-size: 0.8rem;">+ Add Ingredient Row</button>
+        </div>
+        
+        <label style="font-weight: bold; font-size: 0.9rem;">Instructions / Included Items</label>
+        <textarea id="edit-instructions" rows="8" placeholder="Instructions..."></textarea>
+        
+        <button class="btn-success" onclick="saveEdit()" style="width: 100%; font-size: 1.1rem; padding: 15px;">💾 Save Changes to Database</button>
+    </div>
 </div>
 
 <script>
@@ -102,13 +139,18 @@
 
     function switchTab(tab) {
         document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
-        document.getElementById(`tab-${tab}`).classList.add('active');
+        if (document.getElementById(`tab-${tab}`)) {
+            document.getElementById(`tab-${tab}`).classList.add('active');
+        }
         
         document.getElementById('view-inbox').style.display = 'none';
         document.getElementById('view-review').style.display = 'none';
         document.getElementById('view-library').style.display = 'none';
+        document.getElementById('view-edit').style.display = 'none';
         
-        document.getElementById(`view-${tab}`).style.display = 'block';
+        if (tab !== 'edit') {
+            document.getElementById(`view-${tab}`).style.display = 'block';
+        }
 
         if (tab === 'inbox') loadMessages();
         else if (tab === 'review') loadReviewQueue();
@@ -167,7 +209,8 @@
                 </div>
                 <div class="card-actions">
                     <button class="btn-success" onclick="approveRecipe(${meal.id}, 'review-${meal.id}')">Approve</button>
-                    <button class="btn-danger" onclick="deleteRecord('meals', ${meal.id}, 'review-${meal.id}')">Decline (Delete)</button>
+                    <button class="btn-edit" onclick="openEdit(${meal.id})">Edit</button>
+                    <button class="btn-danger" onclick="deleteRecord('meals', ${meal.id}, 'review-${meal.id}')">Decline</button>
                 </div>
             </div>`;
         });
@@ -191,7 +234,7 @@
         if (term !== '') {
             query = query.ilike('title', `%${term}%`); 
         } else {
-            query = query.limit(50); // Show only recent 50 to keep the page fast
+            query = query.limit(50);
         }
 
         const { data, error } = await query;
@@ -209,11 +252,118 @@
                     <p class="meta">Type: ${typeInfo} | ID: ${meal.id}</p>
                 </div>
                 <div class="card-actions">
+                    <button class="btn-edit" onclick="openEdit(${meal.id})">Edit</button>
                     <button class="btn-danger" onclick="deleteRecord('meals', ${meal.id}, 'lib-${meal.id}')">Delete</button>
                 </div>
             </div>`;
         });
         list.innerHTML = html;
+    }
+
+    // --- 4. EDIT RECIPE LOGIC ---
+    async function openEdit(id) {
+        switchTab('edit'); // Hide other views
+        document.getElementById('view-edit').style.display = 'block';
+        document.getElementById('edit-ingredients-list').innerHTML = 'Loading record data...';
+        
+        const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
+        if (error) { alert("Error loading recipe: " + error.message); return; }
+
+        document.getElementById('edit-id').value = data.id;
+        document.getElementById('edit-category').value = data.category;
+        document.getElementById('edit-title').value = data.title;
+        document.getElementById('edit-instructions').value = data.recipe || '';
+
+        // Show/Hide Budget fields based on category
+        if (data.category === 'budget') {
+            document.getElementById('edit-budget-fields').style.display = 'flex';
+            document.getElementById('edit-cost').value = data.cost || '';
+            document.getElementById('edit-servings').value = data.servings || '';
+        } else {
+            document.getElementById('edit-budget-fields').style.display = 'none';
+        }
+
+        // Populate ingredients list
+        const ingList = document.getElementById('edit-ingredients-list');
+        ingList.innerHTML = ''; 
+        if (data.ingredients && Array.isArray(data.ingredients)) {
+            data.ingredients.forEach(ing => {
+                adminAddIngredientRow(ing.item, ing.qty, ing.unit);
+            });
+        }
+        // Always leave one empty row at the bottom
+        adminAddIngredientRow();
+    }
+
+    function adminAddIngredientRow(name = '', qty = '', unit = '') {
+        const list = document.getElementById('edit-ingredients-list');
+        const row = document.createElement('div');
+        row.className = 'ingredient-row';
+        row.style.display = 'flex';
+        row.style.gap = '5px';
+        row.style.marginBottom = '8px';
+        
+        // Convert null qty to empty string for the input
+        const safeQty = (qty !== null && qty !== undefined) ? qty : '';
+        
+        row.innerHTML = `
+            <input type="text" class="ing-name" placeholder="Item Name (e.g. Flour)" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0; padding: 8px;">
+            <input type="number" step="any" class="ing-qty" placeholder="Qty" value="${safeQty}" style="flex: 1; margin: 0; padding: 8px;">
+            <input type="text" class="ing-unit" placeholder="Unit (e.g. cup, g)" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0; padding: 8px;">
+            <button onclick="this.parentElement.remove()" style="margin: 0; background: #dc3545; color: #fff; padding: 0 10px; border: 2px solid #bd2130;">X</button>
+        `;
+        list.appendChild(row);
+    }
+
+    async function saveEdit() {
+        const id = document.getElementById('edit-id').value;
+        const category = document.getElementById('edit-category').value;
+        const title = document.getElementById('edit-title').value.trim();
+        const instructions = document.getElementById('edit-instructions').value.trim();
+        
+        if (!title || !instructions) {
+            alert("Title and Instructions cannot be empty.");
+            return;
+        }
+
+        // Rebuild the structured ingredients JSON array
+        let structuredIngredients = [];
+        const rows = document.querySelectorAll('#edit-ingredients-list .ingredient-row');
+        rows.forEach(row => {
+            const name = row.querySelector('.ing-name').value.trim();
+            const qtyRaw = row.querySelector('.ing-qty').value;
+            const unit = row.querySelector('.ing-unit').value.trim();
+            
+            if (name !== "") {
+                structuredIngredients.push({ 
+                    item: name, 
+                    qty: qtyRaw !== '' ? parseFloat(qtyRaw) : null, 
+                    unit: unit 
+                });
+            }
+        });
+
+        // Prepare the update payload
+        let updatePayload = {
+            title: title,
+            recipe: instructions,
+            ingredients: structuredIngredients
+        };
+
+        // If it is a budget meal, grab the cost and servings updates too
+        if (category === 'budget') {
+            updatePayload.cost = parseFloat(document.getElementById('edit-cost').value);
+            updatePayload.servings = parseInt(document.getElementById('edit-servings').value);
+        }
+
+        const { error } = await myDatabase.from('meals').update(updatePayload).eq('id', id);
+        
+        if (error) {
+            alert("Error saving update: " + error.message);
+        } else {
+            alert("Recipe updated successfully!");
+            switchTab('library'); // Go back to the main list
+        }
     }
 
     // --- GLOBAL DELETE LOGIC ---
