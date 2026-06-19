@@ -63,6 +63,7 @@ function confirmCountry() {
 window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
+    updateHack(); // Starts the daily tips
 };
 
 // --- MAIN ROUTER ---
@@ -70,11 +71,16 @@ function showPage(page) {
     const view = document.getElementById('main-view');
     if (page === 'home') {
         view.innerHTML = `
-            <h1>WELCOME TO THE BUDGET MEAL PLANNER</h1>
-            <p><strong>You have come to the right place.</strong></p>
-            <p>Whether you are looking for a delicious recipe, want to share one of your own, are searching for the perfect budget-friendly meal, or have a thrifty creation you want to showcase to the community, you’ve arrived at your new home for smart cooking.</p>
-            <h3>Built for Everyone, Completely Free</h3>
-            <p>We believe that tools for cooking shouldn't come with barriers. That is why this site is <strong>100% free to use</strong>. There is absolutely <strong>no registration or login required</strong> to explore, search, or share your meals.</p>
+            <h1 style="margin-top:0;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
+            
+            <p style="font-size: 1.1rem; line-height: 1.6;">Whether you are searching for a strict budget-friendly main course to stretch your groceries, a quick weeknight dinner, a decadent dessert, or a refreshing drink, you will find it here.</p>
+            
+            <p style="font-size: 1.1rem; line-height: 1.6;">Looking to showcase your own culinary creations? This is the perfect place to share everything from your favorite hearty stews to your best cocktail recipes and thrifty kitchen hacks with the world.</p>
+            
+            <div style="background: var(--nav-color); border: 2px solid var(--border); padding: 20px; margin-top: 25px; max-width: 700px; box-sizing: border-box;">
+                <h3 style="margin-top: 0; font-size: 1.2rem;">Built for Everyone. Absolutely Free.</h3>
+                <p style="margin-bottom: 0; font-size: 1.05rem; line-height: 1.5;">We believe cooking tools should be accessible to everyone without barriers. That is why this platform is <strong>100% free to use</strong> and <strong>completely ad-free</strong>. There are no paywalls, no distracting pop-ups, and absolutely <strong>no registration or account creation required</strong>. Just jump straight in and start exploring.</p>
+            </div>
         `;
     } else if (page === 'find-recipes') {
         view.innerHTML = `<h1>FIND RECIPES</h1>`;
@@ -516,3 +522,29 @@ async function saveBudgetMeal() {
     if (error) alert("Error: " + error.message); 
     else { alert("Saved budget meal!"); showPage('find-budget-meals'); }
 }
+
+// --- DAILY KITCHEN TIPS ---
+const masterKitchenHacks = [
+    "Store your potatoes with an apple to stop them from sprouting.",
+    "Wrap celery tightly in aluminum foil to keep it crisp for weeks.",
+    "Look lower! Supermarkets hide cheaper generic brands below eye level.",
+    "Never shop hungry to reduce impulse buys by up to 60%.",
+    "Put a lid on your boiling water to use up to 30% less electricity.",
+    "Freeze leftover sauce in ice cube trays for easy flavor bombs.",
+    "Keep a bag of rice in your salt shaker to prevent clumping.",
+    "Collect veggie scraps in a freezer bag to make free homemade stock.",
+    "The Freezer Tray Trick: Freeze leftover wine/soup for flavor bombs.",
+    "The Milk Sniff Test: Use your nose; 'Best Before' dates are suggestions.",
+    "The Onion Saver: Never store onions with potatoes; they spoil each other.",
+    "The Bread Freeze: Freeze half a loaf and toast slices directly from frozen."
+];
+
+function updateHack() {
+    const element = document.getElementById("hack-text");
+    if (element) {
+        const randomIndex = Math.floor(Math.random() * masterKitchenHacks.length);
+        element.innerText = masterKitchenHacks[randomIndex];
+    }
+}
+
+setInterval(updateHack, 30000);
