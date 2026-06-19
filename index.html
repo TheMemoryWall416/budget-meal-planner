@@ -17,22 +17,8 @@
         .btn-container { display: flex; flex-wrap: wrap; max-width: 700px; margin-bottom: 20px; }
         button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; }
         button:hover { filter: brightness(90%); }
-        
-        /* ALIGNMENT FIXES */
-        textarea, input, select { 
-            width: 100%; 
-            max-width: 450px; 
-            border: 2px solid var(--border); 
-            padding: 8px; 
-            margin-bottom: 15px; 
-            background: #fff; 
-            font-family: sans-serif; 
-            box-sizing: border-box; /* This is the magic rule for perfect widths */
-            font-size: 0.9rem;
-        }
+        textarea, input, select { width: 100%; max-width: 450px; border: 2px solid var(--border); padding: 8px; margin-bottom: 15px; background: #fff; font-family: sans-serif; box-sizing: border-box; font-size: 0.9rem; }
         #main-view { display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
-        
-        /* Remove default margins for grid items */
         .ingredient-row input, .ingredient-row select { margin-bottom: 0; }
     </style>
 </head>
@@ -56,10 +42,35 @@
     <a href="#" onclick="showPage('find-budget-meals')">Find Budget Meals</a>
     <a href="#" onclick="showPage('add-budget-meal')">Add Budget Meal</a>
     <a href="#" onclick="showPage('my-activity')">My Activity</a>
-    <a href="#" onclick="showPage('contact')">Contact</a>
+    
+    <a href="contact.html">Contact</a>
+    <div style="margin-top: 30px; border-top: 2px solid var(--border); padding-top: 10px;">
+        <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Privacy Policy</a>
+        <a href="terms.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Terms of Service</a>
+    </div>
 </nav>
-<div class="content"><div id="main-view"><h1>Welcome</h1></div></div>
-<aside><div class="ad-box">Premium Ad Space</div><div class="ad-box">Local Deal Space</div></aside>
+<div class="content">
+    <div id="main-view"><h1>Welcome</h1></div>
+    
+    <div style="margin-top: 60px; padding-top: 30px; border-top: 2px solid var(--border); max-width: 800px;">
+        <h2 style="font-size: 1.5rem; margin-bottom: 15px;">The Ultimate Guide to Budget Meal Planning</h2>
+        <p style="line-height: 1.6; margin-bottom: 15px;">
+            In today's economic climate, grocery prices are stretching household budgets to their absolute limits. Whether you are trying to feed a family of four on a strict budget or simply looking to cut down on expensive takeout habits, mastering the art of budget meal planning is the single most effective way to take control of your finances. 
+        </p>
+        <p style="line-height: 1.6; margin-bottom: 15px;">
+            The Global Recipe & Meal Planner was built specifically to solve this problem. By combining community-sourced recipes with precise cost-per-serving calculators, this platform eliminates the guesswork from grocery shopping. A successful budget meal isn't just about eating cheap ingredients; it is about maximizing nutritional value while minimizing waste. Strategies like bulk cooking, utilizing seasonal vegetables, and repurposing leftovers can reduce your monthly food expenditure drastically.
+        </p>
+        <p style="line-height: 1.6; margin-bottom: 15px;">
+            From hearty home-cooked stews to breaking down the true cost of popular fast-food family meals, transparency is key. We empower users to track every cent, convert complex ingredient measurements globally, and share their most frugal kitchen hacks. Cooking on a budget shouldn't mean sacrificing flavor or variety. Explore our extensive database to discover how cooks around the world are keeping their plates full and their wallets heavy.
+        </p>
+    </div>
+</div>
+<aside>
+    <div class="ad-box">
+        <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text);">💡 Budget Tip</h3>
+        <p id="hack-text" style="font-size: 0.9rem; line-height: 1.4; color: var(--text);">Loading tip...</p>
+    </div>
+</aside>
 <script src="app.js"></script>
 </body>
 </html>
