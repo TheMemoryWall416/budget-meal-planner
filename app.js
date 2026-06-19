@@ -78,8 +78,8 @@ function showPage(page) {
             <p style="font-size: 1.1rem; line-height: 1.6;">Looking to showcase your own culinary creations? This is the perfect place to share everything from your favorite hearty stews to your best cocktail recipes and thrifty kitchen hacks with the world.</p>
             
             <div style="background: var(--nav-color); border: 2px solid var(--border); padding: 20px; margin-top: 25px; max-width: 700px; box-sizing: border-box;">
-                <h3 style="margin-top: 0; font-size: 1.2rem;">Built for Everyone. Absolutely Free.</h3>
-                <p style="margin-bottom: 0; font-size: 1.05rem; line-height: 1.5;">We believe cooking tools should be accessible to everyone without barriers. That is why this platform is <strong>100% free to use</strong> and <strong>completely ad-free</strong>. There are no paywalls, no distracting pop-ups, and absolutely <strong>no registration or account creation required</strong>. Just jump straight in and start exploring.</p>
+                <h3 style="margin-top: 0; font-size: 1.2rem;">Built for Everyone. 100% Free.</h3>
+                <p style="margin-bottom: 0; font-size: 1.05rem; line-height: 1.5;">We believe cooking tools should be accessible to everyone without barriers. To keep this platform permanently free for the community, we have dedicated a small, unobtrusive space for ads. You will never encounter hidden paywalls, intrusive pop-ups, or forced account registrations—just jump straight in and start exploring.</p>
             </div>
         `;
     } else if (page === 'find-recipes') {
