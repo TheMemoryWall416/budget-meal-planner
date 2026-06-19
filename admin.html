@@ -8,7 +8,7 @@
         body { font-family: sans-serif; background: #f4f4f9; margin: 0; padding: 0; color: #333; }
         .container { max-width: 1000px; margin: 40px auto; padding: 20px; background: #fff; border: 2px solid #000; box-shadow: 5px 5px 0px #000; }
         h1 { border-bottom: 2px solid #000; padding-bottom: 10px; margin-top: 0; }
-        input, textarea { width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #000; box-sizing: border-box; font-size: 1rem; font-family: sans-serif; }
+        input, textarea, select { width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #000; box-sizing: border-box; font-size: 1rem; font-family: sans-serif; }
         button { background: #000; color: #fff; border: 2px solid #000; padding: 8px 16px; font-weight: bold; cursor: pointer; }
         button:hover { background: #333; }
         .btn-success { background: #28a745; color: white; border-color: #1e7e34; }
@@ -78,14 +78,31 @@
         </div>
         
         <input type="hidden" id="edit-id">
-        <input type="hidden" id="edit-category">
         
-        <label style="font-weight: bold; font-size: 0.9rem;">Title</label>
+        <label style="font-weight: bold; font-size: 0.9rem;">Recipe Title</label>
         <input type="text" id="edit-title" placeholder="Recipe Title">
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <div style="flex: 1;">
+                <label style="font-weight: bold; font-size: 0.9rem;">Category</label>
+                <input type="text" id="edit-category" oninput="toggleAdminFields()" placeholder="e.g. budget, Breakfast" style="margin-bottom: 0;">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-weight: bold; font-size: 0.9rem;">Country</label>
+                <input type="text" id="edit-country" placeholder="e.g. South Africa" style="margin-bottom: 0;">
+            </div>
+        </div>
+
+        <label style="font-weight: bold; font-size: 0.9rem;">Meal Type (Crucial for Budget Meals)</label>
+        <select id="edit-meal-type" onchange="toggleAdminFields()">
+            <option value="">Global Recipe (No specific type)</option>
+            <option value="home">Home-Cooked (Uses Ingredients)</option>
+            <option value="takeaway">Takeaway (No Ingredients)</option>
+        </select>
         
         <div id="edit-budget-fields" style="display:none; gap: 10px; margin-bottom: 15px;">
             <div style="flex:1;">
-                <label style="font-weight: bold; font-size: 0.9rem;">Cost</label>
+                <label style="font-weight: bold; font-size: 0.9rem;">Total Cost</label>
                 <input type="number" id="edit-cost" placeholder="Cost" step="any" style="margin-bottom: 0;">
             </div>
             <div style="flex:1;">
@@ -94,13 +111,13 @@
             </div>
         </div>
 
-        <div style="background: #fff; border: 2px solid #000; padding: 15px; margin-bottom: 15px;">
+        <div id="edit-ingredients-container" style="background: #fff; border: 2px solid #000; padding: 15px; margin-bottom: 15px;">
             <h3 style="margin-top: 0;">Ingredients</h3>
             <div id="edit-ingredients-list"></div>
             <button onclick="adminAddIngredientRow()" style="margin-top: 10px; background: #e0e0e0; color: #000; border: 1px solid #000; padding: 5px 10px; font-size: 0.8rem;">+ Add Ingredient Row</button>
         </div>
         
-        <label style="font-weight: bold; font-size: 0.9rem;">Instructions / Included Items</label>
+        <label style="font-weight: bold; font-size: 0.9rem;">Instructions / What is Included</label>
         <textarea id="edit-instructions" rows="8" placeholder="Instructions..."></textarea>
         
         <button class="btn-success" onclick="saveEdit()" style="width: 100%; font-size: 1.1rem; padding: 15px;">💾 Save Changes to Database</button>
@@ -260,30 +277,26 @@
         list.innerHTML = html;
     }
 
-    // --- 4. EDIT RECIPE LOGIC ---
+    // --- 4. THE FULL EDIT LOGIC ---
     async function openEdit(id) {
-        switchTab('edit'); // Hide other views
-        document.getElementById('view-edit').style.display = 'block';
+        switchTab('edit'); 
         document.getElementById('edit-ingredients-list').innerHTML = 'Loading record data...';
         
         const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
         if (error) { alert("Error loading recipe: " + error.message); return; }
 
+        // Populate all exact data fields
         document.getElementById('edit-id').value = data.id;
-        document.getElementById('edit-category').value = data.category;
-        document.getElementById('edit-title').value = data.title;
+        document.getElementById('edit-title').value = data.title || '';
+        document.getElementById('edit-category').value = data.category || '';
+        document.getElementById('edit-country').value = data.country || '';
+        document.getElementById('edit-meal-type').value = data.meal_type || '';
+        document.getElementById('edit-cost').value = data.cost || '';
+        document.getElementById('edit-servings').value = data.servings || '';
         document.getElementById('edit-instructions').value = data.recipe || '';
 
-        // Show/Hide Budget fields based on category
-        if (data.category === 'budget') {
-            document.getElementById('edit-budget-fields').style.display = 'flex';
-            document.getElementById('edit-cost').value = data.cost || '';
-            document.getElementById('edit-servings').value = data.servings || '';
-        } else {
-            document.getElementById('edit-budget-fields').style.display = 'none';
-        }
+        toggleAdminFields(); // Setup the layout (hide/show ingredients and math fields)
 
-        // Populate ingredients list
         const ingList = document.getElementById('edit-ingredients-list');
         ingList.innerHTML = ''; 
         if (data.ingredients && Array.isArray(data.ingredients)) {
@@ -291,8 +304,26 @@
                 adminAddIngredientRow(ing.item, ing.qty, ing.unit);
             });
         }
-        // Always leave one empty row at the bottom
-        adminAddIngredientRow();
+        adminAddIngredientRow(); // Leave one blank row for fast adding
+    }
+
+    function toggleAdminFields() {
+        const cat = document.getElementById('edit-category').value.toLowerCase();
+        const mealType = document.getElementById('edit-meal-type').value;
+
+        // 1. Budget Fields (Cost & Servings)
+        if (cat === 'budget') {
+            document.getElementById('edit-budget-fields').style.display = 'flex';
+        } else {
+            document.getElementById('edit-budget-fields').style.display = 'none';
+        }
+
+        // 2. Ingredients visibility (Hide if it's a takeaway)
+        if (mealType === 'takeaway') {
+            document.getElementById('edit-ingredients-container').style.display = 'none';
+        } else {
+            document.getElementById('edit-ingredients-container').style.display = 'block';
+        }
     }
 
     function adminAddIngredientRow(name = '', qty = '', unit = '') {
@@ -303,7 +334,6 @@
         row.style.gap = '5px';
         row.style.marginBottom = '8px';
         
-        // Convert null qty to empty string for the input
         const safeQty = (qty !== null && qty !== undefined) ? qty : '';
         
         row.innerHTML = `
@@ -317,43 +347,50 @@
 
     async function saveEdit() {
         const id = document.getElementById('edit-id').value;
-        const category = document.getElementById('edit-category').value;
         const title = document.getElementById('edit-title').value.trim();
+        const category = document.getElementById('edit-category').value.trim();
+        const country = document.getElementById('edit-country').value.trim();
+        const mealType = document.getElementById('edit-meal-type').value;
         const instructions = document.getElementById('edit-instructions').value.trim();
         
-        if (!title || !instructions) {
-            alert("Title and Instructions cannot be empty.");
-            return;
+        if (!title || !instructions) return alert("Title and Instructions cannot be empty.");
+
+        let structuredIngredients = null;
+
+        // Only build the ingredients JSON if it's NOT a takeaway
+        if (mealType !== 'takeaway') {
+            structuredIngredients = [];
+            const rows = document.querySelectorAll('#edit-ingredients-list .ingredient-row');
+            rows.forEach(row => {
+                const name = row.querySelector('.ing-name').value.trim();
+                const qtyRaw = row.querySelector('.ing-qty').value;
+                const unit = row.querySelector('.ing-unit').value.trim();
+                
+                if (name !== "") {
+                    structuredIngredients.push({ 
+                        item: name, 
+                        qty: qtyRaw !== '' ? parseFloat(qtyRaw) : null, 
+                        unit: unit 
+                    });
+                }
+            });
         }
 
-        // Rebuild the structured ingredients JSON array
-        let structuredIngredients = [];
-        const rows = document.querySelectorAll('#edit-ingredients-list .ingredient-row');
-        rows.forEach(row => {
-            const name = row.querySelector('.ing-name').value.trim();
-            const qtyRaw = row.querySelector('.ing-qty').value;
-            const unit = row.querySelector('.ing-unit').value.trim();
-            
-            if (name !== "") {
-                structuredIngredients.push({ 
-                    item: name, 
-                    qty: qtyRaw !== '' ? parseFloat(qtyRaw) : null, 
-                    unit: unit 
-                });
-            }
-        });
-
-        // Prepare the update payload
         let updatePayload = {
             title: title,
+            category: category,
+            country: country,
+            meal_type: mealType === "" ? null : mealType,
             recipe: instructions,
             ingredients: structuredIngredients
         };
 
-        // If it is a budget meal, grab the cost and servings updates too
-        if (category === 'budget') {
+        if (category.toLowerCase() === 'budget') {
             updatePayload.cost = parseFloat(document.getElementById('edit-cost').value);
             updatePayload.servings = parseInt(document.getElementById('edit-servings').value);
+        } else {
+            updatePayload.cost = null;
+            updatePayload.servings = null;
         }
 
         const { error } = await myDatabase.from('meals').update(updatePayload).eq('id', id);
@@ -361,8 +398,10 @@
         if (error) {
             alert("Error saving update: " + error.message);
         } else {
-            alert("Recipe updated successfully!");
-            switchTab('library'); // Go back to the main list
+            alert("Record updated successfully!");
+            document.getElementById('view-edit').style.display = 'none';
+            document.getElementById('view-library').style.display = 'block';
+            searchLibrary(); // Refresh the list
         }
     }
 
