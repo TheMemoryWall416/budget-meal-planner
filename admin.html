@@ -160,12 +160,14 @@
             document.getElementById(`tab-${tab}`).classList.add('active');
         }
         
+        // Hide everything first
         document.getElementById('view-inbox').style.display = 'none';
         document.getElementById('view-review').style.display = 'none';
         document.getElementById('view-library').style.display = 'none';
         document.getElementById('view-edit').style.display = 'none';
         
-        if (tab !== 'edit') {
+        // Unhide the specific tab that was requested (THIS is what was missing for the edit view)
+        if (document.getElementById(`view-${tab}`)) {
             document.getElementById(`view-${tab}`).style.display = 'block';
         }
 
