@@ -2,68 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Recipe & Budget Meal Planner</title>
+    <title>Budget Meal Planner</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000; --border: #000; }
-        body { font-family: sans-serif; display: flex; margin: 0; background: var(--bg); height: 100vh; color: var(--text); border: 2px solid var(--border); overflow: hidden; }
-        nav { width: 180px; background: var(--nav-color); color: var(--text); padding: 15px; flex-shrink: 0; border-right: 2px solid var(--border); overflow-y: auto; }
-        nav h2 { font-size: 1.2rem; margin-top: 0; }
-        nav button, nav a { display: block; width: 100%; text-align: left; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 10px; margin-bottom: 10px; font-weight: bold; cursor: pointer; text-decoration: none; box-sizing: border-box; font-size: 0.9rem; }
-        nav button:hover, nav a:hover { filter: brightness(90%); }
-        #main-view { flex-grow: 1; padding: 30px; overflow-y: auto; }
-        button { cursor: pointer; padding: 10px 15px; border: 2px solid var(--border); font-weight: bold; background: var(--btn-grey); margin: 5px; }
+        :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
+        body { font-family: sans-serif; display: flex; margin: 0; background: var(--bg); height: 100vh; color: var(--text); border: 2px solid var(--border); }
+        nav { width: 160px; background: var(--nav-color); color: var(--text); padding: 15px; flex-shrink: 0; border-right: 2px solid var(--border); }
+        nav h2 { font-size: 1.1rem; margin-top: 0; }
+        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 8px; margin-bottom: 8px; text-decoration: none; border-radius: 0; cursor: pointer; font-size: 0.8rem; box-sizing: border-box; font-weight: bold; }
+        nav a:hover { filter: brightness(90%); }
+        .content { flex-grow: 1; padding: 30px; overflow-y: auto; border-right: 2px solid var(--border); background: var(--bg); }
+        aside { width: 250px; padding: 15px; background: #e0e0e0; flex-shrink: 0; }
+        .ad-box { background: var(--bg); border: 2px solid var(--border); padding: 20px 10px; text-align: center; margin-bottom: 15px; color: var(--text); font-size: 0.75rem; }
+        .btn-container { display: flex; flex-wrap: wrap; max-width: 700px; margin-bottom: 20px; }
+        button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; }
         button:hover { filter: brightness(90%); }
-        input, select, textarea { padding: 10px; border: 2px solid var(--border); font-family: sans-serif; }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: var(--bg); padding: 30px; border: 4px solid var(--border); width: 90%; max-width: 400px; text-align: center; }
-        .btn-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; }
+        textarea, input, select { width: 100%; max-width: 450px; border: 2px solid var(--border); padding: 8px; margin-bottom: 15px; background: #fff; font-family: sans-serif; box-sizing: border-box; font-size: 0.9rem; }
+        #main-view { display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
+        .ingredient-row input, .ingredient-row select { margin-bottom: 0; }
     </style>
 </head>
 <body>
-    <div id="country-modal" class="modal">
-        <div class="modal-content" id="modal-content">
-            <h2 style="margin-top: 0;">Welcome</h2>
-            <p>Select your location and theme.</p>
-            <select id="modal-country-select" style="width: 100%; margin-bottom: 15px;"></select>
-            <select id="modal-color-select" onchange="previewTheme()" style="width: 100%; margin-bottom: 15px;">
-                <option value="pink">Pink</option>
-                <option value="blue">Blue</option>
-                <option value="green">Green</option>
-                <option value="darkgrey">Dark Grey</option>
-                <option value="purple">Purple</option>
-                <option value="orange">Orange</option>
-                <option value="teal">Teal</option>
-            </select>
-            <button onclick="confirmCountry()" style="width: 100%; background: #000; color: #fff;">Enter App</button>
-        </div>
+<div id="country-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+    <div id="modal-content" style="background: var(--nav-color); padding: 40px; border: 2px solid var(--border); text-align: center;">
+        <h2 style="color: var(--text); margin-top: 0;">Select Your Country & Color Scheme</h2>
+        <select id="modal-country-select" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 10px;"></select><br>
+        <select id="modal-color-select" onchange="previewTheme()" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 10px;">
+            <option value="pink">Pastel Pink</option><option value="blue">Pastel Blue</option><option value="green">Pastel Green</option><option value="darkgrey">Dark Grey</option>
+            <option value="purple">Dark Purple</option><option value="orange">Dark Orange</option><option value="teal">Dark Teal</option>
+        </select><br>
+        <button onclick="confirmCountry()" style="padding: 10px 20px; background: var(--btn-grey); border: 2px solid var(--border); cursor: pointer; font-weight: bold; margin: 0;">Confirm</button>
     </div>
-
-    <nav>
-        <h2>Menu</h2>
-        <div id="nav-counter" style="font-size: 0.85rem; font-weight: bold; color: #555; margin-bottom: 15px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🌍 Loading live recipes...</div>
-        
-        <button onclick="showPage('home')">Home</button>
-        <button onclick="showPage('find-recipes')">Find Recipes</button>
-        <button onclick="showPage('find-budget-meals')">Budget Meals</button>
-        <button onclick="addRecipeMenu()" style="background: #fff; border: 2px dashed #000;">+ Add Recipe</button>
-        <button onclick="showPage('add-budget-meal')" style="background: #fff; border: 2px dashed #000;">+ Add Budget Meal</button>
-        
-        <div style="margin-top: 20px; padding: 10px; background: #fff; border: 2px solid var(--border); font-size: 0.85rem; font-style: italic;">
-            <strong>Kitchen Hack:</strong><br><span id="hack-text">Loading...</span>
-        </div>
-
-        <div style="margin-top: 30px; border-top: 2px solid var(--border); padding-top: 10px;">
-            <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px; margin: 0;">Privacy Policy</a>
-            <a href="terms.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px; margin: 0;">Terms of Service</a>
-            <a href="contact.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px; margin: 0;">Contact Us</a>
-            <a href="admin.html" style="background: #000; color: #fff; border: none; font-size: 0.75rem; text-decoration: none; padding: 4px; margin-top: 10px; text-align: center;">Admin Login</a>
-        </div>
-    </nav>
-
-    <div id="main-view"></div>
-
-    <script src="app.js"></script>
+</div>
+<nav>
+    <h2>Menu</h2>
+    <div id="nav-counter" style="font-size: 0.85rem; font-weight: bold; color: #555; margin-bottom: 15px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🌍 Loading live recipes...</div>
+    
+    <a href="#" onclick="showPage('home')">Home</a>
+    <a href="#" onclick="showPage('find-recipes')">Find Recipes</a>
+    <a href="#" onclick="addRecipeMenu()">Add Recipe</a>
+    <a href="#" onclick="showPage('find-budget-meals')">Find Budget Meals</a>
+    <a href="#" onclick="showPage('add-budget-meal')">Add Budget Meal</a>
+    
+    <a href="contact.html" style="margin-top: 15px;">Contact</a>
+    <a href="admin.html" style="background: #000; color: #fff; margin-top: 10px;">Admin Login</a>
+    <div style="margin-top: 15px; border-top: 2px solid var(--border); padding-top: 10px;">
+        <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Privacy Policy</a>
+        <a href="terms.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Terms of Service</a>
+    </div>
+</nav>
+<div class="content">
+    <div id="main-view"><h1>Welcome</h1></div>
+    
+    <div style="margin-top: 60px; padding-top: 30px; border-top: 2px solid var(--border); max-width: 800px;">
+        <h2 style="font-size: 1.5rem; margin-bottom: 15px;">The Ultimate Guide to Budget Meal Planning</h2>
+        <p style="line-height: 1.6; margin-bottom: 15px;">
+            In today's economic climate, grocery prices are stretching household budgets to their absolute limits. Whether you are trying to feed a family of four on a strict budget or simply looking to cut down on expensive takeout habits, mastering the art of budget meal planning is the single most effective way to take control of your finances. 
+        </p>
+        <p style="line-height: 1.6; margin-bottom: 15px;">
+            The Global Recipe & Meal Planner was built specifically to solve this problem. By combining community-sourced recipes with precise cost-per-serving calculators, this platform eliminates the guesswork from grocery shopping. A successful budget meal isn't just about eating cheap ingredients; it is about maximizing nutritional value while minimizing waste. Strategies like bulk cooking, utilizing seasonal vegetables, and repurposing leftovers can reduce your monthly food expenditure drastically.
+        </p>
+        <p style="line-height: 1.6; margin-bottom: 15px;">
+            From hearty home-cooked stews to breaking down the true cost of popular fast-food family meals, transparency is key. We empower users to track every cent, convert complex ingredient measurements globally, and share their most frugal kitchen hacks. Cooking on a budget shouldn't mean sacrificing flavor or variety. Explore our extensive database to discover how cooks around the world are keeping their plates full and their wallets heavy.
+        </p>
+    </div>
+</div>
+<aside>
+    <div class="ad-box">
+        <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text);">💡 Budget Tip</h3>
+        <p id="hack-text" style="font-size: 0.9rem; line-height: 1.4; color: var(--text);">Loading tip...</p>
+    </div>
+</aside>
+<script src="app.js"></script>
 </body>
 </html>
