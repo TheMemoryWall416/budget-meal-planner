@@ -4,6 +4,7 @@ const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let selectedCountry = "";
 let selectedSubcategory = "";
+let totalApprovedRecipes = 0; 
 
 const currencyMap = { "Afghanistan": "؋", "Albania": "L", "Algeria": "دج", "Andorra": "€", "Angola": "Kz", "Antigua and Barbuda": "$", "Argentina": "$", "Armenia": "֏", "Australia": "A$", "Austria": "€", "Azerbaijan": "₼", "Bahamas": "$", "Bahrain": "BD", "Bangladesh": "৳", "Barbados": "$", "Belarus": "Br", "Belgium": "€", "Belize": "$", "Benin": "CFA", "Bhutan": "Nu", "Bolivia": "Bs", "Bosnia and Herzegovina": "KM", "Botswana": "P", "Brazil": "R$", "Brunei": "$", "Bulgaria": "лв", "Burkina Faso": "CFA", "Burundi": "FBu", "Cabo Verde": "Esc", "Cambodia": "៛", "Cameroon": "CFA", "Canada": "CA$", "Central African Republic": "CFA", "Chad": "CFA", "Chile": "$", "China": "¥", "Colombia": "$", "Comoros": "CF", "Congo": "CFA", "Costa Rica": "₡", "Croatia": "€", "Cuba": "$", "Cyprus": "€", "Czech Republic": "Kč", "Denmark": "kr", "Djibouti": "Fdj", "Dominica": "$", "Dominican Republic": "$", "Ecuador": "$", "Egypt": "£", "El Salvador": "$", "Equatorial Guinea": "CFA", "Eritrea": "Nfa", "Estonia": "€", "Eswatini": "E", "Ethiopia": "Br", "Fiji": "$", "Finland": "€", "France": "€", "Gabon": "CFA", "Gambia": "D", "Georgia": "₾", "Germany": "€", "Ghana": "₵", "Greece": "€", "Grenada": "$", "Guatemala": "Q", "Guinea": "FG", "Guinea-Bissau": "CFA", "Guyana": "$", "Haiti": "G", "Honduras": "L", "Hungary": "Ft", "Iceland": "kr", "India": "₹", "Indonesia": "Rp", "Iran": "﷼", "Iraq": "ع.د", "Ireland": "€", "Israel": "₪", "Italy": "€", "Jamaica": "$", "Japan": "¥", "Jordan": "JD", "Kazakhstan": "₸", "Kenya": "KSh", "Kiribati": "$", "Kuwait": "KD", "Kyrgyzstan": "som", "Laos": "₭", "Latvia": "€", "Lebanon": "£", "Lesotho": "L", "Liberia": "$", "Libya": "LD", "Liechtenstein": "CHF", "Lithuania": "€", "Luxembourg": "€", "Madagascar": "Ar", "Malawi": "MK", "Malaysia": "RM", "Maldives": "Rf", "Mali": "CFA", "Malta": "€", "Marshall Islands": "$", "Mauritania": "UM", "Mauritius": "₨", "Mexico": "$", "Micronesia": "$", "Moldova": "L", "Monaco": "€", "Mongolia": "₮", "Montenegro": "€", "Morocco": "DH", "Mozambique": "MT", "Myanmar": "Ks", "Namibia": "N$", "Nauru": "$", "Nepal": "₨", "Netherlands": "€", "New Zealand": "NZ$", "Nicaragua": "C$", "Niger": "CFA", "Nigeria": "₦", "North Macedonia": "ден", "Norway": "kr", "Oman": "ر.ع.", "Pakistan": "₨", "Palau": "$", "Palestine": "₪", "Panama": "B/.", "Papua New Guinea": "K", "Paraguay": "₲", "Peru": "S/", "Philippines": "₱", "Poland": "zł", "Portugal": "€", "Qatar": "QR", "Romania": "lei", "Russia": "₽", "Rwanda": "FRw", "Saint Kitts and Nevis": "$", "Saint Lucia": "$", "Saint Vincent and the Grenadines": "$", "Samoa": "WS$", "San Marino": "€", "Sao Tome and Principe": "Db", "Saudi Arabia": "﷼", "Senegal": "CFA", "Serbia": "дин", "Seychelles": "₨", "Sierra Leone": "Le", "Singapore": "S$", "Slovakia": "€", "Slovenia": "€", "Solomon Islands": "$", "Somalia": "Sh", "South Africa": "R", "South Sudan": "£", "Spain": "€", "Sri Lanka": "₨", "Sudan": "£", "Suriname": "$", "Sweden": "kr", "Switzerland": "CHF", "Syria": "£", "Taiwan": "NT$", "Tajikistan": "SM", "Tanzania": "TSh", "Thailand": "฿", "Timor-Leste": "$", "Togo": "CFA", "Tonga": "T$", "Trinidad and Tobago": "TT$", "Tunisia": "DT", "Turkey": "₺", "Turkmenistan": "m", "Tuvalu": "$", "Uganda": "USh", "Ukraine": "₴", "United Arab Emirates": "AED", "UK": "£", "USA": "$", "Uruguay": "$", "Uzbekistan": "so'm", "Vanuatu": "VT", "Vatican City": "€", "Venezuela": "Bs", "Vietnam": "₫", "Yemen": "﷼", "Zambia": "ZK", "Zimbabwe": "Z$" };
 const countries = Object.keys(currencyMap).sort();
@@ -26,7 +27,17 @@ const categories = {
     "Dietary Categories": ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Low-carb", "Keto", "High-protein"]
 };
 
-// --- INITIALIZATION & THEMES ---
+// --- INITIALIZATION & COUNTER LOGIC ---
+async function fetchRecipeCount() {
+    const { count, error } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+    
+    if (!error && count !== null) {
+        totalApprovedRecipes = count;
+        const navCounter = document.getElementById('nav-counter');
+        if (navCounter) navCounter.innerText = `🌍 ${totalApprovedRecipes} Recipes Live`;
+    }
+}
+
 function previewTheme() {
     const color = document.getElementById('modal-color-select').value;
     const mc = document.getElementById('modal-content');
@@ -64,6 +75,7 @@ window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     updateHack(); 
+    fetchRecipeCount(); 
 };
 
 // --- MAIN ROUTER ---
@@ -72,15 +84,25 @@ function showPage(page) {
     if (page === 'home') {
         view.innerHTML = `
             <h1 style="margin-top:0;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
+            
+            <div style="background: #e0f7fa; border: 2px solid #008080; padding: 15px; margin-bottom: 20px; text-align: center;">
+                <h3 style="margin: 0; color: #004d4d;">Join a growing community!</h3>
+                <p style="margin: 5px 0 0 0; font-size: 1.1rem;">Explore <strong>${totalApprovedRecipes}</strong> free recipes and budget meals shared by cooks worldwide.</p>
+            </div>
+
             <p style="font-size: 1.1rem; line-height: 1.6;">Whether you are searching for a strict budget-friendly main course to stretch your groceries, a quick weeknight dinner, a decadent dessert, or a refreshing drink, you will find it here.</p>
             <p style="font-size: 1.1rem; line-height: 1.6;">Looking to showcase your own culinary creations? This is the perfect place to share everything from your favorite hearty stews to your best cocktail recipes and thrifty kitchen hacks with the world.</p>
+            
             <div style="background: var(--nav-color); border: 2px solid var(--border); padding: 20px; margin-top: 25px; max-width: 700px; box-sizing: border-box;">
                 <h3 style="margin-top: 0; font-size: 1.2rem;">Built for Everyone. 100% Free.</h3>
                 <p style="margin-bottom: 0; font-size: 1.05rem; line-height: 1.5;">We believe cooking tools should be accessible to everyone without barriers. To keep this platform permanently free for the community, we have dedicated a small, unobtrusive space for ads. You will never encounter hidden paywalls, intrusive pop-ups, or forced account registrations—just jump straight in and start exploring.</p>
             </div>
         `;
     } else if (page === 'find-recipes') {
-        view.innerHTML = `<h1>FIND RECIPES</h1>`;
+        view.innerHTML = `
+            <h1 style="margin-bottom: 5px;">FIND RECIPES</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 20px;">Search through <strong>${totalApprovedRecipes}</strong> community-approved recipes.</p>
+        `;
         Object.keys(categories).forEach(cat => {
             view.innerHTML += `<h3>${cat}</h3><div class="btn-container">`;
             categories[cat].forEach(sub => view.innerHTML += `<button onclick="loadSubcategory('${sub}')">${sub}</button>`);
@@ -139,7 +161,7 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
-    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
+    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry).eq('status', 'approved');
     
     if (filter !== 'all') {
         query = query.eq('meal_type', filter);
@@ -245,6 +267,7 @@ async function loadSubcategory(subcategory) {
         .from('meals')
         .select('id, title, category')
         .eq('category', subcategory)
+        .eq('status', 'approved')
         .order('title', { ascending: true });
 
     if (error) {
@@ -474,7 +497,7 @@ async function saveRecipe() {
     }]);
     
     if (error) alert("Error: " + error.message);
-    else { alert("Recipe Saved successfully!"); addRecipeMenu(); }
+    else { alert("Recipe Saved successfully! It has been sent to the review queue."); addRecipeMenu(); }
 }
 
 async function saveBudgetMeal() {
@@ -514,7 +537,7 @@ async function saveBudgetMeal() {
     }]);
 
     if (error) alert("Error: " + error.message); 
-    else { alert("Saved budget meal!"); showPage('find-budget-meals'); }
+    else { alert("Saved budget meal! It has been sent to the review queue."); showPage('find-budget-meals'); }
 }
 
 // --- REPORTING LOGIC ---
