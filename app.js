@@ -63,7 +63,7 @@ function confirmCountry() {
 window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
-    updateHack(); // Starts the daily tips
+    updateHack(); 
 };
 
 // --- MAIN ROUTER ---
@@ -72,11 +72,8 @@ function showPage(page) {
     if (page === 'home') {
         view.innerHTML = `
             <h1 style="margin-top:0;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
-            
             <p style="font-size: 1.1rem; line-height: 1.6;">Whether you are searching for a strict budget-friendly main course to stretch your groceries, a quick weeknight dinner, a decadent dessert, or a refreshing drink, you will find it here.</p>
-            
             <p style="font-size: 1.1rem; line-height: 1.6;">Looking to showcase your own culinary creations? This is the perfect place to share everything from your favorite hearty stews to your best cocktail recipes and thrifty kitchen hacks with the world.</p>
-            
             <div style="background: var(--nav-color); border: 2px solid var(--border); padding: 20px; margin-top: 25px; max-width: 700px; box-sizing: border-box;">
                 <h3 style="margin-top: 0; font-size: 1.2rem;">Built for Everyone. 100% Free.</h3>
                 <p style="margin-bottom: 0; font-size: 1.05rem; line-height: 1.5;">We believe cooking tools should be accessible to everyone without barriers. To keep this platform permanently free for the community, we have dedicated a small, unobtrusive space for ads. You will never encounter hidden paywalls, intrusive pop-ups, or forced account registrations—just jump straight in and start exploring.</p>
@@ -95,14 +92,11 @@ function showPage(page) {
         view.innerHTML = `
             <h1>ADD BUDGET MEAL</h1>
             <p>Posting for: <strong>${selectedCountry}</strong></p>
-            
             <select id="meal-type" onchange="toggleMealType()" style="width: 100%; max-width: 450px; padding: 8px; margin-bottom: 15px; border: 2px solid var(--border); box-sizing: border-box;">
                 <option value="home">Home-Cooked (Ingredients)</option>
                 <option value="takeaway">Takeaway / Fast Food</option>
             </select>
-
             <input type="text" id="budget-title" placeholder="Meal Name (e.g. Steers Phanda)" style="width: 100%; max-width: 450px; box-sizing: border-box;">
-
             <div style="display:flex; gap: 10px; max-width: 450px; margin-bottom: 15px;">
                 <div style="display:flex; flex:1;">
                     <span style="padding:8px; background:var(--btn-grey); border: 2px solid var(--border); border-right: none; font-weight:bold; box-sizing: border-box;">${currencyMap[selectedCountry]}</span>
@@ -110,7 +104,6 @@ function showPage(page) {
                 </div>
                 <input type="number" id="budget-servings" placeholder="Servings (e.g. 4)" style="margin-bottom: 0; flex: 1; box-sizing: border-box;">
             </div>
-
             <div id="home-cooked-section" style="width: 100%; max-width: 450px;">
                 <div style="background: #fff; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
                     <h3 style="margin-top: 0;">Ingredients</h3>
@@ -119,11 +112,9 @@ function showPage(page) {
                 </div>
                 <textarea id="recipe-instructions" rows="6" placeholder="Cooking Instructions..." style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
             </div>
-
             <div id="takeaway-section" style="display: none; width: 100%; max-width: 450px;">
                 <textarea id="takeaway-included" rows="4" placeholder="What is included? (e.g. 4 Burgers, 2 Large Chips, 2L Coke)" style="width: 100%; box-sizing: border-box;"></textarea>
             </div>
-
             <button onclick="saveBudgetMeal()" style="margin-top: 10px;">Post Budget Meal</button>
         `;
         addIngredientRow(); 
@@ -162,7 +153,6 @@ async function loadBudgetMeals(filter = 'all') {
     }
 
     let html = `<h1>Budget Meals in ${selectedCountry}</h1>`;
-    
     html += `
         <div style="margin-bottom: 20px;">
             <button onclick="loadBudgetMeals('all')" style="${filter === 'all' ? 'background: #000; color: #fff;' : 'margin-right: 10px;'}">All</button>
@@ -175,14 +165,11 @@ async function loadBudgetMeals(filter = 'all') {
         html += `<p>No budget meals posted for ${selectedCountry} under this filter.</p>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px;">`;
-        
         data.sort((a, b) => (a.cost / a.servings) - (b.cost / b.servings));
-
         data.forEach(meal => {
             const costPerPerson = (meal.cost / meal.servings).toFixed(2);
             const badgeColor = meal.meal_type === 'takeaway' ? '#ffcc00' : '#4caf50';
             const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
-            
             html += `
             <div onclick="viewBudgetMeal(${meal.id})" style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -243,6 +230,9 @@ async function viewBudgetMeal(id) {
             <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
         </div>
         ${contentHTML}
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ccc;">
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.8rem;">⚠️ Report Recipe</button>
+        </div>
     `;
 }
 
@@ -346,6 +336,10 @@ async function viewRecipe(id) {
         
         <h2 style="margin-top: 20px;">Instructions</h2>
         <div style="font-size: 1.1rem; line-height: 1.6; background: #fff; padding: 20px; border: 2px solid var(--border); max-width: 600px; white-space: pre-wrap;">${data.recipe}</div>
+        
+        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ccc;">
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.8rem;">⚠️ Report Recipe</button>
+        </div>
     `;
     updateConverter();
 }
@@ -521,6 +515,21 @@ async function saveBudgetMeal() {
 
     if (error) alert("Error: " + error.message); 
     else { alert("Saved budget meal!"); showPage('find-budget-meals'); }
+}
+
+// --- REPORTING LOGIC ---
+async function reportRecipe(title, id) {
+    const reason = prompt("Why are you reporting this recipe?");
+    if (!reason) return;
+
+    const { error } = await myDatabase.from('messages').insert([{ 
+        name: "REPORTED: " + title, 
+        email: "System ID: " + id, 
+        message: "REASON: " + reason 
+    }]);
+
+    if (error) alert("Error sending report: " + error.message);
+    else alert("Report submitted successfully. Thank you!");
 }
 
 // --- DAILY KITCHEN TIPS ---
