@@ -160,13 +160,11 @@
             document.getElementById(`tab-${tab}`).classList.add('active');
         }
         
-        // Hide everything first
         document.getElementById('view-inbox').style.display = 'none';
         document.getElementById('view-review').style.display = 'none';
         document.getElementById('view-library').style.display = 'none';
         document.getElementById('view-edit').style.display = 'none';
         
-        // Unhide the specific tab that was requested (THIS is what was missing for the edit view)
         if (document.getElementById(`view-${tab}`)) {
             document.getElementById(`view-${tab}`).style.display = 'block';
         }
@@ -287,7 +285,6 @@
         const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
         if (error) { alert("Error loading recipe: " + error.message); return; }
 
-        // Populate all exact data fields
         document.getElementById('edit-id').value = data.id;
         document.getElementById('edit-title').value = data.title || '';
         document.getElementById('edit-category').value = data.category || '';
@@ -297,7 +294,7 @@
         document.getElementById('edit-servings').value = data.servings || '';
         document.getElementById('edit-instructions').value = data.recipe || '';
 
-        toggleAdminFields(); // Setup the layout (hide/show ingredients and math fields)
+        toggleAdminFields();
 
         const ingList = document.getElementById('edit-ingredients-list');
         ingList.innerHTML = ''; 
@@ -306,21 +303,19 @@
                 adminAddIngredientRow(ing.item, ing.qty, ing.unit);
             });
         }
-        adminAddIngredientRow(); // Leave one blank row for fast adding
+        adminAddIngredientRow(); 
     }
 
     function toggleAdminFields() {
         const cat = document.getElementById('edit-category').value.toLowerCase();
         const mealType = document.getElementById('edit-meal-type').value;
 
-        // 1. Budget Fields (Cost & Servings)
         if (cat === 'budget') {
             document.getElementById('edit-budget-fields').style.display = 'flex';
         } else {
             document.getElementById('edit-budget-fields').style.display = 'none';
         }
 
-        // 2. Ingredients visibility (Hide if it's a takeaway)
         if (mealType === 'takeaway') {
             document.getElementById('edit-ingredients-container').style.display = 'none';
         } else {
@@ -359,7 +354,6 @@
 
         let structuredIngredients = null;
 
-        // Only build the ingredients JSON if it's NOT a takeaway
         if (mealType !== 'takeaway') {
             structuredIngredients = [];
             const rows = document.querySelectorAll('#edit-ingredients-list .ingredient-row');
@@ -403,7 +397,7 @@
             alert("Record updated successfully!");
             document.getElementById('view-edit').style.display = 'none';
             document.getElementById('view-library').style.display = 'block';
-            searchLibrary(); // Refresh the list
+            searchLibrary(); 
         }
     }
 
