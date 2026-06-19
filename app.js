@@ -29,10 +29,12 @@ const categories = {
 
 // --- INITIALIZATION & COUNTER LOGIC ---
 async function fetchRecipeCount() {
+    // Asks Supabase strictly for the math count of approved recipes
     const { count, error } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
     
     if (!error && count !== null) {
         totalApprovedRecipes = count;
+        // Update the physical navigation menu counter instantly
         const navCounter = document.getElementById('nav-counter');
         if (navCounter) navCounter.innerText = `🌍 ${totalApprovedRecipes} Recipes Live`;
     }
@@ -75,7 +77,7 @@ window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     updateHack(); 
-    fetchRecipeCount(); 
+    fetchRecipeCount(); // Triggers the counter the second the page loads
 };
 
 // --- MAIN ROUTER ---
@@ -85,23 +87,27 @@ function showPage(page) {
         view.innerHTML = `
             <h1 style="margin-top:0;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
             
-            <div style="background: #e0f7fa; border: 2px solid #008080; padding: 15px; margin-bottom: 20px; text-align: center;">
-                <h3 style="margin: 0; color: #004d4d;">Join a growing community!</h3>
-                <p style="margin: 5px 0 0 0; font-size: 1.1rem;">Explore <strong>${totalApprovedRecipes}</strong> free recipes and budget meals shared by cooks worldwide.</p>
+            <div style="background: #e0f7fa; border: 2px solid #008080; padding: 15px; margin-bottom: 20px; text-align: center; max-width: 800px;">
+                <p style="margin: 0; font-size: 1.2rem;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
             </div>
 
-            <p style="font-size: 1.1rem; line-height: 1.6;">Whether you are searching for a strict budget-friendly main course to stretch your groceries, a quick weeknight dinner, a decadent dessert, or a refreshing drink, you will find it here.</p>
-            <p style="font-size: 1.1rem; line-height: 1.6;">Looking to showcase your own culinary creations? This is the perfect place to share everything from your favorite hearty stews to your best cocktail recipes and thrifty kitchen hacks with the world.</p>
-            
-            <div style="background: var(--nav-color); border: 2px solid var(--border); padding: 20px; margin-top: 25px; max-width: 700px; box-sizing: border-box;">
-                <h3 style="margin-top: 0; font-size: 1.2rem;">Built for Everyone. 100% Free.</h3>
-                <p style="margin-bottom: 0; font-size: 1.05rem; line-height: 1.5;">We believe cooking tools should be accessible to everyone without barriers. To keep this platform permanently free for the community, we have dedicated a small, unobtrusive space for ads. You will never encounter hidden paywalls, intrusive pop-ups, or forced account registrations—just jump straight in and start exploring.</p>
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid var(--border); max-width: 800px;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 15px;">The Ultimate Guide to Budget Meal Planning</h2>
+                <p style="line-height: 1.6; margin-bottom: 15px;">
+                    In today's economic climate, grocery prices are stretching household budgets to their absolute limits. Whether you are trying to feed a family of four on a strict budget or simply looking to cut down on expensive takeout habits, mastering the art of budget meal planning is the single most effective way to take control of your finances. 
+                </p>
+                <p style="line-height: 1.6; margin-bottom: 15px;">
+                    The Global Recipe & Meal Planner was built specifically to solve this problem. By combining community-sourced recipes with precise cost-per-serving calculators, this platform eliminates the guesswork from grocery shopping. A successful budget meal isn't just about eating cheap ingredients; it is about maximizing nutritional value while minimizing waste. Strategies like bulk cooking, utilizing seasonal vegetables, and repurposing leftovers can reduce your monthly food expenditure drastically.
+                </p>
+                <p style="line-height: 1.6; margin-bottom: 15px;">
+                    From hearty home-cooked stews to breaking down the true cost of popular fast-food family meals, transparency is key. We empower users to track every cent, convert complex ingredient measurements globally, and share their most frugal kitchen hacks. Cooking on a budget shouldn't mean sacrificing flavor or variety. Explore our extensive database to discover how cooks around the world are keeping their plates full and their wallets heavy.
+                </p>
             </div>
         `;
     } else if (page === 'find-recipes') {
         view.innerHTML = `
             <h1 style="margin-bottom: 5px;">FIND RECIPES</h1>
-            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 20px;">Search through <strong>${totalApprovedRecipes}</strong> community-approved recipes.</p>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 20px;">Search our open library of <strong>${totalApprovedRecipes}</strong> everyday recipes and calculated budget meals.</p>
         `;
         Object.keys(categories).forEach(cat => {
             view.innerHTML += `<h3>${cat}</h3><div class="btn-container">`;
@@ -161,6 +167,7 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
+    // Only load approved budget meals to the public
     let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry).eq('status', 'approved');
     
     if (filter !== 'all') {
@@ -263,6 +270,7 @@ async function loadSubcategory(subcategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
+    // Only load approved recipes to the public
     const { data, error } = await myDatabase
         .from('meals')
         .select('id, title, category')
