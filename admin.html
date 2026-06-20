@@ -27,6 +27,9 @@
         .meta { font-size: 0.85rem; color: #666; margin: 0; }
         .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
         .badge { padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid #000; margin-left: 10px; background: #fff; }
+        .badge-special { background: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .badge-plan { background: #cce5ff; color: #004085; border-color: #b8daff; }
+        .badge-pet { background: #e2d9f3; color: #381885; border-color: #d2c4eb; }
     </style>
 </head>
 <body>
@@ -58,14 +61,21 @@
 
     <div id="view-review" style="display: none;">
         <h2>Needs Approval</h2>
-        <p style="margin-top:0; color:#555;">These recipes are currently live. Approve them to keep them, or Decline to delete them immediately.</p>
+        <p style="margin-top:0; color:#555;">These items are currently live. Approve them to keep them, or Decline to delete them immediately.</p>
         <div id="review-list">Loading...</div>
     </div>
 
     <div id="view-library" style="display: none;">
-        <h2>Approved Recipes</h2>
+        <h2>Approved Content</h2>
         <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search by recipe title..." onkeyup="if(event.key === 'Enter') searchLibrary()">
+            <input type="text" id="search-input" placeholder="Search by title..." onkeyup="if(event.key === 'Enter') searchLibrary()">
+            <select id="filter-category" onchange="searchLibrary()" style="width: auto; margin-bottom: 0; cursor: pointer;">
+                <option value="all">All Categories</option>
+                <option value="budget">Budget Meals</option>
+                <option value="special">Local Specials</option>
+                <option value="7-Day Meal Plans">7-Day Meal Plans</option>
+                <option value="Pet Food & Treats">Pet Food & Treats</option>
+            </select>
             <button onclick="searchLibrary()">Search</button>
         </div>
         <div id="library-list">Loading...</div>
@@ -209,7 +219,7 @@
     // --- 2. REVIEW QUEUE LOGIC ---
     async function loadReviewQueue() {
         const list = document.getElementById('review-list');
-        list.innerHTML = "Checking for new recipes...";
+        list.innerHTML = "Checking for new submissions...";
         const { data, error } = await myDatabase.from('meals').select('id, title, category, country').eq('status', 'pending').order('created_at', { ascending: false });
         
         if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
@@ -217,11 +227,26 @@
 
         let html = '';
         data.forEach(meal => {
-            const typeInfo = meal.category === 'budget' ? `Budget Meal (${meal.country})` : `Global Recipe (${meal.category})`;
+            let badgeStyle = '';
+            let typeInfo = `Global Recipe (${meal.category})`;
+            
+            if (meal.category === 'budget') {
+                typeInfo = `Budget Meal (${meal.country})`;
+            } else if (meal.category === 'special') {
+                badgeStyle = 'badge-special';
+                typeInfo = `Local Special (${meal.country})`;
+            } else if (meal.category === '7-Day Meal Plans') {
+                badgeStyle = 'badge-plan';
+                typeInfo = `Meal Plan (Global)`;
+            } else if (meal.category === 'Pet Food & Treats') {
+                badgeStyle = 'badge-pet';
+                typeInfo = `Pet Food (Global)`;
+            }
+
             html += `
             <div class="card" id="review-${meal.id}">
                 <div class="card-content">
-                    <p class="card-title">${meal.title} <span class="badge" style="color: #d39e00; border-color: #d39e00;">PENDING</span></p>
+                    <p class="card-title">${meal.title} <span class="badge ${badgeStyle}">PENDING</span></p>
                     <p class="meta">Type: ${typeInfo} | ID: ${meal.id}</p>
                 </div>
                 <div class="card-actions">
@@ -243,11 +268,16 @@
     // --- 3. MANAGE LIBRARY LOGIC ---
     async function searchLibrary() {
         const term = document.getElementById('search-input') ? document.getElementById('search-input').value.trim() : '';
+        const filterCat = document.getElementById('filter-category') ? document.getElementById('filter-category').value : 'all';
         const list = document.getElementById('library-list');
         list.innerHTML = "Loading library...";
         
         let query = myDatabase.from('meals').select('id, title, category, country, created_at').eq('status', 'approved').order('created_at', { ascending: false });
         
+        if (filterCat !== 'all') {
+            query = query.eq('category', filterCat);
+        }
+
         if (term !== '') {
             query = query.ilike('title', `%${term}%`); 
         } else {
@@ -257,11 +287,16 @@
         const { data, error } = await query;
         
         if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-        if (data.length === 0) { list.innerHTML = `<p>No approved recipes found matching that search.</p>`; return; }
+        if (data.length === 0) { list.innerHTML = `<p>No approved content found matching that search.</p>`; return; }
 
-        let html = term === '' ? '<p class="meta" style="margin-bottom: 15px;">Showing most recent 50 approved recipes. Use search to find older ones.</p>' : '';
+        let html = term === '' && filterCat === 'all' ? '<p class="meta" style="margin-bottom: 15px;">Showing most recent 50 approved items. Use search to find older ones.</p>' : '';
         data.forEach(meal => {
-            const typeInfo = meal.category === 'budget' ? `Budget Meal (${meal.country})` : `Global Recipe (${meal.category})`;
+            let typeInfo = `Global Recipe (${meal.category})`;
+            if (meal.category === 'budget') typeInfo = `Budget Meal (${meal.country})`;
+            if (meal.category === 'special') typeInfo = `Local Special (${meal.country})`;
+            if (meal.category === '7-Day Meal Plans') typeInfo = `Meal Plan (Global)`;
+            if (meal.category === 'Pet Food & Treats') typeInfo = `Pet Food (Global)`;
+
             html += `
             <div class="card" id="lib-${meal.id}">
                 <div class="card-content">
@@ -406,7 +441,12 @@
         if (!confirm("Are you 100% sure you want to permanently delete this? It cannot be undone.")) return;
         const { error } = await myDatabase.from(table).delete().eq('id', id);
         if (error) alert("Error deleting: " + error.message);
-        else document.getElementById(elementId).remove();
+        else if (elementId !== 'none' && document.getElementById(elementId)) {
+            document.getElementById(elementId).remove();
+        } else {
+            // Fallback reload if it was deleted from a view that requires refreshing
+            location.reload();
+        }
     }
 </script>
 </body>
