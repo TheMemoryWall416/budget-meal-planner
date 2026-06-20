@@ -153,7 +153,7 @@ function showPage(page) {
     } else if (page === 'find-meal-plans') {
         loadSubcategory('7-Day Meal Plans');
     } else if (page === 'add-meal-plan') {
-        showForm('7-Day Meal Plans');
+        renderAddMealPlanForm(); // Routing specifically to our new custom 7-box form
     } else if (page === 'find-pet-food') {
         loadSubcategory('Pet Food & Treats');
     } else if (page === 'add-pet-food') {
@@ -162,6 +162,71 @@ function showPage(page) {
         view.innerHTML = `<h1>${page.replace(/-/g, ' ').toUpperCase()}</h1>`;
     }
 }
+
+// --- 7-DAY MEAL PLAN LOGIC ---
+function renderAddMealPlanForm() {
+    const view = document.getElementById('main-view');
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    let daysHTML = '';
+    
+    // Generate the 7 input boxes dynamically
+    days.forEach(day => {
+        daysHTML += `
+            <label style="font-weight: bold; margin-top: 15px; display: block; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 5px;">${day}</label>
+            <textarea id="plan-${day.toLowerCase()}" rows="4" placeholder="Breakfast: ...&#10;Lunch: ...&#10;Dinner: ..." style="width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 5px;"></textarea>
+        `;
+    });
+
+    view.innerHTML = `
+        <h1>ADD 7-DAY MEAL PLAN</h1>
+        <input type="text" id="plan-title" placeholder="Meal Plan Title (e.g., R500 Student Survival Week)" style="width: 100%; max-width: 600px; box-sizing: border-box; font-weight: bold; font-size: 1.1rem;">
+        
+        <div style="background: #fff; border: 2px solid var(--border); padding: 20px; max-width: 600px; box-sizing: border-box; margin-top: 10px;">
+            <p style="margin-top: 0; font-size: 0.95rem; color: #555;">Fill out the meals for each day. If you plan to eat leftovers or skip a meal, just leave that day blank!</p>
+            ${daysHTML}
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button onclick="saveMealPlan()" style="margin: 0;">Save Meal Plan</button>
+            <button onclick="showPage('home')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
+        </div>
+    `;
+}
+
+async function saveMealPlan() {
+    const title = document.getElementById('plan-title').value.trim();
+    if (!title) return alert("Please enter a title for your meal plan.");
+
+    let finalRecipe = "";
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    let hasContent = false;
+
+    // Loop through the 7 boxes and stitch them together with markdown formatting
+    days.forEach(day => {
+        const text = document.getElementById(`plan-${day.toLowerCase()}`).value.trim();
+        if (text) {
+            hasContent = true;
+            finalRecipe += `**${day}**\n${text}\n\n`;
+        }
+    });
+
+    if (!hasContent) return alert("Please fill in at least one day of the meal plan.");
+
+    // Send the stitched data directly into the standard meals table under the Meal Plans category
+    const { error } = await myDatabase.from('meals').insert([{ 
+        title: title, 
+        category: '7-Day Meal Plans', 
+        recipe: finalRecipe.trim() 
+    }]);
+    
+    if (error) {
+        alert("Error: " + error.message);
+    } else { 
+        alert("Meal Plan Saved successfully! It has been sent to the review queue."); 
+        showPage('find-meal-plans'); 
+    }
+}
+
 
 // --- LOCAL SPECIALS LOGIC ---
 async function loadSpecials() {
@@ -173,7 +238,6 @@ async function loadSpecials() {
         return;
     }
 
-    // Include the 'gt' (greater than) filter as a safety net in case the database cron job hasn't run yet today
     const now = new Date().toISOString();
     const { data, error } = await myDatabase.from('meals')
         .select('*')
@@ -248,18 +312,15 @@ async function saveSpecial() {
 
     if (!title || !cost || !duration || !details) return alert("Please fill in all the details, including the duration of the special.");
 
-    // Calculate Expiry Date mathematically based on user dropdown selection
     let expiryDate = new Date();
     if (duration === "3") {
         expiryDate.setDate(expiryDate.getDate() + 3);
     } else if (duration === "7") {
         expiryDate.setDate(expiryDate.getDate() + 7);
     } else if (duration === "month") {
-        // Automatically find the last day of the current month
         expiryDate = new Date(expiryDate.getFullYear(), expiryDate.getMonth() + 1, 0, 23, 59, 59);
     }
     
-    // Supabase requires timestamps in ISO string format
     const expiryISO = expiryDate.toISOString();
 
     const { error } = await myDatabase.from('meals').insert([{ 
@@ -632,46 +693,6 @@ async function saveRecipe() {
     
     if (error) alert("Error: " + error.message);
     else { alert("Recipe Saved successfully! It has been sent to the review queue."); addRecipeMenu(); }
-}
-
-async function saveBudgetMeal() {
-    const type = document.getElementById('meal-type').value;
-    const title = document.getElementById('budget-title').value;
-    const cost = parseFloat(document.getElementById('budget-cost').value);
-    const servings = parseInt(document.getElementById('budget-servings').value);
-
-    if (!title || !cost || !servings) return alert("Please fill in the meal name, total cost, and servings.");
-
-    let finalIngredients = null;
-    let finalRecipe = "";
-
-    if (type === 'home') {
-        const rows = document.querySelectorAll('.ingredient-row');
-        finalIngredients = [];
-        rows.forEach(r => {
-            const name = r.querySelector('.ing-name').value.trim();
-            const qty = r.querySelector('.ing-qty').value;
-            const unit = r.querySelector('.ing-unit').value;
-            if (name) finalIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: unit });
-        });
-        finalRecipe = document.getElementById('recipe-instructions').value;
-    } else {
-        finalRecipe = document.getElementById('takeaway-included').value;
-    }
-
-    const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, 
-        title: title, 
-        recipe: finalRecipe, 
-        ingredients: finalIngredients,
-        cost: cost, 
-        servings: servings,
-        meal_type: type,
-        category: 'budget'
-    }]);
-
-    if (error) alert("Error: " + error.message); 
-    else { alert("Saved budget meal! It has been sent to the review queue."); showPage('find-budget-meals'); }
 }
 
 // --- REPORTING LOGIC ---
