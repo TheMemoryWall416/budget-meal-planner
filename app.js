@@ -24,17 +24,17 @@ const categories = {
     "Preserves & Fermented Foods": ["Pickles", "Chutneys", "Relishes", "Fermented foods"],
     "Special Occasion Foods": ["Braai recipes", "Christmas recipes", "Birthday recipes", "Easter recipes", "Party foods"],
     "Cuisine Types": ["South African", "Italian", "Mexican", "Indian", "Chinese", "American", "Greek", "French", "Middle Eastern", "Thai"],
-    "Dietary Categories": ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Low-carb", "Keto", "High-protein"]
+    "Dietary Categories": ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Low-carb", "Keto", "High-protein"],
+    "Specialized Plans": ["7-Day Meal Plans"],
+    "Pets": ["Pet Food & Treats"]
 };
 
 // --- INITIALIZATION & COUNTER LOGIC ---
 async function fetchRecipeCount() {
-    // Asks Supabase strictly for the math count of approved recipes
     const { count, error } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
     
     if (!error && count !== null) {
         totalApprovedRecipes = count;
-        // Update the physical navigation menu counter instantly
         const navCounter = document.getElementById('nav-counter');
         if (navCounter) navCounter.innerText = `🌍 ${totalApprovedRecipes} Recipes Live`;
     }
@@ -77,7 +77,7 @@ window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     updateHack(); 
-    fetchRecipeCount(); // Triggers the counter the second the page loads
+    fetchRecipeCount();
 };
 
 // --- MAIN ROUTER ---
@@ -146,10 +146,138 @@ function showPage(page) {
             <button onclick="saveBudgetMeal()" style="margin-top: 10px;">Post Budget Meal</button>
         `;
         addIngredientRow(); 
+    } else if (page === 'find-specials') {
+        loadSpecials();
+    } else if (page === 'add-special') {
+        renderAddSpecialForm();
+    } else if (page === 'find-meal-plans') {
+        loadSubcategory('7-Day Meal Plans');
+    } else if (page === 'add-meal-plan') {
+        showForm('7-Day Meal Plans');
+    } else if (page === 'find-pet-food') {
+        loadSubcategory('Pet Food & Treats');
+    } else if (page === 'add-pet-food') {
+        showForm('Pet Food & Treats');
     } else {
         view.innerHTML = `<h1>${page.replace(/-/g, ' ').toUpperCase()}</h1>`;
     }
 }
+
+// --- LOCAL SPECIALS LOGIC ---
+async function loadSpecials() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `<h1>Loading Local Specials...</h1>`;
+
+    if (!selectedCountry) {
+        view.innerHTML = `<h1>Error</h1><p>Please select a country first.</p>`;
+        return;
+    }
+
+    // Include the 'gt' (greater than) filter as a safety net in case the database cron job hasn't run yet today
+    const now = new Date().toISOString();
+    const { data, error } = await myDatabase.from('meals')
+        .select('*')
+        .eq('category', 'special')
+        .eq('country', selectedCountry)
+        .eq('status', 'approved')
+        .gt('expiry_date', now);
+
+    if (error) {
+        view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`;
+        return;
+    }
+
+    let html = `<h1>Local Specials in ${selectedCountry}</h1>`;
+    
+    if (data.length === 0) {
+        html += `<p>No active specials posted for ${selectedCountry}. Be the first to share a deal!</p>`;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px;">`;
+        data.forEach(meal => {
+            const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
+            html += `
+            <div style="padding: 15px; background: #fff; border: 2px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 1.2rem; font-weight: bold;">${meal.title}</span>
+                    <span style="background: #ffcc00; padding: 3px 8px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border);">EXPIRES: ${expiryStr}</span>
+                </div>
+                <div style="font-size: 1.2rem; margin-bottom: 10px; color: #008080; font-weight: bold;">
+                    ${currencyMap[selectedCountry] || ''}${meal.cost}
+                </div>
+                <div style="font-size: 1rem; line-height: 1.5; white-space: pre-wrap;">${meal.recipe}</div>
+                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;">
+                    <button onclick="reportRecipe('${meal.title.replace(/'/g, "\\'")}', ${meal.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.7rem; margin: 0;">⚠️ Report Fake/Expired Deal</button>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+    }
+    view.innerHTML = html;
+}
+
+function renderAddSpecialForm() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `
+        <h1>SHARE A LOCAL SPECIAL</h1>
+        <p>Posting deal for: <strong>${selectedCountry}</strong></p>
+        <input type="text" id="special-title" placeholder="Deal Name & Store (e.g. Checkers 5kg Braai Pack)" style="width: 100%; max-width: 450px; box-sizing: border-box;">
+        
+        <div style="display:flex; flex:1; max-width: 450px; margin-bottom: 15px;">
+            <span style="padding:8px; background:var(--btn-grey); border: 2px solid var(--border); border-right: none; font-weight:bold; box-sizing: border-box;">${currencyMap[selectedCountry] || '$'}</span>
+            <input type="number" id="special-cost" step="any" placeholder="Special Price" style="margin-bottom: 0; flex: 1; box-sizing: border-box;">
+        </div>
+
+        <select id="special-duration" style="width: 100%; max-width: 450px; padding: 8px; margin-bottom: 15px; border: 2px solid var(--border); box-sizing: border-box;">
+            <option value="">-- When does this special end? --</option>
+            <option value="3">Just this weekend (3 days)</option>
+            <option value="7">One week (7 days)</option>
+            <option value="month">Until the end of the month</option>
+        </select>
+
+        <textarea id="special-details" rows="4" placeholder="What is included in the deal? Any specific conditions?" style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
+        
+        <button onclick="saveSpecial()" style="margin-top: 10px;">Post Local Special</button>
+    `;
+}
+
+async function saveSpecial() {
+    const title = document.getElementById('special-title').value.trim();
+    const cost = parseFloat(document.getElementById('special-cost').value);
+    const duration = document.getElementById('special-duration').value;
+    const details = document.getElementById('special-details').value.trim();
+
+    if (!title || !cost || !duration || !details) return alert("Please fill in all the details, including the duration of the special.");
+
+    // Calculate Expiry Date mathematically based on user dropdown selection
+    let expiryDate = new Date();
+    if (duration === "3") {
+        expiryDate.setDate(expiryDate.getDate() + 3);
+    } else if (duration === "7") {
+        expiryDate.setDate(expiryDate.getDate() + 7);
+    } else if (duration === "month") {
+        // Automatically find the last day of the current month
+        expiryDate = new Date(expiryDate.getFullYear(), expiryDate.getMonth() + 1, 0, 23, 59, 59);
+    }
+    
+    // Supabase requires timestamps in ISO string format
+    const expiryISO = expiryDate.toISOString();
+
+    const { error } = await myDatabase.from('meals').insert([{ 
+        country: selectedCountry, 
+        title: title, 
+        recipe: details, 
+        cost: cost, 
+        category: 'special',
+        expiry_date: expiryISO
+    }]);
+
+    if (error) alert("Error: " + error.message); 
+    else { 
+        alert("Special shared successfully! It has been sent to the review queue."); 
+        showPage('find-specials'); 
+    }
+}
+
 
 // --- BUDGET MEAL LOGIC ---
 function toggleMealType() {
@@ -167,7 +295,6 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
-    // Only load approved budget meals to the public
     let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry).eq('status', 'approved');
     
     if (filter !== 'all') {
@@ -270,7 +397,6 @@ async function loadSubcategory(subcategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
-    // Only load approved recipes to the public
     const { data, error } = await myDatabase
         .from('meals')
         .select('id, title, category')
@@ -550,7 +676,7 @@ async function saveBudgetMeal() {
 
 // --- REPORTING LOGIC ---
 async function reportRecipe(title, id) {
-    const reason = prompt("Why are you reporting this recipe?");
+    const reason = prompt("Why are you reporting this?");
     if (!reason) return;
 
     const { error } = await myDatabase.from('messages').insert([{ 
