@@ -31,7 +31,8 @@ const categories = {
 
 // --- INITIALIZATION & COUNTER LOGIC ---
 async function fetchRecipeCount() {
-    const { count, error } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+    // Removed .eq('status', 'approved') so everything live is counted
+    const { count, error } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
     
     if (!error && count !== null) {
         totalApprovedRecipes = count;
@@ -153,7 +154,7 @@ function showPage(page) {
     } else if (page === 'find-meal-plans') {
         loadSubcategory('7-Day Meal Plans');
     } else if (page === 'add-meal-plan') {
-        renderAddMealPlanForm(); // Routing specifically to our new custom 7-box form
+        renderAddMealPlanForm(); 
     } else if (page === 'find-pet-food') {
         loadSubcategory('Pet Food & Treats');
     } else if (page === 'add-pet-food') {
@@ -169,7 +170,6 @@ function renderAddMealPlanForm() {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     let daysHTML = '';
     
-    // Generate the 7 input boxes dynamically
     days.forEach(day => {
         daysHTML += `
             <label style="font-weight: bold; margin-top: 15px; display: block; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 5px;">${day}</label>
@@ -201,7 +201,6 @@ async function saveMealPlan() {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     let hasContent = false;
 
-    // Loop through the 7 boxes and stitch them together with markdown formatting
     days.forEach(day => {
         const text = document.getElementById(`plan-${day.toLowerCase()}`).value.trim();
         if (text) {
@@ -212,21 +211,20 @@ async function saveMealPlan() {
 
     if (!hasContent) return alert("Please fill in at least one day of the meal plan.");
 
-    // Send the stitched data directly into the standard meals table under the Meal Plans category
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: '7-Day Meal Plans', 
-        recipe: finalRecipe.trim() 
+        recipe: finalRecipe.trim(),
+        status: 'pending' 
     }]);
     
     if (error) {
         alert("Error: " + error.message);
     } else { 
-        alert("Meal Plan Saved successfully! It has been sent to the review queue."); 
+        alert("Meal Plan Saved successfully!"); 
         showPage('find-meal-plans'); 
     }
 }
-
 
 // --- LOCAL SPECIALS LOGIC ---
 async function loadSpecials() {
@@ -239,11 +237,11 @@ async function loadSpecials() {
     }
 
     const now = new Date().toISOString();
+    // Removed .eq('status', 'approved') so everything live is shown
     const { data, error } = await myDatabase.from('meals')
         .select('*')
         .eq('category', 'special')
         .eq('country', selectedCountry)
-        .eq('status', 'approved')
         .gt('expiry_date', now);
 
     if (error) {
@@ -329,16 +327,16 @@ async function saveSpecial() {
         recipe: details, 
         cost: cost, 
         category: 'special',
-        expiry_date: expiryISO
+        expiry_date: expiryISO,
+        status: 'pending'
     }]);
 
     if (error) alert("Error: " + error.message); 
     else { 
-        alert("Special shared successfully! It has been sent to the review queue."); 
+        alert("Special shared successfully!"); 
         showPage('find-specials'); 
     }
 }
-
 
 // --- BUDGET MEAL LOGIC ---
 function toggleMealType() {
@@ -356,7 +354,8 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
-    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry).eq('status', 'approved');
+    // Removed .eq('status', 'approved') so everything live is shown
+    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
     
     if (filter !== 'all') {
         query = query.eq('meal_type', filter);
@@ -458,11 +457,11 @@ async function loadSubcategory(subcategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
+    // Removed .eq('status', 'approved') so everything live is shown
     const { data, error } = await myDatabase
         .from('meals')
         .select('id, title, category')
         .eq('category', subcategory)
-        .eq('status', 'approved')
         .order('title', { ascending: true });
 
     if (error) {
@@ -688,11 +687,53 @@ async function saveRecipe() {
         title: title, 
         category: selectedSubcategory, 
         ingredients: structuredIngredients,
-        recipe: instructions 
+        recipe: instructions,
+        status: 'pending'
     }]);
     
     if (error) alert("Error: " + error.message);
-    else { alert("Recipe Saved successfully! It has been sent to the review queue."); addRecipeMenu(); }
+    else { alert("Recipe Saved successfully!"); addRecipeMenu(); }
+}
+
+async function saveBudgetMeal() {
+    const type = document.getElementById('meal-type').value;
+    const title = document.getElementById('budget-title').value;
+    const cost = parseFloat(document.getElementById('budget-cost').value);
+    const servings = parseInt(document.getElementById('budget-servings').value);
+
+    if (!title || !cost || !servings) return alert("Please fill in the meal name, total cost, and servings.");
+
+    let finalIngredients = null;
+    let finalRecipe = "";
+
+    if (type === 'home') {
+        const rows = document.querySelectorAll('.ingredient-row');
+        finalIngredients = [];
+        rows.forEach(r => {
+            const name = r.querySelector('.ing-name').value.trim();
+            const qty = r.querySelector('.ing-qty').value;
+            const unit = r.querySelector('.ing-unit').value;
+            if (name) finalIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: unit });
+        });
+        finalRecipe = document.getElementById('recipe-instructions').value;
+    } else {
+        finalRecipe = document.getElementById('takeaway-included').value;
+    }
+
+    const { error } = await myDatabase.from('meals').insert([{ 
+        country: selectedCountry, 
+        title: title, 
+        recipe: finalRecipe, 
+        ingredients: finalIngredients,
+        cost: cost, 
+        servings: servings,
+        meal_type: type,
+        category: 'budget',
+        status: 'pending'
+    }]);
+
+    if (error) alert("Error: " + error.message); 
+    else { alert("Saved budget meal successfully!"); showPage('find-budget-meals'); }
 }
 
 // --- REPORTING LOGIC ---
