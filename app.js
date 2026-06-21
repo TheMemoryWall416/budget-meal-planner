@@ -31,7 +31,6 @@ const categories = {
 
 // --- INITIALIZATION & COUNTER LOGIC ---
 async function fetchRecipeCount() {
-    // Zero filters - counts everything currently in the database instantly
     const { count, error } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
     
     if (!error && count !== null) {
@@ -93,15 +92,12 @@ function showPage(page) {
             </div>
 
             <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid var(--border); max-width: 800px;">
-                <h2 style="font-size: 1.5rem; margin-bottom: 15px;">The Ultimate Guide to Budget Meal Planning</h2>
+                <h2 style="font-size: 1.5rem; margin-bottom: 15px;">About Us</h2>
                 <p style="line-height: 1.6; margin-bottom: 15px;">
-                    In today's economic climate, grocery prices are stretching household budgets to their absolute limits. Whether you are trying to feed a family of four on a strict budget or simply looking to cut down on expensive takeout habits, mastering the art of budget meal planning is the single most effective way to take control of your finances. 
+                    We are a community-driven platform dedicated to solving the daily question of "what's for dinner?" without breaking the bank. By combining global recipes with precise cost-per-serving calculators, this platform eliminates the guesswork from grocery shopping.
                 </p>
                 <p style="line-height: 1.6; margin-bottom: 15px;">
-                    The Global Recipe & Meal Planner was built specifically to solve this problem. By combining community-sourced recipes with precise cost-per-serving calculators, this platform eliminates the guesswork from grocery shopping. A successful budget meal isn't just about eating cheap ingredients; it is about maximizing nutritional value while minimizing waste. Strategies like bulk cooking, utilizing seasonal vegetables, and repurposing leftovers can reduce your monthly food expenditure drastically.
-                </p>
-                <p style="line-height: 1.6; margin-bottom: 15px;">
-                    From hearty home-cooked stews to breaking down the true cost of popular fast-food family meals, transparency is key. We empower users to track every cent, convert complex ingredient measurements globally, and share their most frugal kitchen hacks. Cooking on a budget shouldn't mean sacrificing flavor or variety. Explore our extensive database to discover how cooks around the world are keeping their plates full and their wallets heavy.
+                    From hearty home-cooked stews to breaking down the true cost of popular fast-food family meals, transparency is key. We empower users to track every cent, convert complex ingredient measurements globally, and share their most frugal kitchen hacks. Cooking on a budget shouldn't mean sacrificing flavor or variety.
                 </p>
             </div>
         `;
@@ -211,7 +207,6 @@ async function saveMealPlan() {
 
     if (!hasContent) return alert("Please fill in at least one day of the meal plan.");
 
-    // Removed the manual 'pending' status so your DB accepts it flawlessly
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: '7-Day Meal Plans', 
@@ -238,7 +233,6 @@ async function loadSpecials() {
 
     const now = new Date().toISOString();
     
-    // Zero approval filters - fetches all instantly
     const { data, error } = await myDatabase.from('meals')
         .select('*')
         .eq('category', 'special')
@@ -322,7 +316,6 @@ async function saveSpecial() {
     
     const expiryISO = expiryDate.toISOString();
 
-    // Removed the manual 'pending' status
     const { error } = await myDatabase.from('meals').insert([{ 
         country: selectedCountry, 
         title: title, 
@@ -355,7 +348,6 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
-    // Zero approval filters - fetches all instantly
     let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
     
     if (filter !== 'all') {
@@ -458,7 +450,6 @@ async function loadSubcategory(subcategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
-    // Zero approval filters - fetches all instantly
     const { data, error } = await myDatabase
         .from('meals')
         .select('id, title, category')
@@ -684,7 +675,6 @@ async function saveRecipe() {
 
     if (!title || !instructions) return alert("Please enter a title and instructions.");
 
-    // Removed the manual 'pending' status
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: selectedSubcategory, 
@@ -721,7 +711,6 @@ async function saveBudgetMeal() {
         finalRecipe = document.getElementById('takeaway-included').value;
     }
 
-    // Removed the manual 'pending' status
     const { error } = await myDatabase.from('meals').insert([{ 
         country: selectedCountry, 
         title: title, 
