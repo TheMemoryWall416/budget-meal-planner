@@ -254,9 +254,9 @@ async function loadSpecials() {
             const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
             html += `
             <div style="padding: 15px; background: #fff; border: 2px solid var(--border);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 1.2rem; font-weight: bold;">${meal.title}</span>
-                    <span style="background: #ffcc00; padding: 3px 8px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border);">EXPIRES: ${expiryStr}</span>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                    <span style="font-size: 1.2rem; font-weight: bold; flex: 1; min-width: 200px; word-break: break-word;">${meal.title}</span>
+                    <span style="background: #ffcc00; padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid var(--border); white-space: nowrap; height: fit-content;">EXPIRES: ${expiryStr}</span>
                 </div>
                 <div style="font-size: 1.2rem; margin-bottom: 10px; color: #008080; font-weight: bold;">
                     ${currencyMap[selectedCountry] || ''}${meal.cost}
@@ -381,9 +381,9 @@ async function loadBudgetMeals(filter = 'all') {
             const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
             html += `
             <div onclick="viewBudgetMeal(${meal.id})" style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 1.2rem; font-weight: bold;">${meal.title}</span>
-                    <span style="background: ${badgeColor}; padding: 3px 8px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border);">${badgeText}</span>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                    <span style="font-size: 1.2rem; font-weight: bold; flex: 1; min-width: 200px; word-break: break-word;">${meal.title}</span>
+                    <span style="background: ${badgeColor}; padding: 3px 8px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); white-space: nowrap; height: fit-content;">${badgeText}</span>
                 </div>
                 <div style="font-size: 1.1rem;">
                     <strong>${currencyMap[selectedCountry]}${costPerPerson}</strong> per person 
