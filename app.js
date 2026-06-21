@@ -31,7 +31,7 @@ const categories = {
 
 // --- INITIALIZATION & COUNTER LOGIC ---
 async function fetchRecipeCount() {
-    // Removed .eq('status', 'approved') so everything live is counted
+    // Zero filters - counts everything currently in the database instantly
     const { count, error } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
     
     if (!error && count !== null) {
@@ -211,11 +211,11 @@ async function saveMealPlan() {
 
     if (!hasContent) return alert("Please fill in at least one day of the meal plan.");
 
+    // Removed the manual 'pending' status so your DB accepts it flawlessly
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: '7-Day Meal Plans', 
-        recipe: finalRecipe.trim(),
-        status: 'pending' 
+        recipe: finalRecipe.trim()
     }]);
     
     if (error) {
@@ -237,7 +237,8 @@ async function loadSpecials() {
     }
 
     const now = new Date().toISOString();
-    // Removed .eq('status', 'approved') so everything live is shown
+    
+    // Zero approval filters - fetches all instantly
     const { data, error } = await myDatabase.from('meals')
         .select('*')
         .eq('category', 'special')
@@ -321,14 +322,14 @@ async function saveSpecial() {
     
     const expiryISO = expiryDate.toISOString();
 
+    // Removed the manual 'pending' status
     const { error } = await myDatabase.from('meals').insert([{ 
         country: selectedCountry, 
         title: title, 
         recipe: details, 
         cost: cost, 
         category: 'special',
-        expiry_date: expiryISO,
-        status: 'pending'
+        expiry_date: expiryISO
     }]);
 
     if (error) alert("Error: " + error.message); 
@@ -354,7 +355,7 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
-    // Removed .eq('status', 'approved') so everything live is shown
+    // Zero approval filters - fetches all instantly
     let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
     
     if (filter !== 'all') {
@@ -457,7 +458,7 @@ async function loadSubcategory(subcategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
-    // Removed .eq('status', 'approved') so everything live is shown
+    // Zero approval filters - fetches all instantly
     const { data, error } = await myDatabase
         .from('meals')
         .select('id, title, category')
@@ -683,12 +684,12 @@ async function saveRecipe() {
 
     if (!title || !instructions) return alert("Please enter a title and instructions.");
 
+    // Removed the manual 'pending' status
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: selectedSubcategory, 
         ingredients: structuredIngredients,
-        recipe: instructions,
-        status: 'pending'
+        recipe: instructions
     }]);
     
     if (error) alert("Error: " + error.message);
@@ -720,6 +721,7 @@ async function saveBudgetMeal() {
         finalRecipe = document.getElementById('takeaway-included').value;
     }
 
+    // Removed the manual 'pending' status
     const { error } = await myDatabase.from('meals').insert([{ 
         country: selectedCountry, 
         title: title, 
@@ -728,8 +730,7 @@ async function saveBudgetMeal() {
         cost: cost, 
         servings: servings,
         meal_type: type,
-        category: 'budget',
-        status: 'pending'
+        category: 'budget'
     }]);
 
     if (error) alert("Error: " + error.message); 
