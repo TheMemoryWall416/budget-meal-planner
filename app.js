@@ -5,6 +5,7 @@ const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 let selectedCountry = "";
 let selectedSubcategory = "";
 let totalApprovedRecipes = 0; 
+let totalVisitors = 10000;
 
 const currencyMap = { "Afghanistan": "؋", "Albania": "L", "Algeria": "دج", "Andorra": "€", "Angola": "Kz", "Antigua and Barbuda": "$", "Argentina": "$", "Armenia": "֏", "Australia": "A$", "Austria": "€", "Azerbaijan": "₼", "Bahamas": "$", "Bahrain": "BD", "Bangladesh": "৳", "Barbados": "$", "Belarus": "Br", "Belgium": "€", "Belize": "$", "Benin": "CFA", "Bhutan": "Nu", "Bolivia": "Bs", "Bosnia and Herzegovina": "KM", "Botswana": "P", "Brazil": "R$", "Brunei": "$", "Bulgaria": "лв", "Burkina Faso": "CFA", "Burundi": "FBu", "Cabo Verde": "Esc", "Cambodia": "៛", "Cameroon": "CFA", "Canada": "CA$", "Central African Republic": "CFA", "Chad": "CFA", "Chile": "$", "China": "¥", "Colombia": "$", "Comoros": "CF", "Congo": "CFA", "Costa Rica": "₡", "Croatia": "€", "Cuba": "$", "Cyprus": "€", "Czech Republic": "Kč", "Denmark": "kr", "Djibouti": "Fdj", "Dominica": "$", "Dominican Republic": "$", "Ecuador": "$", "Egypt": "£", "El Salvador": "$", "Equatorial Guinea": "CFA", "Eritrea": "Nfa", "Estonia": "€", "Eswatini": "E", "Ethiopia": "Br", "Fiji": "$", "Finland": "€", "France": "€", "Gabon": "CFA", "Gambia": "D", "Georgia": "₾", "Germany": "€", "Ghana": "₵", "Greece": "€", "Grenada": "$", "Guatemala": "Q", "Guinea": "FG", "Guinea-Bissau": "CFA", "Guyana": "$", "Haiti": "G", "Honduras": "L", "Hungary": "Ft", "Iceland": "kr", "India": "₹", "Indonesia": "Rp", "Iran": "﷼", "Iraq": "ع.د", "Ireland": "€", "Israel": "₪", "Italy": "€", "Jamaica": "$", "Japan": "¥", "Jordan": "JD", "Kazakhstan": "₸", "Kenya": "KSh", "Kiribati": "$", "Kuwait": "KD", "Kyrgyzstan": "som", "Laos": "₭", "Latvia": "€", "Lebanon": "£", "Lesotho": "L", "Liberia": "$", "Libya": "LD", "Liechtenstein": "CHF", "Lithuania": "€", "Luxembourg": "€", "Madagascar": "Ar", "Malawi": "MK", "Malaysia": "RM", "Maldives": "Rf", "Mali": "CFA", "Malta": "€", "Marshall Islands": "$", "Mauritania": "UM", "Mauritius": "₨", "Mexico": "$", "Micronesia": "$", "Moldova": "L", "Monaco": "€", "Mongolia": "₮", "Montenegro": "€", "Morocco": "DH", "Mozambique": "MT", "Myanmar": "Ks", "Namibia": "N$", "Nauru": "$", "Nepal": "₨", "Netherlands": "€", "New Zealand": "NZ$", "Nicaragua": "C$", "Niger": "CFA", "Nigeria": "₦", "North Macedonia": "ден", "Norway": "kr", "Oman": "ر.ع.", "Pakistan": "₨", "Palau": "$", "Palestine": "₪", "Panama": "B/.", "Papua New Guinea": "K", "Paraguay": "₲", "Peru": "S/", "Philippines": "₱", "Poland": "zł", "Portugal": "€", "Qatar": "QR", "Romania": "lei", "Russia": "₽", "Rwanda": "FRw", "Saint Kitts and Nevis": "$", "Saint Lucia": "$", "Saint Vincent and the Grenadines": "$", "Samoa": "WS$", "San Marino": "€", "Sao Tome and Principe": "Db", "Saudi Arabia": "﷼", "Senegal": "CFA", "Serbia": "дин", "Seychelles": "₨", "Sierra Leone": "Le", "Singapore": "S$", "Slovakia": "€", "Slovenia": "€", "Solomon Islands": "$", "Somalia": "Sh", "South Africa": "R", "South Sudan": "£", "Spain": "€", "Sri Lanka": "₨", "Sudan": "£", "Suriname": "$", "Sweden": "kr", "Switzerland": "CHF", "Syria": "£", "Taiwan": "NT$", "Tajikistan": "SM", "Tanzania": "TSh", "Thailand": "฿", "Timor-Leste": "$", "Togo": "CFA", "Tonga": "T$", "Trinidad and Tobago": "TT$", "Tunisia": "DT", "Turkey": "₺", "Turkmenistan": "m", "Tuvalu": "$", "Uganda": "USh", "Ukraine": "₴", "United Arab Emirates": "AED", "UK": "£", "USA": "$", "Uruguay": "$", "Uzbekistan": "so'm", "Vanuatu": "VT", "Vatican City": "€", "Venezuela": "Bs", "Vietnam": "₫", "Yemen": "﷼", "Zambia": "ZK", "Zimbabwe": "Z$" };
 const countries = Object.keys(currencyMap).sort();
@@ -165,14 +166,43 @@ const subcategoryMeta = {
     "Other Pets": { icon: "🦎", desc: "Specialty food for reptiles, fish, and exotic pals." }
 };
 
-// --- INITIALIZATION & COUNTER LOGIC ---
-async function fetchRecipeCount() {
-    const { count, error } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
+// --- INITIALIZATION & SESSION TRACKING ---
+
+async function handleVisitorSession() {
+    const now = Date.now();
+    const lastVisit = localStorage.getItem('last_visit_time');
+    const cooldown = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+    if (!lastVisit || (now - parseInt(lastVisit)) > cooldown) {
+        // New session detected, trigger the secure RPC
+        await myDatabase.rpc('increment_visitor_count');
+        localStorage.setItem('last_visit_time', now.toString());
+    }
     
-    if (!error && count !== null) {
+    // Now fetch and display the updated stats
+    fetchStats();
+}
+
+async function fetchStats() {
+    // 1. Fetch total recipes
+    const { count, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
+    if (!recipeError && count !== null) {
         totalApprovedRecipes = count;
-        const navCounter = document.getElementById('nav-counter');
-        if (navCounter) navCounter.innerText = `🌍 ${totalApprovedRecipes} Recipes Live`;
+    }
+
+    // 2. Fetch total visitors
+    const { data, error: visitorError } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
+    if (!visitorError && data) {
+        totalVisitors = data.visitor_count;
+    }
+
+    // 3. Update the Nav Bar UI
+    const navCounter = document.getElementById('nav-counter');
+    if (navCounter) {
+        navCounter.innerHTML = `
+            🌍 ${totalApprovedRecipes} Recipes Live<br>
+            <span style="font-size: 0.9em; color: #008080; display: inline-block; margin-top: 5px;">👀 ${totalVisitors.toLocaleString()} Visitors</span>
+        `;
     }
 }
 
@@ -213,7 +243,7 @@ window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     updateHack(); 
-    fetchRecipeCount();
+    handleVisitorSession(); // This initiates the session check and populates both counters!
 };
 
 // --- MAIN ROUTER ---
@@ -340,7 +370,6 @@ function renderSubcategoryList(mainCategory, context) {
         const action = context === 'find' ? `loadSubcategory('${sub}')` : `showForm('${sub}')`;
         const meta = subcategoryMeta[sub] || { icon: "🍽️", desc: "Delicious homemade recipes." };
         
-        // EVERYTHING gets a premium card now!
         html += `
             <div onclick="${action}" 
                  style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
@@ -355,7 +384,6 @@ function renderSubcategoryList(mainCategory, context) {
     view.innerHTML = html;
 }
 
-// Helper to find the Main Category when a Back button is clicked
 function getParentCategory(subcategoryName) {
     for (const [mainCat, subCats] of Object.entries(categories)) {
         if (subCats.includes(subcategoryName)) {
@@ -1119,4 +1147,4 @@ function updateHack() {
     }
 }
 
-setInterval(updateHack, 25000);
+setInterval(updateHack, 30000);
