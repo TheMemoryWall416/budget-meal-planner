@@ -256,7 +256,7 @@ function showPage(page) {
             <div style="background: #e0f7fa; border: 2px solid #008080; padding: 15px; margin-bottom: 20px; text-align: center; max-width: 800px;">
                 <p style="margin: 0; font-size: 1.2rem; margin-bottom: 8px;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
                 <div style="display: inline-block; background: #fff; border: 1px solid #008080; padding: 5px 15px; font-weight: bold; color: #008080; font-size: 1.1rem; box-shadow: 2px 2px 0px #008080;">
-                    👀 Joined by ${totalVisitors.toLocaleString()} cooks & budgeters
+                    👀 ${totalVisitors.toLocaleString()} Total Visits to Website
                 </div>
             </div>
 
