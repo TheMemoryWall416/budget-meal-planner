@@ -1119,4 +1119,4 @@ function updateHack() {
     }
 }
 
-setInterval(updateHack, 30000);
+setInterval(updateHack, 10000);
