@@ -26,7 +26,143 @@ const categories = {
     "Cuisine Types": ["South African", "Italian", "Mexican", "Indian", "Chinese", "American", "Greek", "French", "Middle Eastern", "Thai"],
     "Dietary Categories": ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Low-carb", "Keto", "High-protein"],
     "Specialized Plans": ["7-Day Meal Plans"],
-    "Pets": ["Pet Food & Treats"]
+    "Pet Food & Treats": ["Dogs", "Cats", "Birds", "Small Pets", "Other Pets"]
+};
+
+// THE VISUAL DICTIONARY FOR MAIN MENU CARDS
+const categoryMeta = {
+    "Breakfast": { icon: "🍳", desc: "Start your morning right with hot meals, oats, and bakes." },
+    "Lunch": { icon: "🥪", desc: "Midday fuel from quick sandwiches to light salads and soups." },
+    "Main Meals": { icon: "🍲", desc: "Hearty dinners including stews, curries, and roasted dishes." },
+    "Side Dishes": { icon: "🥗", desc: "The perfect companions: rice, potatoes, veggies, and more." },
+    "Snacks & Finger Foods": { icon: "🥨", desc: "Bite-sized treats, party snacks, and savory dips." },
+    "Fast Food & Takeaway Style": { icon: "🍔", desc: "Recreate your favorite takeout meals right at home." },
+    "Bread & Baking": { icon: "🥖", desc: "Fresh from the oven: loaves, rolls, scones, and muffins." },
+    "Desserts": { icon: "🍰", desc: "Sweet endings: cakes, puddings, pies, and ice cream." },
+    "Biscuits, Cookies & Sweets": { icon: "🍪", desc: "Baked treats, fudge, candies, and chocolate delights." },
+    "Drinks": { icon: "🥤", desc: "Refreshing smoothies, hot beverages, and fun mocktails." },
+    "Sauces, Condiments & Spreads": { icon: "🍯", desc: "Elevate your meals with homemade marinades and gravies." },
+    "Preserves & Fermented Foods": { icon: "🥒", desc: "Pickles, chutneys, and relishes to store and enjoy." },
+    "Special Occasion Foods": { icon: "🎉", desc: "Festive dishes for holidays, birthdays, and braais." },
+    "Cuisine Types": { icon: "🌍", desc: "Explore authentic global flavors from around the world." },
+    "Dietary Categories": { icon: "🌱", desc: "Specialized meals: Vegan, Keto, Gluten-free, and more." },
+    "Specialized Plans": { icon: "📅", desc: "Full 7-day meal plans to keep you on budget." },
+    "Pet Food & Treats": { icon: "🐾", desc: "Homemade, cost-effective nutrition for our furry friends." }
+};
+
+// THE MEGA-DICTIONARY FOR EVERY SINGLE SUBCATEGORY
+const subcategoryMeta = {
+    // Breakfast
+    "Hot breakfasts": { icon: "🍳", desc: "Warm and hearty morning meals." },
+    "Cold breakfasts": { icon: "🥣", desc: "Quick, refreshing, and no-cook morning fuel." },
+    "Cereals & oats": { icon: "🌾", desc: "Oatmeal, muesli, and crunchy cereals." },
+    "Breakfast sandwiches": { icon: "🥪", desc: "Eggs, bacon, and cheese stacked to go." },
+    "Pancakes, waffles & French toast": { icon: "🥞", desc: "Sweet, fluffy weekend favorites." },
+    // Lunch
+    "Light meals": { icon: "🥗", desc: "Healthy, easy portions for the midday slump." },
+    "Sandwiches & wraps": { icon: "🌯", desc: "Portable and packed with flavor." },
+    "Salads": { icon: "🥬", desc: "Fresh, crisp, and nutrient-dense greens." },
+    "Soups": { icon: "🥣", desc: "Comforting bowls for a chilly afternoon." },
+    // Main Meals
+    "Beef dishes": { icon: "🥩", desc: "Hearty roasts, steaks, and mince meals." },
+    "Chicken dishes": { icon: "🍗", desc: "Versatile, affordable poultry dinners." },
+    "Pork dishes": { icon: "🥓", desc: "Chops, ribs, and slow-cooked pulled pork." },
+    "Lamb dishes": { icon: "🍖", desc: "Rich and tender lamb roasts and stews." },
+    "Seafood dishes": { icon: "🐟", desc: "Fresh fish, prawns, and savory bakes." },
+    "Vegetarian meals": { icon: "🍆", desc: "Meat-free mains that pack a punch." },
+    "Pasta dishes": { icon: "🍝", desc: "Classic Italian-style noodles and sauces." },
+    "Rice dishes": { icon: "🍚", desc: "Fried rice, risottos, and savory grains." },
+    "Casseroles & bakes": { icon: "🥘", desc: "One-pan wonders baked to perfection." },
+    "Curries": { icon: "🍛", desc: "Spicy, warming, and deeply flavorful." },
+    "Stews": { icon: "🍲", desc: "Slow-cooked, melt-in-your-mouth comfort." },
+    // Side Dishes
+    "Vegetables": { icon: "🥦", desc: "Roasted, steamed, or sautéed veggies." },
+    "Potatoes": { icon: "🥔", desc: "Mash, roasties, and creamy potato bakes." },
+    "Rice sides": { icon: "🍙", desc: "Simple grains to soak up the sauce." },
+    "Pasta sides": { icon: "🧀", desc: "Mac and cheese and cold pasta salads." },
+    "Bread sides": { icon: "🥖", desc: "Garlic bread, rolls, and flatbreads." },
+    // Snacks & Finger Foods
+    "Chips & crisps": { icon: "🍟", desc: "Crunchy, salty, and perfect for dipping." },
+    "Dips": { icon: "🥣", desc: "Hummus, guacamole, and cheesy spreads." },
+    "Finger foods": { icon: "🍢", desc: "Easy to eat with one hand." },
+    "Party snacks": { icon: "🎉", desc: "Crowd-pleasers for your next gathering." },
+    "Savoury snacks": { icon: "🧀", desc: "Cheese bites, nuts, and salty treats." },
+    // Fast Food
+    "Burgers": { icon: "🍔", desc: "Juicy patties with all the trimmings." },
+    "Pizza": { icon: "🍕", desc: "Homemade dough and endless toppings." },
+    "Hot dogs": { icon: "🌭", desc: "Classic franks, buns, and mustard." },
+    "Wraps": { icon: "🌯", desc: "Folded flatbreads stuffed with goodness." },
+    "Fried foods": { icon: "🍤", desc: "Crispy, golden, deep-fried indulgence." },
+    // Bread & Baking
+    "Breads": { icon: "🍞", desc: "Classic loaves, sourdough, and rye." },
+    "Rolls & buns": { icon: "🥐", desc: "Soft, buttery, and perfect for sliders." },
+    "Scones": { icon: "🧁", desc: "Tea-time classics with jam and cream." },
+    "Muffins": { icon: "🫐", desc: "Sweet and savory on-the-go bakes." },
+    "Savoury baked goods": { icon: "🥧", desc: "Meat pies, sausage rolls, and quiches." },
+    // Desserts
+    "Cakes": { icon: "🎂", desc: "Sponges, layered treats, and cupcakes." },
+    "Pies & tarts": { icon: "🥧", desc: "Fruity, creamy, with a buttery crust." },
+    "Puddings": { icon: "🍮", desc: "Warm, gooey, and comforting desserts." },
+    "Custards": { icon: "🥄", desc: "Smooth, vanilla-rich sweet sauces." },
+    "Ice cream & frozen desserts": { icon: "🍦", desc: "Cool treats for a hot day." },
+    "Sweet pastries": { icon: "🥐", desc: "Flaky, sugar-dusted baker delights." },
+    // Biscuits
+    "Cookies": { icon: "🍪", desc: "Chocolate chip, oatmeal, and chewy bites." },
+    "Biscuits": { icon: "☕", desc: "Crunchy dunkers for your tea or coffee." },
+    "Fudge": { icon: "🍬", desc: "Rich, dense, and melt-in-your-mouth." },
+    "Candy": { icon: "🍭", desc: "Homemade sweets and sugar crafts." },
+    "Chocolate treats": { icon: "🍫", desc: "Truffles, brownies, and cocoa heaven." },
+    // Drinks
+    "Hot drinks": { icon: "☕", desc: "Coffee, tea, and rich hot chocolate." },
+    "Cold drinks": { icon: "🥤", desc: "Iced teas, lemonades, and coolers." },
+    "Smoothies": { icon: "🍹", desc: "Blended fruits and healthy greens." },
+    "Milkshakes": { icon: "🥛", desc: "Thick, creamy, and ice-cream based." },
+    "Cocktails": { icon: "🍸", desc: "Adult beverages mixed to perfection." },
+    "Mocktails": { icon: "🍹", desc: "Alcohol-free fun with all the flavor." },
+    // Sauces
+    "Sauces": { icon: "🍅", desc: "Pasta sauces, dipping sauces, and more." },
+    "Gravies": { icon: "🥣", desc: "Rich meat and veggie drippings." },
+    "Marinades": { icon: "🥩", desc: "Flavor baths for tenderizing meats." },
+    "Dressings": { icon: "🥗", desc: "Vinaigrettes and creamy salad toppers." },
+    "Jams & preserves": { icon: "🍓", desc: "Boiled fruits set for toast and baking." },
+    // Preserves
+    "Pickles": { icon: "🥒", desc: "Crunchy veggies brined in vinegar." },
+    "Chutneys": { icon: "🥭", desc: "Sweet and spicy Indian-style relishes." },
+    "Relishes": { icon: "🧅", desc: "Tangy condiments for burgers and hotdogs." },
+    "Fermented foods": { icon: "🥬", desc: "Kimchi, kraut, and gut-friendly eats." },
+    // Special Occasion
+    "Braai recipes": { icon: "🔥", desc: "South African barbecue classics." },
+    "Christmas recipes": { icon: "🎄", desc: "Festive roasts, bakes, and treats." },
+    "Birthday recipes": { icon: "🎁", desc: "Party food and celebration cakes." },
+    "Easter recipes": { icon: "🐰", desc: "Hot cross buns and pickled fish." },
+    "Party foods": { icon: "🎈", desc: "Platters and snacks for a big crowd." },
+    // Cuisine
+    "South African": { icon: "🇿🇦", desc: "Bobotie, potjiekos, and local favorites." },
+    "Italian": { icon: "🇮🇹", desc: "Pasta, pizza, and Mediterranean flair." },
+    "Mexican": { icon: "🇲🇽", desc: "Tacos, burritos, and spicy salsas." },
+    "Indian": { icon: "🇮🇳", desc: "Curries, naan, and aromatic spices." },
+    "Chinese": { icon: "🇨🇳", desc: "Stir-fries, dumplings, and noodles." },
+    "American": { icon: "🇺🇸", desc: "Burgers, BBQ, and diner classics." },
+    "Greek": { icon: "🇬🇷", desc: "Gyros, feta, and fresh olive oil dishes." },
+    "French": { icon: "🇫🇷", desc: "Rich butter, pastries, and rustic stews." },
+    "Middle Eastern": { icon: "🥙", desc: "Falafel, hummus, and spiced meats." },
+    "Thai": { icon: "🇹🇭", desc: "Sweet, sour, spicy, and fragrant bowls." },
+    // Dietary
+    "Vegetarian": { icon: "🥑", desc: "Plant-based goodness with dairy/eggs." },
+    "Vegan": { icon: "🌱", desc: "100% animal-product-free meals." },
+    "Gluten-free": { icon: "🚫", desc: "Wheat-free bakes and dinners." },
+    "Dairy-free": { icon: "🥥", desc: "No milk, cheese, or butter used." },
+    "Low-carb": { icon: "🥓", desc: "Minimal sugars and starches." },
+    "Keto": { icon: "🥩", desc: "High fat, moderate protein, very low carb." },
+    "High-protein": { icon: "💪", desc: "Muscle-building, filling portions." },
+    // Specialized
+    "7-Day Meal Plans": { icon: "📅", desc: "Full 7-day meal plans to keep you on budget." },
+    // Pets
+    "Dogs": { icon: "🐶", desc: "Meals, biscuits, and healthy treats for dogs." },
+    "Cats": { icon: "🐱", desc: "Feline favorites, from wet food to crunchy snacks." },
+    "Birds": { icon: "🦜", desc: "Seed mixes and fresh fruit treats for pet birds." },
+    "Small Pets": { icon: "🐹", desc: "Nibbles for rabbits, hamsters, and guinea pigs." },
+    "Other Pets": { icon: "🦎", desc: "Specialty food for reptiles, fish, and exotic pals." }
 };
 
 // --- INITIALIZATION & COUNTER LOGIC ---
@@ -102,15 +238,7 @@ function showPage(page) {
             </div>
         `;
     } else if (page === 'find-recipes') {
-        view.innerHTML = `
-            <h1 style="margin-bottom: 5px;">FIND RECIPES</h1>
-            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 20px;">Search our open library of <strong>${totalApprovedRecipes}</strong> everyday recipes and calculated budget meals.</p>
-        `;
-        Object.keys(categories).forEach(cat => {
-            view.innerHTML += `<h3>${cat}</h3><div class="btn-container">`;
-            categories[cat].forEach(sub => view.innerHTML += `<button onclick="loadSubcategory('${sub}')">${sub}</button>`);
-            view.innerHTML += `</div>`;
-        });
+        renderCategoryList('find');
     } else if (page === 'find-budget-meals') {
         loadBudgetMeals(); 
     } else if (page === 'add-budget-meal') {
@@ -152,14 +280,89 @@ function showPage(page) {
     } else if (page === 'add-meal-plan') {
         renderAddMealPlanForm(); 
     } else if (page === 'find-pet-food') {
-        loadSubcategory('Pet Food & Treats');
-    } else if (page === 'add-pet-food') {
-        showForm('Pet Food & Treats');
+        renderSubcategoryList('Pet Food & Treats', 'find');
     } else if (page === 'creator-hub') {
         renderCreatorHub();
     } else {
         view.innerHTML = `<h1>${page.replace(/-/g, ' ').toUpperCase()}</h1>`;
     }
+}
+
+// --- DRILL-DOWN MENU LOGIC ---
+function renderCategoryList(context) {
+    const view = document.getElementById('main-view');
+    const title = context === 'find' ? 'FIND RECIPES' : 'ADD RECIPE';
+    const subtitle = context === 'find' 
+        ? `Search our open library of <strong>${totalApprovedRecipes}</strong> everyday recipes.`
+        : `Select a primary category to post your recipe into.`;
+
+    let html = `
+        <h1 style="margin-top: 0; margin-bottom: 5px;">${title}</h1>
+        <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">${subtitle}</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
+    `;
+
+    Object.keys(categories).forEach(cat => {
+        const meta = categoryMeta[cat] || { icon: "🍽️", desc: "Explore recipes in this category." };
+        
+        html += `
+            <div onclick="renderSubcategoryList('${cat}', '${context}')" 
+                 style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <div style="font-size: 2.2rem; margin-bottom: 10px;">${meta.icon}</div>
+                <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 5px;">${cat}</h3>
+                <p style="font-size: 0.9rem; color: #555; margin: 0;">${meta.desc}</p>
+            </div>
+        `;
+    });
+
+    html += `</div>`;
+    
+    if (context === 'add') {
+        html += `<button onclick="showPage('creator-hub')" style="margin-top: 25px; background: var(--bg); color: var(--text);">← Cancel & Back to Hub</button>`;
+    }
+    
+    view.innerHTML = html;
+}
+
+function renderSubcategoryList(mainCategory, context) {
+    const view = document.getElementById('main-view');
+    
+    let html = `
+        <button onclick="renderCategoryList('${context}')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to All Categories</button>
+        <h1 style="margin-top: 0; margin-bottom: 5px;">${mainCategory}</h1>
+        <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">Select a specific subcategory.</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; width: 100%; max-width: 900px;">
+    `;
+
+    categories[mainCategory].forEach(sub => {
+        const action = context === 'find' ? `loadSubcategory('${sub}')` : `showForm('${sub}')`;
+        const meta = subcategoryMeta[sub] || { icon: "🍽️", desc: "Delicious homemade recipes." };
+        
+        // EVERYTHING gets a premium card now!
+        html += `
+            <div onclick="${action}" 
+                 style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <div style="font-size: 2.2rem; margin-bottom: 10px;">${meta.icon}</div>
+                <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 5px;">${sub}</h3>
+                <p style="font-size: 0.9rem; color: #555; margin: 0;">${meta.desc}</p>
+            </div>
+        `;
+    });
+
+    html += `</div>`;
+    view.innerHTML = html;
+}
+
+// Helper to find the Main Category when a Back button is clicked
+function getParentCategory(subcategoryName) {
+    for (const [mainCat, subCats] of Object.entries(categories)) {
+        if (subCats.includes(subcategoryName)) {
+            return mainCat;
+        }
+    }
+    return null;
 }
 
 // --- CREATOR HUB LOGIC (THE NEW DASHBOARD) ---
@@ -191,7 +394,7 @@ function renderCreatorHub() {
                 <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Help others by sharing a full week of planned, budget-friendly eating.</p>
             </div>
 
-            <div onclick="showForm('Pet Food & Treats')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+            <div onclick="renderSubcategoryList('Pet Food & Treats', 'add')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
                 <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
                 <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Homemade, cost-effective nutrition and treat recipes for our furry friends.</p>
             </div>
@@ -293,7 +496,6 @@ async function loadSpecials() {
         data.forEach(meal => {
             const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
             
-            // Stacked layout so text never overlaps
             html += `
             <div style="padding: 15px; background: #fff; border: 2px solid var(--border);">
                 <div style="margin-bottom: 8px;">
@@ -423,7 +625,6 @@ async function loadBudgetMeals(filter = 'all') {
             const badgeColor = meal.meal_type === 'takeaway' ? '#ffcc00' : '#4caf50';
             const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
             
-            // Stacked layout so text never overlaps
             html += `
             <div onclick="viewBudgetMeal(${meal.id})" style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
                 <div style="margin-bottom: 8px;">
@@ -501,14 +702,16 @@ async function loadSubcategory(subcategory) {
         .eq('category', subcategory)
         .order('title', { ascending: true });
 
+    const parentCat = getParentCategory(subcategory);
+
     if (error) {
-        view.innerHTML = `<h1>Error Loading Recipes</h1><p>${error.message}</p><button onclick="showPage('find-recipes')">← Back to Categories</button>`;
+        view.innerHTML = `<h1>Error Loading Recipes</h1><p>${error.message}</p><button onclick="renderSubcategoryList('${parentCat}', 'find')">← Back to ${parentCat}</button>`;
         return;
     }
 
     let html = `
         <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-            <button onclick="showPage('find-recipes')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to Categories</button>
+            <button onclick="renderSubcategoryList('${parentCat}', 'find')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCat}</button>
             <h1 style="margin: 0;">${subcategory}</h1>
         </div>
     `;
@@ -642,24 +845,17 @@ function calculateConversion() {
 
 // --- SAVING DATA (RECIPES & BUDGET MEALS) ---
 function addRecipeMenu() {
-    const view = document.getElementById('main-view');
-    view.innerHTML = `
-        <h1>ADD RECIPE</h1>
-        <p style="margin-top: 0; color: #555;">Select a category to post your recipe into.</p>
-    `;
-    Object.keys(categories).forEach(cat => {
-        view.innerHTML += `<h3>${cat}</h3><div class="btn-container">`;
-        categories[cat].forEach(sub => view.innerHTML += `<button onclick="showForm('${sub}')">${sub}</button>`);
-        view.innerHTML += `</div>`;
-    });
-    view.innerHTML += `<button onclick="showPage('creator-hub')" style="margin-top: 20px; background: var(--bg); color: var(--text);">← Back to Hub</button>`;
+    renderCategoryList('add');
 }
 
 function showForm(subcategory) {
     selectedSubcategory = subcategory;
+    const parentCat = getParentCategory(subcategory);
     const view = document.getElementById('main-view');
+    
     view.innerHTML = `
-        <h1>Adding to: ${subcategory}</h1>
+        <button onclick="renderSubcategoryList('${parentCat}', 'add')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCat}</button>
+        <h1 style="margin-top: 0;">Adding to: ${subcategory}</h1>
         <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box;">
         <div id="ingredients-container" style="width: 100%; max-width: 450px; background: #fff; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
             <h3 style="margin-top: 0;">Ingredients</h3>
@@ -669,7 +865,6 @@ function showForm(subcategory) {
         <textarea id="recipe-instructions" rows="8" placeholder="Instructions..." style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
         <div style="display: flex; gap: 10px; width: 100%; max-width: 450px;">
             <button onclick="saveRecipe()" style="margin: 0;">Save Recipe</button>
-            <button onclick="showPage('creator-hub')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
         </div>
     `;
     addIngredientRow();
@@ -732,7 +927,10 @@ async function saveRecipe() {
     }]);
     
     if (error) alert("Error: " + error.message);
-    else { alert("Recipe Saved successfully!"); addRecipeMenu(); }
+    else { 
+        alert("Recipe Saved successfully!"); 
+        loadSubcategory(selectedSubcategory); // Send them directly to see their new recipe in the list
+    }
 }
 
 async function saveBudgetMeal() {
