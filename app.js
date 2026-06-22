@@ -698,9 +698,9 @@ async function loadSubcategory(subcategory) {
 
     const { data, error } = await myDatabase
         .from('meals')
-        .select('id, title, category')
+        .select('id, title, category, author, created_at')
         .eq('category', subcategory)
-        .order('title', { ascending: true });
+        .order('created_at', { ascending: false });
 
     const parentCat = getParentCategory(subcategory);
 
@@ -717,14 +717,21 @@ async function loadSubcategory(subcategory) {
     `;
 
     if (data.length === 0) {
-        html += `<p>No recipes found in this category yet. Be the first to add one!</p>`;
+        html += `
+            <p>No recipes found in this category yet.</p>
+            <button onclick="showForm('${subcategory}')" style="margin-top: 10px;">Be the first to share one!</button>
+        `;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px;">`;
         data.forEach(meal => {
+            const author = meal.author || "Home Cook";
+            const date = meal.created_at ? new Date(meal.created_at).toLocaleDateString() : "Unknown Date";
+
             html += `<div 
                         onclick="viewRecipe(${meal.id})" 
-                        style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer; font-size: 1.2rem; font-weight: bold;">
-                        ${meal.title}
+                        style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
+                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}</div>
+                        <div style="font-size: 0.85rem; color: #666;">By ${author} • ${date}</div>
                      </div>`;
         });
         html += `</div>`;
@@ -753,9 +760,13 @@ async function viewRecipe(id) {
     }
     ingredientsHTML += `</ul>`;
 
+    const author = data.author || "Home Cook";
+    const date = data.created_at ? new Date(data.created_at).toLocaleDateString() : "Unknown Date";
+
     view.innerHTML = `
         <button onclick="loadSubcategory('${data.category}')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${data.category}</button>
-        <h1 style="font-size: 2.5rem; margin-top: 0; margin-bottom: 10px;">${data.title}</h1>
+        <h1 style="font-size: 2.5rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
+        <p style="font-size: 1rem; color: #666; margin-top: 0; margin-bottom: 20px;">By ${author} • ${date}</p>
         
         <h2 style="margin-top: 20px;">Ingredients</h2>
         
@@ -856,7 +867,8 @@ function showForm(subcategory) {
     view.innerHTML = `
         <button onclick="renderSubcategoryList('${parentCat}', 'add')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCat}</button>
         <h1 style="margin-top: 0;">Adding to: ${subcategory}</h1>
-        <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box;">
+        <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 10px;">
+        <input type="text" id="author-name" placeholder="Your Name (Optional)" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 15px;">
         <div id="ingredients-container" style="width: 100%; max-width: 450px; background: #fff; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
             <h3 style="margin-top: 0;">Ingredients</h3>
             <div id="ingredients-list"></div>
@@ -904,8 +916,9 @@ function addIngredientRow() {
 }
 
 async function saveRecipe() {
-    const title = document.getElementById('recipe-name').value;
-    const instructions = document.getElementById('recipe-instructions').value;
+    const title = document.getElementById('recipe-name').value.trim();
+    const author = document.getElementById('author-name').value.trim() || "Home Cook";
+    const instructions = document.getElementById('recipe-instructions').value.trim();
     
     const ingredientRows = document.querySelectorAll('.ingredient-row');
     let structuredIngredients = [];
@@ -920,10 +933,12 @@ async function saveRecipe() {
     if (!title || !instructions) return alert("Please enter a title and instructions.");
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        title: title, 
+        title: title,
+        author: author, 
         category: selectedSubcategory, 
         ingredients: structuredIngredients,
-        recipe: instructions
+        recipe: instructions,
+        created_at: new Date().toISOString()
     }]);
     
     if (error) alert("Error: " + error.message);
