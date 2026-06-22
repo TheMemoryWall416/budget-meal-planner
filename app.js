@@ -292,12 +292,14 @@ async function loadSpecials() {
         html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px;">`;
         data.forEach(meal => {
             const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
+            
+            // BULLETPROOF STACKED LAYOUT APPLIED HERE
             html += `
             <div style="padding: 15px; background: #fff; border: 2px solid var(--border);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                    <span style="font-size: 1.2rem; font-weight: bold; flex: 1; min-width: 200px; word-break: break-word;">${meal.title}</span>
-                    <span style="background: #ffcc00; padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid var(--border); white-space: nowrap; height: fit-content;">EXPIRES: ${expiryStr}</span>
+                <div style="margin-bottom: 8px;">
+                    <span style="background: #ffcc00; padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid var(--border); display: inline-block;">EXPIRES: ${expiryStr}</span>
                 </div>
+                <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
                 <div style="font-size: 1.2rem; margin-bottom: 10px; color: #008080; font-weight: bold;">
                     ${currencyMap[selectedCountry] || ''}${meal.cost}
                 </div>
@@ -420,12 +422,14 @@ async function loadBudgetMeals(filter = 'all') {
             const costPerPerson = (meal.cost / meal.servings).toFixed(2);
             const badgeColor = meal.meal_type === 'takeaway' ? '#ffcc00' : '#4caf50';
             const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
+            
+            // BULLETPROOF STACKED LAYOUT APPLIED HERE
             html += `
             <div onclick="viewBudgetMeal(${meal.id})" style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                    <span style="font-size: 1.2rem; font-weight: bold; flex: 1; min-width: 200px; word-break: break-word;">${meal.title}</span>
-                    <span style="background: ${badgeColor}; padding: 3px 8px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); white-space: nowrap; height: fit-content;">${badgeText}</span>
+                <div style="margin-bottom: 8px;">
+                    <span style="background: ${badgeColor}; padding: 3px 8px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block;">${badgeText}</span>
                 </div>
+                <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
                 <div style="font-size: 1.1rem;">
                     <strong>${currencyMap[selectedCountry]}${costPerPerson}</strong> per person 
                     <span style="font-size: 0.9rem; color: #555; display: block; margin-top: 5px;">(Total: ${currencyMap[selectedCountry]}${meal.cost} for ${meal.servings} servings)</span>
