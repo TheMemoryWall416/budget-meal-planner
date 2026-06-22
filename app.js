@@ -155,9 +155,49 @@ function showPage(page) {
         loadSubcategory('Pet Food & Treats');
     } else if (page === 'add-pet-food') {
         showForm('Pet Food & Treats');
+    } else if (page === 'creator-hub') {
+        renderCreatorHub();
     } else {
         view.innerHTML = `<h1>${page.replace(/-/g, ' ').toUpperCase()}</h1>`;
     }
+}
+
+// --- CREATOR HUB LOGIC (THE NEW DASHBOARD) ---
+function renderCreatorHub() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `
+        <h1 style="margin-top: 0; margin-bottom: 5px;">ADD YOUR OWN</h1>
+        <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">What would you like to share with the community today?</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
+            
+            <div onclick="addRecipeMenu()" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipe</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Share a classic family favorite, quick dinner, or an everyday recipe with the world.</p>
+            </div>
+
+            <div onclick="showPage('add-budget-meal')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meal</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Post a cost-calculated meal or a clever takeaway hack for your specific country.</p>
+            </div>
+
+            <div onclick="showPage('add-special')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Special</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Spotted a great grocery deal or bulk special? Share it locally before it expires.</p>
+            </div>
+
+            <div onclick="showPage('add-meal-plan')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plan</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Help others by sharing a full week of planned, budget-friendly eating.</p>
+            </div>
+
+            <div onclick="showForm('Pet Food & Treats')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Homemade, cost-effective nutrition and treat recipes for our furry friends.</p>
+            </div>
+
+        </div>
+    `;
 }
 
 // --- 7-DAY MEAL PLAN LOGIC ---
@@ -184,7 +224,7 @@ function renderAddMealPlanForm() {
         
         <div style="display: flex; gap: 10px; margin-top: 15px;">
             <button onclick="saveMealPlan()" style="margin: 0;">Save Meal Plan</button>
-            <button onclick="showPage('home')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
+            <button onclick="showPage('creator-hub')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
         </div>
     `;
 }
@@ -294,6 +334,7 @@ function renderAddSpecialForm() {
         <textarea id="special-details" rows="4" placeholder="What is included in the deal? Any specific conditions?" style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
         
         <button onclick="saveSpecial()" style="margin-top: 10px;">Post Local Special</button>
+        <button onclick="showPage('creator-hub')" style="margin-top: 10px; background: var(--bg); color: var(--text);">Cancel</button>
     `;
 }
 
@@ -598,12 +639,16 @@ function calculateConversion() {
 // --- SAVING DATA (RECIPES & BUDGET MEALS) ---
 function addRecipeMenu() {
     const view = document.getElementById('main-view');
-    view.innerHTML = `<h1>ADD RECIPE</h1>`;
+    view.innerHTML = `
+        <h1>ADD RECIPE</h1>
+        <p style="margin-top: 0; color: #555;">Select a category to post your recipe into.</p>
+    `;
     Object.keys(categories).forEach(cat => {
         view.innerHTML += `<h3>${cat}</h3><div class="btn-container">`;
         categories[cat].forEach(sub => view.innerHTML += `<button onclick="showForm('${sub}')">${sub}</button>`);
         view.innerHTML += `</div>`;
     });
+    view.innerHTML += `<button onclick="showPage('creator-hub')" style="margin-top: 20px; background: var(--bg); color: var(--text);">← Back to Hub</button>`;
 }
 
 function showForm(subcategory) {
@@ -620,7 +665,7 @@ function showForm(subcategory) {
         <textarea id="recipe-instructions" rows="8" placeholder="Instructions..." style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
         <div style="display: flex; gap: 10px; width: 100%; max-width: 450px;">
             <button onclick="saveRecipe()" style="margin: 0;">Save Recipe</button>
-            <button onclick="addRecipeMenu()" style="margin: 0;">Cancel</button>
+            <button onclick="showPage('creator-hub')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
         </div>
     `;
     addIngredientRow();
