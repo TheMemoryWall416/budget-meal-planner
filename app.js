@@ -293,7 +293,7 @@ async function loadSpecials() {
         data.forEach(meal => {
             const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
             
-            // BULLETPROOF STACKED LAYOUT APPLIED HERE
+            // Stacked layout so text never overlaps
             html += `
             <div style="padding: 15px; background: #fff; border: 2px solid var(--border);">
                 <div style="margin-bottom: 8px;">
@@ -423,7 +423,7 @@ async function loadBudgetMeals(filter = 'all') {
             const badgeColor = meal.meal_type === 'takeaway' ? '#ffcc00' : '#4caf50';
             const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
             
-            // BULLETPROOF STACKED LAYOUT APPLIED HERE
+            // Stacked layout so text never overlaps
             html += `
             <div onclick="viewBudgetMeal(${meal.id})" style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
                 <div style="margin-bottom: 8px;">
@@ -792,18 +792,110 @@ async function reportRecipe(title, id) {
 
 // --- DAILY KITCHEN TIPS ---
 const masterKitchenHacks = [
-    "Store your potatoes with an apple to stop them from sprouting.",
-    "Wrap celery tightly in aluminum foil to keep it crisp for weeks.",
-    "Look lower! Supermarkets hide cheaper generic brands below eye level.",
-    "Never shop hungry to reduce impulse buys by up to 60%.",
-    "Put a lid on your boiling water to use up to 30% less electricity.",
-    "Freeze leftover sauce in ice cube trays for easy flavor bombs.",
-    "Keep a bag of rice in your salt shaker to prevent clumping.",
-    "Collect veggie scraps in a freezer bag to make free homemade stock.",
-    "The Freezer Tray Trick: Freeze leftover wine/soup for flavor bombs.",
-    "The Milk Sniff Test: Use your nose; 'Best Before' dates are suggestions.",
-    "The Onion Saver: Never store onions with potatoes; they spoil each other.",
-    "The Bread Freeze: Freeze half a loaf and toast slices directly from frozen."
+    // --- FRESHNESS & STORAGE ---
+    "Store onions and potatoes in completely separate cupboards; they make each other rot faster.",
+    "Wrap celery tightly in aluminum foil and keep it in the fridge to keep it crisp for weeks.",
+    "Store your natural peanut butter upside down so the oil doesn't pool at the top.",
+    "Treat fresh herbs like asparagus and coriander like flowers: trim the stems and put them in a glass of water in the fridge.",
+    "Wash your berries in a mix of 1 part vinegar to 3 parts water, rinse, and dry thoroughly. They will last twice as long without molding.",
+    "Never put tomatoes in the fridge! The cold kills their flavor and turns them mushy. Keep them on the counter.",
+    "Wrap the crown (the top stem part) of a bunch of bananas in cling wrap to slow down the ripening process.",
+    "Put a paper towel inside your bags of spinach or salad greens to absorb moisture and stop them from getting slimy.",
+    "Keep dairy at the back of the fridge where it's coldest, never in the door where the temperature fluctuates.",
+    "Got too much fresh ginger? Put it in a ziplock bag in the freezer. It actually grates much easier when frozen solid.",
+    "Store mushrooms in a brown paper bag, not plastic. Plastic traps moisture and makes them slimy.",
+    "Freeze leftover tomato paste in 1-tablespoon blobs on wax paper, then bag them. No more half-empty tins going moldy.",
+    "Revive wilted, sad-looking veggies (like carrots or celery) by soaking them in ice water for 30 minutes.",
+    "If your brown sugar turned into a literal brick, put a slice of soft bread in the container overnight. It will be soft by morning.",
+    "Store nuts and seeds in the freezer. Their natural oils make them go rancid quickly at room temperature.",
+    "Keep a bag of rice or a few dried beans in your salt shaker to absorb humidity and stop the salt from clumping.",
+    "Store blocks of cheese wrapped in baking paper or wax paper, not tightly sealed in plastic, so they can breathe.",
+    "Freeze bread in slices, not as a whole loaf. You can pop frozen slices straight into the toaster.",
+    "Keep avocados on the counter until they are perfectly ripe, then move them to the fridge to hit 'pause' on the ripening.",
+    "Store flour in an airtight container, not the paper bag it came in, to keep out moisture and pantry bugs.",
+
+    // --- SUPERMARKET & SHOPPING HACKS ---
+    "Look up and look down. Supermarkets pay to put the most expensive, name-brand items right at your eye level.",
+    "Never, ever go grocery shopping when you are hungry. You will buy 40% more junk food on impulse.",
+    "Always check the 'Price per 100g' or 'Price per Kg' on the tag. It's the only real way to know which size is actually cheaper.",
+    "Buy blocks of cheese instead of pre-grated. Pre-grated cheese costs more and is coated in anti-caking powder that ruins sauces.",
+    "Skip the pre-cut fruits and veggies. You are paying a massive premium just for someone else to use a knife.",
+    "Buy spices in the 'international' or ethnic aisles of the supermarket; they are usually half the price of the baking aisle spices.",
+    "Whole chickens are drastically cheaper than buying pre-cut breasts or thighs. Learn to break one down yourself.",
+    "Always check the clearance bakery rack. Day-old bread is perfect for toast, croutons, and French toast.",
+    "Generic supermarket brands are often made in the exact same factories as the expensive name brands. Give them a try.",
+    "Plan your weekly meals based on what is currently on special, not what you randomly crave.",
+    "Don't buy bottled water. Buy a good reusable bottle and a filter if you don't like the taste of your tap water.",
+    "Dried beans and lentils are infinitely cheaper than canned ones. Soak them overnight and batch-cook them.",
+    "Buy rice, oats, and pasta in the biggest bulk bags you can comfortably store.",
+    "Shop the perimeter of the grocery store first. That's where the real, unprocessed food lives.",
+    "Always check your receipt before leaving the parking lot. Cash registers ring up sale items at full price surprisingly often.",
+    "Sign up for every free loyalty card available, but only use the points for essentials, not treats.",
+    "If meat is marked down on clearance because it's expiring today, buy it and throw it straight in the freezer when you get home.",
+    "Avoid buying anything near the checkout line. It is entirely designed to trigger impulse buys while you wait.",
+    "Meat is expensive. Pick one or two days a week to go completely vegetarian to stretch your budget.",
+    "Keep a running list of what is in your freezer. People waste hundreds of Rands buying things they already have buried at the back.",
+
+    // --- ZERO WASTE & UPCYCLING ---
+    "Keep a large ziplock bag in the freezer. Toss all your onion skins, carrot peels, and celery ends in it. Boil them later for free veggie stock.",
+    "Never throw away the leftover carcass or bones from a roast chicken. Boil it with water and garlic for an incredible, free chicken stock.",
+    "Don't throw away spring onion (scallion) roots! Put them in a glass with a little water on the windowsill and they will regrow in days.",
+    "Stale bread? Dice it up, toss it in olive oil and herbs, and bake until crispy for homemade soup croutons.",
+    "Don't throw away parmesan cheese rinds. Drop them into soups, stews, or bolognese sauces while they simmer for a massive flavor boost.",
+    "Save your bacon grease in a glass jar in the fridge. Use it instead of butter or oil to fry eggs or roast potatoes.",
+    "If you have fruit that is getting too soft to eat, chop it up and freeze it immediately. It's perfect for smoothies.",
+    "Leftover wine that's been open too long? Freeze it in ice cube trays to drop into stews and pasta sauces.",
+    "Before juicing a lemon, use a grater to take off the yellow zest. Freeze the zest in a small bag to add flavor to baking and sauces later.",
+    "Don't dump pickle juice when the pickles are gone. Use it to marinate chicken—it makes it incredibly tender and flavorful.",
+    "Leftover mashed potatoes? Mix in an egg and some flour, and fry them in a pan for amazing potato pancakes.",
+    "Broccoli stems are just as good as the florets. Peel the tough outer skin with a potato peeler and chop the soft inside for stir-fries.",
+    "Got a tiny bit of jam left in the jar? Pour in some olive oil and vinegar, put the lid on, and shake it for a quick, sweet salad dressing.",
+    "Roast your pumpkin or butternut seeds with a little salt and oil instead of throwing them in the bin.",
+    "Turn leftover cooked rice into fried rice the next day. Day-old, slightly dried-out rice actually fries much better than fresh rice.",
+    "Don't toss the leafy green tops of carrots! They make a fantastic, peppery pesto when blended with garlic and oil.",
+    "If your coffee goes cold, don't pour it down the sink. Freeze it into coffee ice cubes for iced coffee that doesn't get watered down.",
+    "Used coffee grounds are great for your garden. Sprinkle them around plants to add nitrogen to the soil and keep pests away.",
+    "Got herbs that are about to go bad? Chop them up, put them in an ice cube tray, fill with olive oil, and freeze.",
+    "Never pour pasta water down the drain! It's full of starch. Use a splash of it to thicken your pasta sauces.",
+
+    // --- COOKING & PREP SHORTCUTS ---
+    "Use a regular spoon to peel ginger. It scrapes the skin off easily and gets into all the weird bumps without wasting the ginger.",
+    "Grate freezing cold butter directly into your flour when making pastry or biscuits. It mixes easier and makes them super flaky.",
+    "To peel a whole bulb of garlic fast, smash it with the heel of your hand, put the cloves in a hard container with a lid, and shake vigorously.",
+    "Cut a dozen cherry tomatoes at once by sandwiching them between two plastic tub lids and running a long knife horizontally through the middle.",
+    "If you accidentally made a soup or stew too salty, drop in a peeled, raw potato and simmer for 15 minutes. It will absorb a lot of the salt.",
+    "To get the most juice out of a lemon or lime, roll it hard on the counter under your palm before cutting it.",
+    "Soak raw onions in a bowl of ice water for 10 minutes before adding them to salads. It keeps them crunchy but removes the harsh onion 'bite'.",
+    "Trying to cut meat into super thin strips for a stir-fry? Put it in the freezer for 20 minutes first so it firms up.",
+    "Always let cooked meat rest on a board for 5 to 10 minutes before cutting into it. If you cut it immediately, all the juices will run out.",
+    "Use a wire egg slicer to perfectly and quickly slice strawberries or button mushrooms.",
+    "Cook bacon on a sheet pan in the oven at 200°C instead of frying it. No flipping, no grease splatters, and it cooks perfectly flat.",
+    "Put a damp paper towel or kitchen cloth under your cutting board. It stops the board from dangerously slipping around while you chop.",
+    "Always toast your dry spices in a warm pan for 30 seconds before adding liquids. It wakes up the oils and doubles their flavor.",
+    "Shred cooked chicken breast in 10 seconds by throwing it in a bowl and using a hand mixer on low speed.",
+    "To easily remove the seed from an avocado, whack it gently with the blade of a heavy knife, twist, and pull.",
+    "If a recipe calls for buttermilk and you don't have it, add 1 tablespoon of lemon juice or vinegar to a cup of normal milk and wait 5 minutes.",
+    "Out of eggs for baking? You can often substitute one egg with 1/4 cup of unsweetened applesauce or half a mashed banana.",
+    "Make your own DIY self-raising flour: mix 1 cup of plain all-purpose flour with 1.5 teaspoons of baking powder and a pinch of salt.",
+    "Use plain yogurt as a cheaper, healthier, 1-to-1 substitute for sour cream on baked potatoes and in recipes.",
+    "Stretch expensive ground beef by mixing in an equal amount of finely chopped mushrooms or cooked brown lentils.",
+
+    // --- ENERGY SAVERS & EFFICIENCY ---
+    "Always put a lid on your pot when boiling water or cooking stews. It traps the heat and uses up to 30% less electricity.",
+    "Boil water in your electric kettle first, then pour it into your pot on the stove. Kettles are far more energy-efficient.",
+    "Match the size of your pot to the size of the stove plate. Putting a small pot on a large burner wastes a massive amount of heat.",
+    "Turn off your electric stove or oven 5 to 10 minutes before your food is completely done. The residual heat will finish the cooking for free.",
+    "Never open the oven door just to 'check' on your baking. You lose about 20% of the heat every time you open it, costing you money to reheat.",
+    "If you are using the oven, try to cook multiple things at once. Roast veggies on the bottom rack while baking chicken on the top.",
+    "Keep your freezer as full as possible. A full freezer uses less energy to stay cold than an empty one. (If it's empty, fill it with bottles of water).",
+    "Thaw your frozen meat by leaving it in the fridge overnight instead of using the microwave. The frozen block actually helps cool the fridge!",
+    "Cut your root vegetables (like potatoes and carrots) into smaller, uniform pieces. They will cook significantly faster, saving gas/electricity.",
+    "Air dry your dishes instead of using the heated dry setting on your dishwasher.",
+    "Descale your kettle regularly with a mix of water and vinegar. A kettle with limescale buildup takes much longer to boil and wastes electricity.",
+    "Use a microwave for reheating or cooking small portions. It uses about 80% less energy than firing up a whole conventional oven.",
+    "Keep the coils at the back of your fridge clean and dust-free. If they get clogged, the motor has to work overtime, spiking your electric bill.",
+    "Invest in a slow cooker (Crockpot). They cook tough, cheap cuts of meat beautifully while using less electricity than a standard lightbulb.",
+    "Use cold water from the tap to wash your vegetables. There is no need to run the hot water heater just to rinse a tomato."
 ];
 
 function updateHack() {
