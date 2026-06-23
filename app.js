@@ -178,6 +178,12 @@ async function fetchStats() {
     const { data: tData } = await myDatabase.from('site_config').select('team_photo_url').eq('id', 1).single();
     if (tData) {
         teamPhotoUrl = tData.team_photo_url;
+        
+        // Update the picture directly on the home page if it's currently loaded
+        const homePhoto = document.getElementById('home-team-photo');
+        if (homePhoto) {
+            homePhoto.src = teamPhotoUrl;
+        }
     }
 
     // Update Nav Bar UI
@@ -250,7 +256,7 @@ function showPage(page) {
             <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid var(--border); max-width: 800px;">
                 <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Meet the Team</h2>
                 <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                    <img src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid #008080; object-fit: cover;">
+                    <img id="home-team-photo" src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid #008080; object-fit: cover;">
                     <div style="flex: 1; min-width: 300px;">
                         <p style="line-height: 1.6;"><strong>Real food, shared by real people.</strong></p>
                         <p style="line-height: 1.6;">Hi, we are the team behind this platform! I'm a 40-year-old beginner developer from South Africa, and this is my very first live project. My wife balances her day job as an online teacher with being our lead admin, manually reviewing community recipes.</p>
