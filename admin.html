@@ -64,6 +64,17 @@
     <div id="view-review" style="display: none;">
         <h2>Needs Approval</h2>
         <p style="margin-top:0; color:#555;">These items are currently live. Approve them to keep them, or Decline to delete them immediately.</p>
+        
+        <div class="search-box" style="background: #e0e0e0; padding: 10px; border: 2px solid #000;">
+            <select id="review-main-cat" onchange="updateReviewSubcategories()" style="margin-bottom: 0; cursor: pointer; flex: 1;">
+                <option value="all">-- All Main Categories --</option>
+            </select>
+            <select id="review-sub-cat" onchange="loadReviewQueue()" style="margin-bottom: 0; cursor: pointer; flex: 1;">
+                <option value="all">-- All Subcategories --</option>
+            </select>
+            <button onclick="loadReviewQueue()">Filter</button>
+        </div>
+
         <div id="review-list">Loading...</div>
     </div>
 
@@ -151,7 +162,37 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
     const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+    const adminCategories = {
+        "Breakfast": ["Hot breakfasts", "Cold breakfasts", "Cereals & oats", "Breakfast sandwiches", "Pancakes, waffles & French toast"],
+        "Lunch": ["Light meals", "Sandwiches & wraps", "Salads", "Soups"],
+        "Main Meals": ["Beef dishes", "Chicken dishes", "Pork dishes", "Lamb dishes", "Seafood dishes", "Vegetarian meals", "Pasta dishes", "Rice dishes", "Casseroles & bakes", "Curries", "Stews"],
+        "Side Dishes": ["Vegetables", "Potatoes", "Rice sides", "Pasta sides", "Bread sides", "Salads"],
+        "Snacks & Finger Foods": ["Chips & crisps", "Dips", "Finger foods", "Party snacks", "Savoury snacks"],
+        "Fast Food & Takeaway Style": ["Burgers", "Pizza", "Hot dogs", "Wraps", "Fried foods"],
+        "Bread & Baking": ["Breads", "Rolls & buns", "Scones", "Muffins", "Savoury baked goods"],
+        "Desserts": ["Cakes", "Pies & tarts", "Puddings", "Custards", "Ice cream & frozen desserts", "Sweet pastries"],
+        "Biscuits, Cookies & Sweets": ["Cookies", "Biscuits", "Fudge", "Candy", "Chocolate treats"],
+        "Drinks": ["Hot drinks", "Cold drinks", "Smoothies", "Milkshakes", "Cocktails", "Mocktails"],
+        "Sauces, Condiments & Spreads": ["Sauces", "Gravies", "Marinades", "Dressings", "Jams & preserves"],
+        "Preserves & Fermented Foods": ["Pickles", "Chutneys", "Relishes", "Fermented foods"],
+        "Special Occasion Foods": ["Braai recipes", "Christmas recipes", "Birthday recipes", "Easter recipes", "Party foods"],
+        "Cuisine Types": ["South African", "Italian", "Mexican", "Indian", "Chinese", "American", "Greek", "French", "Middle Eastern", "Thai"],
+        "Dietary Categories": ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Low-carb", "Keto", "High-protein"],
+        "Specialized Plans": ["7-Day Meal Plans"],
+        "Pet Food & Treats": ["Dogs", "Cats", "Birds", "Small Pets", "Other Pets"]
+    };
+
     window.onload = async function() {
+        const mainSelect = document.getElementById('review-main-cat');
+        if (mainSelect) {
+            Object.keys(adminCategories).forEach(cat => {
+                let opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerHTML = cat;
+                mainSelect.appendChild(opt);
+            });
+        }
+
         const { data: { session } } = await myDatabase.auth.getSession();
         if (session) showDashboard();
     };
@@ -197,7 +238,6 @@
         else if (tab === 'library') searchLibrary();
     }
 
-    // --- 1. INBOX LOGIC ---
     async function loadMessages() {
         const list = document.getElementById('messages-list');
         list.innerHTML = "Loading messages...";
@@ -229,32 +269,55 @@
         list.innerHTML = html;
     }
 
-    // --- 2. REVIEW QUEUE LOGIC ---
+    function updateReviewSubcategories() {
+        const mainCat = document.getElementById('review-main-cat').value;
+        const subSelect = document.getElementById('review-sub-cat');
+        
+        subSelect.innerHTML = '<option value="all">-- All Subcategories --</option>';
+
+        if (mainCat !== 'all') {
+            const subs = adminCategories[mainCat];
+            if (subs) {
+                subs.forEach(sub => {
+                    subSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+                });
+            }
+        }
+        loadReviewQueue();
+    }
+
     async function loadReviewQueue() {
         const list = document.getElementById('review-list');
         list.innerHTML = "Checking for new submissions...";
-        const { data, error } = await myDatabase.from('meals').select('id, title, category, country').eq('status', 'pending').order('created_at', { ascending: false });
+
+        let query = myDatabase.from('meals').select('id, title, category, country').eq('status', 'pending').order('created_at', { ascending: false });
+
+        const mainCat = document.getElementById('review-main-cat') ? document.getElementById('review-main-cat').value : 'all';
+        const subCat = document.getElementById('review-sub-cat') ? document.getElementById('review-sub-cat').value : 'all';
+
+        if (subCat !== 'all') {
+            query = query.eq('category', subCat);
+        } else if (mainCat !== 'all') {
+            const subs = adminCategories[mainCat];
+            if (subs && subs.length > 0) {
+                query = query.in('category', subs);
+            }
+        }
+
+        const { data, error } = await query;
         
         if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-        if (data.length === 0) { list.innerHTML = `<p>Queue is empty! You are all caught up.</p>`; return; }
+        if (data.length === 0) { list.innerHTML = `<p>Queue is empty for this filter! You are all caught up.</p>`; return; }
 
         let html = '';
         data.forEach(meal => {
             let badgeStyle = '';
             let typeInfo = `Global Recipe (${meal.category})`;
             
-            if (meal.category === 'budget') {
-                typeInfo = `Budget Meal (${meal.country})`;
-            } else if (meal.category === 'special') {
-                badgeStyle = 'badge-special';
-                typeInfo = `Local Special (${meal.country})`;
-            } else if (meal.category === '7-Day Meal Plans') {
-                badgeStyle = 'badge-plan';
-                typeInfo = `Meal Plan (Global)`;
-            } else if (meal.category === 'Pet Food & Treats') {
-                badgeStyle = 'badge-pet';
-                typeInfo = `Pet Food (Global)`;
-            }
+            if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country})`; } 
+            else if (meal.category === 'special') { badgeStyle = 'badge-special'; typeInfo = `Local Special (${meal.country})`; } 
+            else if (meal.category === '7-Day Meal Plans') { badgeStyle = 'badge-plan'; typeInfo = `Meal Plan (Global)`; } 
+            else if (meal.category === 'Pet Food & Treats') { badgeStyle = 'badge-pet'; typeInfo = `Pet Food (Global)`; }
 
             html += `
             <div class="card" id="review-${meal.id}">
@@ -278,7 +341,6 @@
         else document.getElementById(elementId).remove();
     }
 
-    // --- 3. MANAGE LIBRARY LOGIC ---
     async function searchLibrary() {
         const term = document.getElementById('search-input') ? document.getElementById('search-input').value.trim() : '';
         const filterCat = document.getElementById('filter-category') ? document.getElementById('filter-category').value : 'all';
@@ -325,7 +387,6 @@
         list.innerHTML = html;
     }
 
-    // --- 4. THE FULL EDIT LOGIC ---
     async function openEdit(id) {
         switchTab('edit'); 
         document.getElementById('edit-ingredients-list').innerHTML = 'Loading record data...';
@@ -449,7 +510,6 @@
         }
     }
 
-    // --- 5. SETTINGS & PHOTO UPLOAD LOGIC ---
     async function uploadTeamPhoto(event) {
         const fileInput = document.getElementById('team-photo-upload');
         const file = fileInput.files[0];
@@ -460,7 +520,6 @@
         btn.innerText = "Uploading... please wait.";
         btn.disabled = true;
 
-        // Clean filename and add timestamp to prevent overwriting
         const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '');
         const fileName = `team-${Date.now()}-${cleanName}`;
         
@@ -485,10 +544,9 @@
         }
         
         alert("Team photo updated successfully! Refresh your main website to see the change.");
-        fileInput.value = ""; // Clear the input
+        fileInput.value = ""; 
     }
 
-    // --- GLOBAL DELETE LOGIC ---
     async function deleteRecord(table, id, elementId) {
         if (!confirm("Are you 100% sure you want to permanently delete this? It cannot be undone.")) return;
         const { error } = await myDatabase.from(table).delete().eq('id', id);
