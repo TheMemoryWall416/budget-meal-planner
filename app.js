@@ -162,7 +162,7 @@ async function handleVisitorSession() {
 }
 
 async function fetchStats() {
-    const { count, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
+    const { count, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
     if (!recipeError && count !== null) { totalApprovedRecipes = count; }
 
     const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
@@ -246,6 +246,7 @@ async function executeSearch() {
 
     const { data, error } = await myDatabase.from('meals')
         .select('id, title, category, author, created_at, meal_type')
+        .eq('status', 'approved')
         .or(`title.ilike.%${term}%,recipe.ilike.%${term}%`)
         .order('created_at', { ascending: false });
 
@@ -345,7 +346,7 @@ function showPage(page) {
             <div id="takeaway-section" style="display: none; width: 100%; max-width: 450px;">
                 <textarea id="takeaway-included" rows="4" placeholder="What is included? (e.g. 4 Burgers, 2 Large Chips, 2L Coke)" style="width: 100%; box-sizing: border-box;"></textarea>
             </div>
-            <button onclick="saveBudgetMeal()" style="margin-top: 10px;">Post Budget Meal</button>
+            <button onclick="saveBudgetMeal()" style="margin-top: 10px;">Submit for Review</button>
         `;
         addIngredientRow(); 
     } else if (page === 'find-specials') {
@@ -377,7 +378,6 @@ function renderCategoryList(context) {
         <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">${subtitle}</p>
     `;
 
-    // SEARCH BAR INJECTION
     if (context === 'find') {
         html += `
         <div style="display: flex; gap: 10px; max-width: 600px; margin-bottom: 30px;">
@@ -497,7 +497,7 @@ function renderAddMealPlanForm() {
             ${daysHTML}
         </div>
         <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button onclick="saveMealPlan()" style="margin: 0;">Save Meal Plan</button>
+            <button onclick="saveMealPlan()" style="margin: 0;">Submit for Review</button>
             <button onclick="showPage('creator-hub')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
         </div>
     `;
@@ -524,11 +524,12 @@ async function saveMealPlan() {
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: '7-Day Meal Plans', 
-        recipe: finalRecipe.trim()
+        recipe: finalRecipe.trim(),
+        status: 'pending'
     }]);
     
     if (error) { alert("Error: " + error.message); } 
-    else { alert("Meal Plan Saved successfully!"); showPage('find-meal-plans'); }
+    else { alert("Meal Plan submitted successfully! It will appear once approved by an admin."); showPage('creator-hub'); }
 }
 
 async function loadSpecials() {
@@ -538,7 +539,7 @@ async function loadSpecials() {
     if (!selectedCountry) { view.innerHTML = `<h1>Error</h1><p>Please select a country first.</p>`; return; }
 
     const now = new Date().toISOString();
-    const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
+    const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).eq('status', 'approved').gt('expiry_date', now);
 
     if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`; return; }
 
@@ -590,7 +591,7 @@ function renderAddSpecialForm() {
         </select>
 
         <textarea id="special-details" rows="4" placeholder="What is included in the deal? Any specific conditions?" style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
-        <button onclick="saveSpecial()" style="margin-top: 10px;">Post Local Special</button>
+        <button onclick="saveSpecial()" style="margin-top: 10px;">Submit Deal for Review</button>
         <button onclick="showPage('creator-hub')" style="margin-top: 10px; background: var(--bg); color: var(--text);">Cancel</button>
     `;
 }
@@ -611,11 +612,11 @@ async function saveSpecial() {
     const expiryISO = expiryDate.toISOString();
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', expiry_date: expiryISO
+        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', expiry_date: expiryISO, status: 'pending'
     }]);
 
     if (error) alert("Error: " + error.message); 
-    else { alert("Special shared successfully!"); showPage('find-specials'); }
+    else { alert("Special submitted successfully! It will appear once approved by an admin."); showPage('creator-hub'); }
 }
 
 function toggleMealType() {
@@ -633,7 +634,7 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
-    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
+    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry).eq('status', 'approved');
     if (filter !== 'all') { query = query.eq('meal_type', filter); }
 
     const { data, error } = await query;
@@ -685,7 +686,6 @@ function copyToClipboard(text) {
 }
 
 async function likeMeal(id, btnElement) {
-    // Optimistic UI update so it feels instantly responsive
     const countSpan = btnElement.querySelector('.like-count');
     let currentLikes = parseInt(countSpan.innerText) || 0;
     currentLikes++;
@@ -694,7 +694,6 @@ async function likeMeal(id, btnElement) {
     btnElement.style.opacity = '0.6';
     btnElement.innerHTML = `❤️ Liked (${currentLikes})`;
 
-    // Send the actual update to the database in the background
     const { data } = await myDatabase.from('meals').select('likes').eq('id', id).single();
     const dbLikes = (data && data.likes ? data.likes : 0) + 1;
     await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
@@ -735,7 +734,6 @@ async function viewBudgetMeal(id) {
 
     const costPer = (data.cost / data.servings).toFixed(2);
     
-    // DEEP LINKING URL GENERATOR
     const currentUrl = window.location.origin + window.location.pathname + '?budget=' + data.id;
     const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
@@ -762,7 +760,7 @@ async function loadSubcategory(subcategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
-    const { data, error } = await myDatabase.from('meals').select('id, title, category, author, created_at').eq('category', subcategory).order('created_at', { ascending: false });
+    const { data, error } = await myDatabase.from('meals').select('id, title, category, author, created_at').eq('category', subcategory).eq('status', 'approved').order('created_at', { ascending: false });
     const parentCat = getParentCategory(subcategory);
 
     if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p><button onclick="renderSubcategoryList('${parentCat}', 'find')">← Back</button>`; return; }
@@ -811,7 +809,6 @@ async function viewRecipe(id) {
     const author = data.author || "Home Cook";
     const date = data.created_at ? new Date(data.created_at).toLocaleDateString() : "Unknown Date";
 
-    // DEEP LINKING URL GENERATOR
     const currentUrl = window.location.origin + window.location.pathname + '?recipe=' + data.id;
     const whatsappText = encodeURIComponent(`Check out this recipe for ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
@@ -922,7 +919,7 @@ function showForm(subcategory) {
         </div>
         <textarea id="recipe-instructions" rows="8" placeholder="Instructions..." style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
         <div style="display: flex; gap: 10px; width: 100%; max-width: 450px;">
-            <button onclick="saveRecipe()" style="margin: 0;">Save Recipe</button>
+            <button onclick="saveRecipe()" style="margin: 0;">Submit for Review</button>
         </div>
     `;
     addIngredientRow();
@@ -979,11 +976,11 @@ async function saveRecipe() {
     if (!title || !instructions) return alert("Please enter a title and instructions.");
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        title: title, author: author, category: selectedSubcategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString()
+        title: title, author: author, category: selectedSubcategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString(), status: 'pending'
     }]);
     
     if (error) alert("Error: " + error.message);
-    else { alert("Recipe Saved successfully!"); loadSubcategory(selectedSubcategory); }
+    else { alert("Recipe submitted successfully! It will appear once approved by an admin."); showPage('creator-hub'); }
 }
 
 async function saveBudgetMeal() {
@@ -1010,11 +1007,11 @@ async function saveBudgetMeal() {
     } else { finalRecipe = document.getElementById('takeaway-included').value; }
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, title: title, recipe: finalRecipe, ingredients: finalIngredients, cost: cost, servings: servings, meal_type: type, category: 'budget'
+        country: selectedCountry, title: title, recipe: finalRecipe, ingredients: finalIngredients, cost: cost, servings: servings, meal_type: type, category: 'budget', status: 'pending'
     }]);
 
     if (error) alert("Error: " + error.message); 
-    else { alert("Saved budget meal successfully!"); showPage('find-budget-meals'); }
+    else { alert("Budget meal submitted successfully! It will appear once approved by an admin."); showPage('creator-hub'); }
 }
 
 async function reportRecipe(title, id) {
