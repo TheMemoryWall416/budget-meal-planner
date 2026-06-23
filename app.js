@@ -162,7 +162,8 @@ async function handleVisitorSession() {
 }
 
 async function fetchStats() {
-    const { count, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+    // Removed the .eq('status', 'approved') filter here so the counter reflects ALL live recipes
+    const { count, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
     if (!recipeError && count !== null) { totalApprovedRecipes = count; }
 
     const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
@@ -244,9 +245,9 @@ async function executeSearch() {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Searching for "${term}"...</h1>`;
 
+    // Removed .eq('status', 'approved') from here
     const { data, error } = await myDatabase.from('meals')
         .select('id, title, category, author, created_at, meal_type')
-        .eq('status', 'approved')
         .or(`title.ilike.%${term}%,recipe.ilike.%${term}%`)
         .order('created_at', { ascending: false });
 
@@ -346,7 +347,7 @@ function showPage(page) {
             <div id="takeaway-section" style="display: none; width: 100%; max-width: 450px;">
                 <textarea id="takeaway-included" rows="4" placeholder="What is included? (e.g. 4 Burgers, 2 Large Chips, 2L Coke)" style="width: 100%; box-sizing: border-box;"></textarea>
             </div>
-            <button onclick="saveBudgetMeal()" style="margin-top: 10px;">Submit for Review</button>
+            <button onclick="saveBudgetMeal()" style="margin-top: 10px;">Post Meal Live</button>
         `;
         addIngredientRow(); 
     } else if (page === 'find-specials') {
@@ -497,7 +498,7 @@ function renderAddMealPlanForm() {
             ${daysHTML}
         </div>
         <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button onclick="saveMealPlan()" style="margin: 0;">Submit for Review</button>
+            <button onclick="saveMealPlan()" style="margin: 0;">Post Plan Live</button>
             <button onclick="showPage('creator-hub')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
         </div>
     `;
@@ -525,11 +526,11 @@ async function saveMealPlan() {
         title: title, 
         category: '7-Day Meal Plans', 
         recipe: finalRecipe.trim(),
-        status: 'pending'
+        status: 'pending' // Still marked pending for the admin queue, but visible due to query changes
     }]);
     
     if (error) { alert("Error: " + error.message); } 
-    else { alert("Meal Plan submitted successfully! It will appear once approved by an admin."); showPage('creator-hub'); }
+    else { alert("Meal Plan posted successfully!"); showPage('find-meal-plans'); }
 }
 
 async function loadSpecials() {
@@ -539,7 +540,8 @@ async function loadSpecials() {
     if (!selectedCountry) { view.innerHTML = `<h1>Error</h1><p>Please select a country first.</p>`; return; }
 
     const now = new Date().toISOString();
-    const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).eq('status', 'approved').gt('expiry_date', now);
+    // Removed .eq('status', 'approved') from here
+    const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
 
     if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`; return; }
 
@@ -591,7 +593,7 @@ function renderAddSpecialForm() {
         </select>
 
         <textarea id="special-details" rows="4" placeholder="What is included in the deal? Any specific conditions?" style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
-        <button onclick="saveSpecial()" style="margin-top: 10px;">Submit Deal for Review</button>
+        <button onclick="saveSpecial()" style="margin-top: 10px;">Post Deal Live</button>
         <button onclick="showPage('creator-hub')" style="margin-top: 10px; background: var(--bg); color: var(--text);">Cancel</button>
     `;
 }
@@ -616,7 +618,7 @@ async function saveSpecial() {
     }]);
 
     if (error) alert("Error: " + error.message); 
-    else { alert("Special submitted successfully! It will appear once approved by an admin."); showPage('creator-hub'); }
+    else { alert("Special posted successfully!"); showPage('find-specials'); }
 }
 
 function toggleMealType() {
@@ -634,7 +636,8 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
-    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry).eq('status', 'approved');
+    // Removed .eq('status', 'approved') from here
+    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
     if (filter !== 'all') { query = query.eq('meal_type', filter); }
 
     const { data, error } = await query;
@@ -760,7 +763,8 @@ async function loadSubcategory(subcategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
-    const { data, error } = await myDatabase.from('meals').select('id, title, category, author, created_at').eq('category', subcategory).eq('status', 'approved').order('created_at', { ascending: false });
+    // Removed .eq('status', 'approved') from here
+    const { data, error } = await myDatabase.from('meals').select('id, title, category, author, created_at').eq('category', subcategory).order('created_at', { ascending: false });
     const parentCat = getParentCategory(subcategory);
 
     if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p><button onclick="renderSubcategoryList('${parentCat}', 'find')">← Back</button>`; return; }
@@ -919,7 +923,7 @@ function showForm(subcategory) {
         </div>
         <textarea id="recipe-instructions" rows="8" placeholder="Instructions..." style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
         <div style="display: flex; gap: 10px; width: 100%; max-width: 450px;">
-            <button onclick="saveRecipe()" style="margin: 0;">Submit for Review</button>
+            <button onclick="saveRecipe()" style="margin: 0;">Post Recipe Live</button>
         </div>
     `;
     addIngredientRow();
@@ -980,7 +984,7 @@ async function saveRecipe() {
     }]);
     
     if (error) alert("Error: " + error.message);
-    else { alert("Recipe submitted successfully! It will appear once approved by an admin."); showPage('creator-hub'); }
+    else { alert("Recipe posted successfully!"); loadSubcategory(selectedSubcategory); }
 }
 
 async function saveBudgetMeal() {
@@ -1011,7 +1015,7 @@ async function saveBudgetMeal() {
     }]);
 
     if (error) alert("Error: " + error.message); 
-    else { alert("Budget meal submitted successfully! It will appear once approved by an admin."); showPage('creator-hub'); }
+    else { alert("Budget meal posted successfully!"); showPage('find-budget-meals'); }
 }
 
 async function reportRecipe(title, id) {
