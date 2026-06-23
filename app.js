@@ -52,18 +52,15 @@ const categoryMeta = {
 };
 
 const subcategoryMeta = {
-    // Breakfast
     "Hot breakfasts": { icon: "🍳", desc: "Warm and hearty morning meals." },
     "Cold breakfasts": { icon: "🥣", desc: "Quick, refreshing, and no-cook morning fuel." },
     "Cereals & oats": { icon: "🌾", desc: "Oatmeal, muesli, and crunchy cereals." },
     "Breakfast sandwiches": { icon: "🥪", desc: "Eggs, bacon, and cheese stacked to go." },
     "Pancakes, waffles & French toast": { icon: "🥞", desc: "Sweet, fluffy weekend favorites." },
-    // Lunch
     "Light meals": { icon: "🥗", desc: "Healthy, easy portions for the midday slump." },
     "Sandwiches & wraps": { icon: "🌯", desc: "Portable and packed with flavor." },
     "Salads": { icon: "🥬", desc: "Fresh, crisp, and nutrient-dense greens." },
     "Soups": { icon: "🥣", desc: "Comforting bowls for a chilly afternoon." },
-    // Main Meals
     "Beef dishes": { icon: "🥩", desc: "Hearty roasts, steaks, and mince meals." },
     "Chicken dishes": { icon: "🍗", desc: "Versatile, affordable poultry dinners." },
     "Pork dishes": { icon: "🥓", desc: "Chops, ribs, and slow-cooked pulled pork." },
@@ -75,68 +72,57 @@ const subcategoryMeta = {
     "Casseroles & bakes": { icon: "🥘", desc: "One-pan wonders baked to perfection." },
     "Curries": { icon: "🍛", desc: "Spicy, warming, and deeply flavorful." },
     "Stews": { icon: "🍲", desc: "Slow-cooked, melt-in-your-mouth comfort." },
-    // Side Dishes
     "Vegetables": { icon: "🥦", desc: "Roasted, steamed, or sautéed veggies." },
     "Potatoes": { icon: "🥔", desc: "Mash, roasties, and creamy potato bakes." },
     "Rice sides": { icon: "🍙", desc: "Simple grains to soak up the sauce." },
     "Pasta sides": { icon: "🧀", desc: "Mac and cheese and cold pasta salads." },
     "Bread sides": { icon: "🥖", desc: "Garlic bread, rolls, and flatbreads." },
-    // Snacks & Finger Foods
     "Chips & crisps": { icon: "🍟", desc: "Crunchy, salty, and perfect for dipping." },
     "Dips": { icon: "🥣", desc: "Hummus, guacamole, and cheesy spreads." },
     "Finger foods": { icon: "🍢", desc: "Easy to eat with one hand." },
     "Party snacks": { icon: "🎉", desc: "Crowd-pleasers for your next gathering." },
     "Savoury snacks": { icon: "🧀", desc: "Cheese bites, nuts, and salty treats." },
-    // Fast Food
     "Burgers": { icon: "🍔", desc: "Juicy patties with all the trimmings." },
     "Pizza": { icon: "🍕", desc: "Homemade dough and endless toppings." },
     "Hot dogs": { icon: "🌭", desc: "Classic franks, buns, and mustard." },
     "Wraps": { icon: "🌯", desc: "Folded flatbreads stuffed with goodness." },
     "Fried foods": { icon: "🍤", desc: "Crispy, golden, deep-fried indulgence." },
-    // Bread & Baking
     "Breads": { icon: "🍞", desc: "Classic loaves, sourdough, and rye." },
     "Rolls & buns": { icon: "🥐", desc: "Soft, buttery, and perfect for sliders." },
     "Scones": { icon: "🧁", desc: "Tea-time classics with jam and cream." },
     "Muffins": { icon: "🫐", desc: "Sweet and savory on-the-go bakes." },
     "Savoury baked goods": { icon: "🥧", desc: "Meat pies, sausage rolls, and quiches." },
-    // Desserts
     "Cakes": { icon: "🎂", desc: "Sponges, layered treats, and cupcakes." },
     "Pies & tarts": { icon: "🥧", desc: "Fruity, creamy, with a buttery crust." },
     "Puddings": { icon: "🍮", desc: "Warm, gooey, and comforting desserts." },
     "Custards": { icon: "🥄", desc: "Smooth, vanilla-rich sweet sauces." },
     "Ice cream & frozen desserts": { icon: "🍦", desc: "Cool treats for a hot day." },
     "Sweet pastries": { icon: "🥐", desc: "Flaky, sugar-dusted baker delights." },
-    // Biscuits
     "Cookies": { icon: "🍪", desc: "Chocolate chip, oatmeal, and chewy bites." },
     "Biscuits": { icon: "☕", desc: "Crunchy dunkers for your tea or coffee." },
     "Fudge": { icon: "🍬", desc: "Rich, dense, and melt-in-your-mouth." },
     "Candy": { icon: "🍭", desc: "Homemade sweets and sugar crafts." },
     "Chocolate treats": { icon: "🍫", desc: "Truffles, brownies, and cocoa heaven." },
-    // Drinks
     "Hot drinks": { icon: "☕", desc: "Coffee, tea, and rich hot chocolate." },
     "Cold drinks": { icon: "🥤", desc: "Iced teas, lemonades, and coolers." },
     "Smoothies": { icon: "🍹", desc: "Blended fruits and healthy greens." },
     "Milkshakes": { icon: "🥛", desc: "Thick, creamy, and ice-cream based." },
     "Cocktails": { icon: "🍸", desc: "Adult beverages mixed to perfection." },
     "Mocktails": { icon: "🍹", desc: "Alcohol-free fun with all the flavor." },
-    // Sauces
     "Sauces": { icon: "🍅", desc: "Pasta sauces, dipping sauces, and more." },
     "Gravies": { icon: "🥣", desc: "Rich meat and veggie drippings." },
     "Marinades": { icon: "🥩", desc: "Flavor baths for tenderizing meats." },
     "Dressings": { icon: "🥗", desc: "Vinaigrettes and creamy salad toppers." },
     "Jams & preserves": { icon: "🍓", desc: "Boiled fruits set for toast and baking." },
-    // Preserves
     "Pickles": { icon: "🥒", desc: "Crunchy veggies brined in vinegar." },
     "Chutneys": { icon: "🥭", desc: "Sweet and spicy Indian-style relishes." },
     "Relishes": { icon: "🧅", desc: "Tangy condiments for burgers and hotdogs." },
     "Fermented foods": { icon: "🥬", desc: "Kimchi, kraut, and gut-friendly eats." },
-    // Special Occasion
     "Braai recipes": { icon: "🔥", desc: "South African barbecue classics." },
     "Christmas recipes": { icon: "🎄", desc: "Festive roasts, bakes, and treats." },
     "Birthday recipes": { icon: "🎁", desc: "Party food and celebration cakes." },
     "Easter recipes": { icon: "🐰", desc: "Hot cross buns and pickled fish." },
     "Party foods": { icon: "🎈", desc: "Platters and snacks for a big crowd." },
-    // Cuisine
     "South African": { icon: "🇿🇦", desc: "Bobotie, potjiekos, and local favorites." },
     "Italian": { icon: "🇮🇹", desc: "Pasta, pizza, and Mediterranean flair." },
     "Mexican": { icon: "🇲🇽", desc: "Tacos, burritos, and spicy salsas." },
@@ -147,7 +133,6 @@ const subcategoryMeta = {
     "French": { icon: "🇫🇷", desc: "Rich butter, pastries, and rustic stews." },
     "Middle Eastern": { icon: "🥙", desc: "Falafel, hummus, and spiced meats." },
     "Thai": { icon: "🇹🇭", desc: "Sweet, sour, spicy, and fragrant bowls." },
-    // Dietary
     "Vegetarian": { icon: "🥑", desc: "Plant-based goodness with dairy/eggs." },
     "Vegan": { icon: "🌱", desc: "100% animal-product-free meals." },
     "Gluten-free": { icon: "🚫", desc: "Wheat-free bakes and dinners." },
@@ -155,9 +140,7 @@ const subcategoryMeta = {
     "Low-carb": { icon: "🥓", desc: "Minimal sugars and starches." },
     "Keto": { icon: "🥩", desc: "High fat, moderate protein, very low carb." },
     "High-protein": { icon: "💪", desc: "Muscle-building, filling portions." },
-    // Specialized
     "7-Day Meal Plans": { icon: "📅", desc: "Full 7-day meal plans to keep you on budget." },
-    // Pets
     "Dogs": { icon: "🐶", desc: "Meals, biscuits, and healthy treats for dogs." },
     "Cats": { icon: "🐱", desc: "Feline favorites, from wet food to crunchy snacks." },
     "Birds": { icon: "🦜", desc: "Seed mixes and fresh fruit treats for pet birds." },
@@ -201,6 +184,12 @@ async function fetchStats() {
     const navCounter = document.getElementById('nav-counter');
     if (navCounter) {
         navCounter.innerHTML = `🌍 ${totalApprovedRecipes} Recipes Live<br><span style="font-size: 0.9em; color: #008080; display: inline-block; margin-top: 5px;">👀 ${totalVisitors.toLocaleString()} Total Visits</span>`;
+    }
+
+    // Update Home Page UI (if the user is currently on the home page)
+    const homeCounter = document.getElementById('home-visitor-counter');
+    if (homeCounter) {
+        homeCounter.innerHTML = `👀 ${totalVisitors.toLocaleString()} Total Visits to Website`;
     }
 }
 
@@ -253,7 +242,7 @@ function showPage(page) {
             
             <div style="background: #e0f7fa; border: 2px solid #008080; padding: 15px; margin-bottom: 20px; text-align: center; max-width: 800px;">
                 <p style="margin: 0; font-size: 1.2rem; margin-bottom: 8px;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
-                <div style="display: inline-block; background: #fff; border: 1px solid #008080; padding: 5px 15px; font-weight: bold; color: #008080; font-size: 1.1rem; box-shadow: 2px 2px 0px #008080;">
+                <div id="home-visitor-counter" style="display: inline-block; background: #fff; border: 1px solid #008080; padding: 5px 15px; font-weight: bold; color: #008080; font-size: 1.1rem; box-shadow: 2px 2px 0px #008080;">
                     👀 ${totalVisitors.toLocaleString()} Total Visits to Website
                 </div>
             </div>
@@ -264,9 +253,9 @@ function showPage(page) {
                     <img src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid #008080; object-fit: cover;">
                     <div style="flex: 1; min-width: 300px;">
                         <p style="line-height: 1.6;"><strong>Real food, shared by real people.</strong></p>
-                        <p style="line-height: 1.6;">Hi, we are the team behind this platform. I'm a 40-year-old beginner developer from South Africa, and this is my very first live project. My wife balances her day job as an online teacher with being our lead admin, manually reviewing recipes.</p>
+                        <p style="line-height: 1.6;">Hi, we are the team behind this platform! I'm a 40-year-old beginner developer from South Africa, and this is my very first live project. My wife balances her day job as an online teacher with being our lead admin, manually reviewing community recipes.</p>
                         <p style="line-height: 1.6;">We built this because we were sick of AI bots, fake blogs, and recipes calling for unrealistic ingredients. We wanted a centralized place for real people cooking on a realistic budget.</p>
-                        <p style="line-height: 1.6;"><strong>A quick note on ads and moderation:</strong> Because this is a two-person passion project, keeping the servers running requires a few ads. I apologize if they are intrusive; I am actively working on an ad-free version.</p>
+                        <p style="line-height: 1.6;"><strong>A quick note on ads and moderation:</strong> Because this is a two-person passion project, keeping the servers running requires a few ads. I apologize if they are ever intrusive; I am actively working on an ad-free version.</p>
                         <p style="line-height: 1.6;">On busy days, things might slip past us. If you see anything weird or fake, please use the ⚠️ <strong>Report</strong> button under any recipe. If you have suggestions, please don't hesitate to reach out via our <strong>Contact Us</strong> page. Thank you for your patience, and happy cooking!</p>
                     </div>
                 </div>
