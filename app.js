@@ -6,6 +6,7 @@ let selectedCountry = "";
 let selectedSubcategory = "";
 let totalApprovedRecipes = 0; 
 let totalVisitors = 10000;
+let teamPhotoUrl = 'https://via.placeholder.com/300';
 
 const currencyMap = { "Afghanistan": "؋", "Albania": "L", "Algeria": "دج", "Andorra": "€", "Angola": "Kz", "Antigua and Barbuda": "$", "Argentina": "$", "Armenia": "֏", "Australia": "A$", "Austria": "€", "Azerbaijan": "₼", "Bahamas": "$", "Bahrain": "BD", "Bangladesh": "৳", "Barbados": "$", "Belarus": "Br", "Belgium": "€", "Belize": "$", "Benin": "CFA", "Bhutan": "Nu", "Bolivia": "Bs", "Bosnia and Herzegovina": "KM", "Botswana": "P", "Brazil": "R$", "Brunei": "$", "Bulgaria": "лв", "Burkina Faso": "CFA", "Burundi": "FBu", "Cabo Verde": "Esc", "Cambodia": "៛", "Cameroon": "CFA", "Canada": "CA$", "Central African Republic": "CFA", "Chad": "CFA", "Chile": "$", "China": "¥", "Colombia": "$", "Comoros": "CF", "Congo": "CFA", "Costa Rica": "₡", "Croatia": "€", "Cuba": "$", "Cyprus": "€", "Czech Republic": "Kč", "Denmark": "kr", "Djibouti": "Fdj", "Dominica": "$", "Dominican Republic": "$", "Ecuador": "$", "Egypt": "£", "El Salvador": "$", "Equatorial Guinea": "CFA", "Eritrea": "Nfa", "Estonia": "€", "Eswatini": "E", "Ethiopia": "Br", "Fiji": "$", "Finland": "€", "France": "€", "Gabon": "CFA", "Gambia": "D", "Georgia": "₾", "Germany": "€", "Ghana": "₵", "Greece": "€", "Grenada": "$", "Guatemala": "Q", "Guinea": "FG", "Guinea-Bissau": "CFA", "Guyana": "$", "Haiti": "G", "Honduras": "L", "Hungary": "Ft", "Iceland": "kr", "India": "₹", "Indonesia": "Rp", "Iran": "﷼", "Iraq": "ع.د", "Ireland": "€", "Israel": "₪", "Italy": "€", "Jamaica": "$", "Japan": "¥", "Jordan": "JD", "Kazakhstan": "₸", "Kenya": "KSh", "Kiribati": "$", "Kuwait": "KD", "Kyrgyzstan": "som", "Laos": "₭", "Latvia": "€", "Lebanon": "£", "Lesotho": "L", "Liberia": "$", "Libya": "LD", "Liechtenstein": "CHF", "Lithuania": "€", "Luxembourg": "€", "Madagascar": "Ar", "Malawi": "MK", "Malaysia": "RM", "Maldives": "Rf", "Mali": "CFA", "Malta": "€", "Marshall Islands": "$", "Mauritania": "UM", "Mauritius": "₨", "Mexico": "$", "Micronesia": "$", "Moldova": "L", "Monaco": "€", "Mongolia": "₮", "Montenegro": "€", "Morocco": "DH", "Mozambique": "MT", "Myanmar": "Ks", "Namibia": "N$", "Nauru": "$", "Nepal": "₨", "Netherlands": "€", "New Zealand": "NZ$", "Nicaragua": "C$", "Niger": "CFA", "Nigeria": "₦", "North Macedonia": "ден", "Norway": "kr", "Oman": "ر.ع.", "Pakistan": "₨", "Palau": "$", "Palestine": "₪", "Panama": "B/.", "Papua New Guinea": "K", "Paraguay": "₲", "Peru": "S/", "Philippines": "₱", "Poland": "zł", "Portugal": "€", "Qatar": "QR", "Romania": "lei", "Russia": "₽", "Rwanda": "FRw", "Saint Kitts and Nevis": "$", "Saint Lucia": "$", "Saint Vincent and the Grenadines": "$", "Samoa": "WS$", "San Marino": "€", "Sao Tome and Principe": "Db", "Saudi Arabia": "﷼", "Senegal": "CFA", "Serbia": "дин", "Seychelles": "₨", "Sierra Leone": "Le", "Singapore": "S$", "Slovakia": "€", "Slovenia": "€", "Solomon Islands": "$", "Somalia": "Sh", "South Africa": "R", "South Sudan": "£", "Spain": "€", "Sri Lanka": "₨", "Sudan": "£", "Suriname": "$", "Sweden": "kr", "Switzerland": "CHF", "Syria": "£", "Taiwan": "NT$", "Tajikistan": "SM", "Tanzania": "TSh", "Thailand": "฿", "Timor-Leste": "$", "Togo": "CFA", "Tonga": "T$", "Trinidad and Tobago": "TT$", "Tunisia": "DT", "Turkey": "₺", "Turkmenistan": "m", "Tuvalu": "$", "Uganda": "USh", "Ukraine": "₴", "United Arab Emirates": "AED", "UK": "£", "USA": "$", "Uruguay": "$", "Uzbekistan": "so'm", "Vanuatu": "VT", "Vatican City": "€", "Venezuela": "Bs", "Vietnam": "₫", "Yemen": "﷼", "Zambia": "ZK", "Zimbabwe": "Z$" };
 const countries = Object.keys(currencyMap).sort();
@@ -30,7 +31,6 @@ const categories = {
     "Pet Food & Treats": ["Dogs", "Cats", "Birds", "Small Pets", "Other Pets"]
 };
 
-// THE VISUAL DICTIONARY FOR MAIN MENU CARDS
 const categoryMeta = {
     "Breakfast": { icon: "🍳", desc: "Start your morning right with hot meals, oats, and bakes." },
     "Lunch": { icon: "🥪", desc: "Midday fuel from quick sandwiches to light salads and soups." },
@@ -51,7 +51,6 @@ const categoryMeta = {
     "Pet Food & Treats": { icon: "🐾", desc: "Homemade, cost-effective nutrition for our furry friends." }
 };
 
-// THE MEGA-DICTIONARY FOR EVERY SINGLE SUBCATEGORY
 const subcategoryMeta = {
     // Breakfast
     "Hot breakfasts": { icon: "🍳", desc: "Warm and hearty morning meals." },
@@ -167,19 +166,15 @@ const subcategoryMeta = {
 };
 
 // --- INITIALIZATION & SESSION TRACKING ---
-
 async function handleVisitorSession() {
     const now = Date.now();
     const lastVisit = localStorage.getItem('last_visit_time');
     const cooldown = 30 * 60 * 1000; // 30 minutes in milliseconds
 
     if (!lastVisit || (now - parseInt(lastVisit)) > cooldown) {
-        // New session detected, trigger the secure RPC
         await myDatabase.rpc('increment_visitor_count');
         localStorage.setItem('last_visit_time', now.toString());
     }
-    
-    // Now fetch and display the updated stats
     fetchStats();
 }
 
@@ -191,18 +186,21 @@ async function fetchStats() {
     }
 
     // 2. Fetch total visitors
-    const { data, error: visitorError } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
-    if (!visitorError && data) {
-        totalVisitors = data.visitor_count;
+    const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
+    if (vData) {
+        totalVisitors = vData.visitor_count;
     }
 
-    // 3. Update the Nav Bar UI
+    // 3. Fetch Team Photo URL
+    const { data: tData } = await myDatabase.from('site_config').select('team_photo_url').eq('id', 1).single();
+    if (tData) {
+        teamPhotoUrl = tData.team_photo_url;
+    }
+
+    // Update Nav Bar UI
     const navCounter = document.getElementById('nav-counter');
     if (navCounter) {
-        navCounter.innerHTML = `
-            🌍 ${totalApprovedRecipes} Recipes Live<br>
-            <span style="font-size: 0.9em; color: #008080; display: inline-block; margin-top: 5px;">👀 ${totalVisitors.toLocaleString()} Visitors</span>
-        `;
+        navCounter.innerHTML = `🌍 ${totalApprovedRecipes} Recipes Live<br><span style="font-size: 0.9em; color: #008080; display: inline-block; margin-top: 5px;">👀 ${totalVisitors.toLocaleString()} Total Visits</span>`;
     }
 }
 
@@ -243,7 +241,7 @@ window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     updateHack(); 
-    handleVisitorSession(); // This initiates the session check and populates both counters!
+    handleVisitorSession();
 };
 
 // --- MAIN ROUTER ---
@@ -261,13 +259,17 @@ function showPage(page) {
             </div>
 
             <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid var(--border); max-width: 800px;">
-                <h2 style="font-size: 1.5rem; margin-bottom: 15px;">About Us</h2>
-                <p style="line-height: 1.6; margin-bottom: 15px;">
-                    We are a community-driven platform dedicated to solving the daily question of "what's for dinner?" without breaking the bank. By combining global recipes with precise cost-per-serving calculators, this platform eliminates the guesswork from grocery shopping.
-                </p>
-                <p style="line-height: 1.6; margin-bottom: 15px;">
-                    From hearty home-cooked stews to breaking down the true cost of popular fast-food family meals, transparency is key. We empower users to track every cent, convert complex ingredient measurements globally, and share their most frugal kitchen hacks. Cooking on a budget shouldn't mean sacrificing flavor or variety.
-                </p>
+                <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Meet the Builders</h2>
+                <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+                    <img src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid #008080; object-fit: cover;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <p style="line-height: 1.6;"><strong>Real food, shared by real people.</strong></p>
+                        <p style="line-height: 1.6;">Hi, we are the team behind this platform. I'm a 40-year-old beginner developer from South Africa, and this is my very first live project. My wife balances her day job as an online teacher with being our lead admin, manually reviewing recipes.</p>
+                        <p style="line-height: 1.6;">We built this because we were sick of AI bots, fake blogs, and recipes calling for unrealistic ingredients. We wanted a centralized place for real people cooking on a realistic budget.</p>
+                        <p style="line-height: 1.6;"><strong>A quick note on ads and moderation:</strong> Because this is a two-person passion project, keeping the servers running requires a few ads. I apologize if they are intrusive; I am actively working on an ad-free version.</p>
+                        <p style="line-height: 1.6;">On busy days, things might slip past us. If you see anything weird or fake, please use the ⚠️ <strong>Report</strong> button under any recipe. If you have suggestions, please don't hesitate to reach out via our <strong>Contact Us</strong> page. Thank you for your patience, and happy cooking!</p>
+                    </div>
+                </div>
             </div>
         `;
     } else if (page === 'find-recipes') {
