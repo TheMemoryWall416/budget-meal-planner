@@ -23,11 +23,11 @@
         .nav-tabs button.active { background: #000; color: #fff; }
         .card { border: 2px solid #000; padding: 15px; margin-bottom: 15px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; }
         .card-content { flex-grow: 1; }
-        .card-actions { display: flex; gap: 10px; margin-left: 15px; }
+        .card-actions { display: flex; gap: 10px; margin-left: 15px; flex-wrap: wrap; justify-content: flex-end;}
         .card-title { font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0; }
         .meta { font-size: 0.85rem; color: #666; margin: 0; }
-        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
-        .badge { padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid #000; margin-left: 10px; background: #fff; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #e0e0e0; padding: 15px; border: 2px solid #000; }
+        .badge { padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid #000; margin-left: 10px; background: #fff; display: inline-block; margin-bottom: 5px;}
         .badge-special { background: #fff3cd; color: #856404; border-color: #ffeeba; }
         .badge-plan { background: #cce5ff; color: #004085; border-color: #b8daff; }
         .badge-pet { background: #e2d9f3; color: #381885; border-color: #d2c4eb; }
@@ -63,33 +63,25 @@
 
     <div id="view-review" style="display: none;">
         <h2>Needs Approval</h2>
-        <p style="margin-top:0; color:#555;">These items are currently live. Approve them to keep them, or Decline to delete them immediately.</p>
+        <p style="margin-top:0; color:#555;">Review pending community submissions.</p>
         
-        <div class="search-box" style="background: #e0e0e0; padding: 10px; border: 2px solid #000;">
-            <select id="review-main-cat" onchange="updateReviewSubcategories()" style="margin-bottom: 0; cursor: pointer; flex: 1;">
-                <option value="all">-- All Main Categories --</option>
-            </select>
-            <select id="review-sub-cat" onchange="loadReviewQueue()" style="margin-bottom: 0; cursor: pointer; flex: 1;">
-                <option value="all">-- All Subcategories --</option>
-            </select>
-            <button onclick="loadReviewQueue()">Filter</button>
+        <div class="search-box">
+            <select id="review-tier1" onchange="updateTier2('review')" style="flex: 1; min-width: 200px; margin-bottom: 0; cursor: pointer;"></select>
+            <select id="review-tier2" onchange="updateTier3('review')" style="flex: 1; min-width: 200px; margin-bottom: 0; cursor: pointer; display: none;"></select>
+            <select id="review-tier3" onchange="loadReviewQueue()" style="flex: 1; min-width: 200px; margin-bottom: 0; cursor: pointer; display: none;"></select>
         </div>
-
         <div id="review-list">Loading...</div>
     </div>
 
     <div id="view-library" style="display: none;">
         <h2>Approved Content</h2>
+        
         <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search by title..." onkeyup="if(event.key === 'Enter') searchLibrary()">
-            <select id="filter-category" onchange="searchLibrary()" style="width: auto; margin-bottom: 0; cursor: pointer;">
-                <option value="all">All Categories</option>
-                <option value="budget">Budget Meals</option>
-                <option value="special">Local Specials</option>
-                <option value="7-Day Meal Plans">7-Day Meal Plans</option>
-                <option value="Pet Food & Treats">Pet Food & Treats</option>
-            </select>
-            <button onclick="searchLibrary()">Search</button>
+            <input type="text" id="library-search" placeholder="Search title or ingredient..." style="flex-basis: 100%; margin-bottom: 10px;" onkeyup="if(event.key === 'Enter') loadLibrary()">
+            <select id="library-tier1" onchange="updateTier2('library')" style="flex: 1; min-width: 200px; margin-bottom: 0; cursor: pointer;"></select>
+            <select id="library-tier2" onchange="updateTier3('library')" style="flex: 1; min-width: 200px; margin-bottom: 0; cursor: pointer; display: none;"></select>
+            <select id="library-tier3" onchange="loadLibrary()" style="flex: 1; min-width: 200px; margin-bottom: 0; cursor: pointer; display: none;"></select>
+            <button onclick="loadLibrary()" style="flex-basis: 100%; margin-top: 10px;">🔍 Search / Apply Filters</button>
         </div>
         <div id="library-list">Loading...</div>
     </div>
@@ -111,48 +103,25 @@
         </div>
         
         <input type="hidden" id="edit-id">
-        
         <label style="font-weight: bold; font-size: 0.9rem;">Recipe Title</label>
         <input type="text" id="edit-title" placeholder="Recipe Title">
-        
         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <div style="flex: 1;">
-                <label style="font-weight: bold; font-size: 0.9rem;">Category</label>
-                <input type="text" id="edit-category" oninput="toggleAdminFields()" placeholder="e.g. budget, Breakfast" style="margin-bottom: 0;">
-            </div>
-            <div style="flex: 1;">
-                <label style="font-weight: bold; font-size: 0.9rem;">Country</label>
-                <input type="text" id="edit-country" placeholder="e.g. South Africa" style="margin-bottom: 0;">
-            </div>
+            <div style="flex: 1;"><label style="font-weight: bold; font-size: 0.9rem;">Category</label><input type="text" id="edit-category" oninput="toggleAdminFields()" placeholder="e.g. budget, Breakfast" style="margin-bottom: 0;"></div>
+            <div style="flex: 1;"><label style="font-weight: bold; font-size: 0.9rem;">Country</label><input type="text" id="edit-country" placeholder="e.g. South Africa" style="margin-bottom: 0;"></div>
         </div>
-
         <label style="font-weight: bold; font-size: 0.9rem;">Meal Type (Crucial for Budget Meals)</label>
-        <select id="edit-meal-type" onchange="toggleAdminFields()">
-            <option value="">Global Recipe (No specific type)</option>
-            <option value="home">Home-Cooked (Uses Ingredients)</option>
-            <option value="takeaway">Takeaway (No Ingredients)</option>
-        </select>
-        
+        <select id="edit-meal-type" onchange="toggleAdminFields()"><option value="">Global Recipe (No specific type)</option><option value="home">Home-Cooked (Uses Ingredients)</option><option value="takeaway">Takeaway (No Ingredients)</option></select>
         <div id="edit-budget-fields" style="display:none; gap: 10px; margin-bottom: 15px;">
-            <div style="flex:1;">
-                <label style="font-weight: bold; font-size: 0.9rem;">Total Cost</label>
-                <input type="number" id="edit-cost" placeholder="Cost" step="any" style="margin-bottom: 0;">
-            </div>
-            <div style="flex:1;">
-                <label style="font-weight: bold; font-size: 0.9rem;">Servings</label>
-                <input type="number" id="edit-servings" placeholder="Servings" style="margin-bottom: 0;">
-            </div>
+            <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Total Cost</label><input type="number" id="edit-cost" placeholder="Cost" step="any" style="margin-bottom: 0;"></div>
+            <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Servings</label><input type="number" id="edit-servings" placeholder="Servings" style="margin-bottom: 0;"></div>
         </div>
-
         <div id="edit-ingredients-container" style="background: #fff; border: 2px solid #000; padding: 15px; margin-bottom: 15px;">
             <h3 style="margin-top: 0;">Ingredients</h3>
             <div id="edit-ingredients-list"></div>
             <button onclick="adminAddIngredientRow()" style="margin-top: 10px; background: #e0e0e0; color: #000; border: 1px solid #000; padding: 5px 10px; font-size: 0.8rem;">+ Add Ingredient Row</button>
         </div>
-        
         <label style="font-weight: bold; font-size: 0.9rem;">Instructions / What is Included</label>
         <textarea id="edit-instructions" rows="8" placeholder="Instructions..."></textarea>
-        
         <button class="btn-success" onclick="saveEdit()" style="width: 100%; font-size: 1.1rem; padding: 15px;">💾 Save Changes to Database</button>
     </div>
 </div>
@@ -161,6 +130,9 @@
     const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
     const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const currencyMap = { "Afghanistan": "؋", "Albania": "L", "Algeria": "دج", "Andorra": "€", "Angola": "Kz", "Antigua and Barbuda": "$", "Argentina": "$", "Armenia": "֏", "Australia": "A$", "Austria": "€", "Azerbaijan": "₼", "Bahamas": "$", "Bahrain": "BD", "Bangladesh": "৳", "Barbados": "$", "Belarus": "Br", "Belgium": "€", "Belize": "$", "Benin": "CFA", "Bhutan": "Nu", "Bolivia": "Bs", "Bosnia and Herzegovina": "KM", "Botswana": "P", "Brazil": "R$", "Brunei": "$", "Bulgaria": "лв", "Burkina Faso": "CFA", "Burundi": "FBu", "Cabo Verde": "Esc", "Cambodia": "៛", "Cameroon": "CFA", "Canada": "CA$", "Central African Republic": "CFA", "Chad": "CFA", "Chile": "$", "China": "¥", "Colombia": "$", "Comoros": "CF", "Congo": "CFA", "Costa Rica": "₡", "Croatia": "€", "Cuba": "$", "Cyprus": "€", "Czech Republic": "Kč", "Denmark": "kr", "Djibouti": "Fdj", "Dominica": "$", "Dominican Republic": "$", "Ecuador": "$", "Egypt": "£", "El Salvador": "$", "Equatorial Guinea": "CFA", "Eritrea": "Nfa", "Estonia": "€", "Eswatini": "E", "Ethiopia": "Br", "Fiji": "$", "Finland": "€", "France": "€", "Gabon": "CFA", "Gambia": "D", "Georgia": "₾", "Germany": "€", "Ghana": "₵", "Greece": "€", "Grenada": "$", "Guatemala": "Q", "Guinea": "FG", "Guinea-Bissau": "CFA", "Guyana": "$", "Haiti": "G", "Honduras": "L", "Hungary": "Ft", "Iceland": "kr", "India": "₹", "Indonesia": "Rp", "Iran": "﷼", "Iraq": "ع.د", "Ireland": "€", "Israel": "₪", "Italy": "€", "Jamaica": "$", "Japan": "¥", "Jordan": "JD", "Kazakhstan": "₸", "Kenya": "KSh", "Kiribati": "$", "Kuwait": "KD", "Kyrgyzstan": "som", "Laos": "₭", "Latvia": "€", "Lebanon": "£", "Lesotho": "L", "Liberia": "$", "Libya": "LD", "Liechtenstein": "CHF", "Lithuania": "€", "Luxembourg": "€", "Madagascar": "Ar", "Malawi": "MK", "Malaysia": "RM", "Maldives": "Rf", "Mali": "CFA", "Malta": "€", "Marshall Islands": "$", "Mauritania": "UM", "Mauritius": "₨", "Mexico": "$", "Micronesia": "$", "Moldova": "L", "Monaco": "€", "Mongolia": "₮", "Montenegro": "€", "Morocco": "DH", "Mozambique": "MT", "Myanmar": "Ks", "Namibia": "N$", "Nauru": "$", "Nepal": "₨", "Netherlands": "€", "New Zealand": "NZ$", "Nicaragua": "C$", "Niger": "CFA", "Nigeria": "₦", "North Macedonia": "ден", "Norway": "kr", "Oman": "ر.ع.", "Pakistan": "₨", "Palau": "$", "Palestine": "₪", "Panama": "B/.", "Papua New Guinea": "K", "Paraguay": "₲", "Peru": "S/", "Philippines": "₱", "Poland": "zł", "Portugal": "€", "Qatar": "QR", "Romania": "lei", "Russia": "₽", "Rwanda": "FRw", "Saint Kitts and Nevis": "$", "Saint Lucia": "$", "Saint Vincent and the Grenadines": "$", "Samoa": "WS$", "San Marino": "€", "Sao Tome and Principe": "Db", "Saudi Arabia": "﷼", "Senegal": "CFA", "Serbia": "дин", "Seychelles": "₨", "Sierra Leone": "Le", "Singapore": "S$", "Slovakia": "€", "Slovenia": "€", "Solomon Islands": "$", "Somalia": "Sh", "South Africa": "R", "South Sudan": "£", "Spain": "€", "Sri Lanka": "₨", "Sudan": "£", "Suriname": "$", "Sweden": "kr", "Switzerland": "CHF", "Syria": "£", "Taiwan": "NT$", "Tajikistan": "SM", "Tanzania": "TSh", "Thailand": "฿", "Timor-Leste": "$", "Togo": "CFA", "Tonga": "T$", "Trinidad and Tobago": "TT$", "Tunisia": "DT", "Turkey": "₺", "Turkmenistan": "m", "Tuvalu": "$", "Uganda": "USh", "Ukraine": "₴", "United Arab Emirates": "AED", "UK": "£", "USA": "$", "Uruguay": "$", "Uzbekistan": "so'm", "Vanuatu": "VT", "Vatican City": "€", "Venezuela": "Bs", "Vietnam": "₫", "Yemen": "﷼", "Zambia": "ZK", "Zimbabwe": "Z$" };
+    const countries = Object.keys(currencyMap).sort();
 
     const adminCategories = {
         "Breakfast": ["Hot breakfasts", "Cold breakfasts", "Cereals & oats", "Breakfast sandwiches", "Pancakes, waffles & French toast"],
@@ -183,26 +155,197 @@
     };
 
     window.onload = async function() {
-        const mainSelect = document.getElementById('review-main-cat');
-        if (mainSelect) {
-            Object.keys(adminCategories).forEach(cat => {
-                let opt = document.createElement('option');
-                opt.value = cat;
-                opt.innerHTML = cat;
-                mainSelect.appendChild(opt);
-            });
-        }
-
+        setupFilters();
         const { data: { session } } = await myDatabase.auth.getSession();
         if (session) showDashboard();
     };
 
+    // --- INIT FILTERS ---
+    function setupFilters() {
+        const types = [
+            { id: "all", label: "-- All Content Types --" },
+            { id: "global", label: "🍲 Global Recipes" },
+            { id: "budget", label: "💰 Budget Meals" },
+            { id: "special", label: "🏷️ Local Specials" },
+            { id: "plan", label: "📅 7-Day Meal Plans" },
+            { id: "pet", label: "🐾 Pet Food & Treats" }
+        ];
+        
+        ['review', 'library'].forEach(ctx => {
+            const t1 = document.getElementById(`${ctx}-tier1`);
+            if(t1) {
+                types.forEach(t => {
+                    let opt = document.createElement('option');
+                    opt.value = t.id; opt.innerHTML = t.label;
+                    t1.appendChild(opt);
+                });
+            }
+        });
+    }
+
+    // --- CASCADING TIER LOGIC ---
+    function updateTier2(context) {
+        const t1 = document.getElementById(`${context}-tier1`).value;
+        const t2 = document.getElementById(`${context}-tier2`);
+        const t3 = document.getElementById(`${context}-tier3`);
+        
+        t2.innerHTML = ''; t3.innerHTML = '';
+        t2.style.display = 'none'; t3.style.display = 'none';
+
+        if (t1 === 'global') {
+            t2.style.display = 'block';
+            t2.innerHTML = '<option value="all">-- All Main Categories --</option>';
+            Object.keys(adminCategories).forEach(cat => {
+                if (cat !== 'Pet Food & Treats' && cat !== 'Specialized Plans') {
+                    t2.innerHTML += `<option value="${cat}">${cat}</option>`;
+                }
+            });
+        } else if (t1 === 'budget' || t1 === 'special') {
+            t2.style.display = 'block';
+            t2.innerHTML = '<option value="all">-- All Countries --</option>';
+            countries.forEach(c => t2.innerHTML += `<option value="${c}">${c}</option>`);
+        } else if (t1 === 'pet') {
+            t2.style.display = 'block';
+            t2.innerHTML = '<option value="all">-- All Pets --</option>';
+            adminCategories['Pet Food & Treats'].forEach(sub => t2.innerHTML += `<option value="${sub}">${sub}</option>`);
+        }
+        
+        if (context === 'review') loadReviewQueue(); else loadLibrary();
+    }
+
+    function updateTier3(context) {
+        const t1 = document.getElementById(`${context}-tier1`).value;
+        const t2 = document.getElementById(`${context}-tier2`).value;
+        const t3 = document.getElementById(`${context}-tier3`);
+
+        t3.innerHTML = ''; t3.style.display = 'none';
+
+        if (t1 === 'global' && t2 !== 'all') {
+            t3.style.display = 'block';
+            t3.innerHTML = '<option value="all">-- All Subcategories --</option>';
+            adminCategories[t2].forEach(sub => t3.innerHTML += `<option value="${sub}">${sub}</option>`);
+        } else if (t1 === 'budget') {
+            t3.style.display = 'block';
+            t3.innerHTML = `<option value="all">-- All Meal Types --</option><option value="home">Home-Cooked</option><option value="takeaway">Takeaway</option>`;
+        }
+
+        if (context === 'review') loadReviewQueue(); else loadLibrary();
+    }
+
+    // --- MASTER QUERY BUILDER ---
+    function buildQuery(context, status) {
+        let query = myDatabase.from('meals').select('id, title, category, country, meal_type, created_at').eq('status', status).order('created_at', { ascending: false });
+        
+        const t1 = document.getElementById(`${context}-tier1`).value;
+        const t2 = document.getElementById(`${context}-tier2`) ? document.getElementById(`${context}-tier2`).value : 'all';
+        const t3 = document.getElementById(`${context}-tier3`) ? document.getElementById(`${context}-tier3`).value : 'all';
+
+        if (context === 'library') {
+            const term = document.getElementById('library-search').value.trim();
+            if (term !== '') { query = query.or(`title.ilike.%${term}%,recipe.ilike.%${term}%`); } 
+            else { query = query.limit(50); } // Prevent loading thousands of records at once
+        } else {
+            query = query.limit(100);
+        }
+
+        if (t1 === 'global') {
+            if (t3 !== 'all') {
+                query = query.eq('category', t3);
+            } else if (t2 !== 'all') {
+                query = query.in('category', adminCategories[t2]);
+            } else {
+                let allGlobalSubcats = [];
+                Object.keys(adminCategories).forEach(c => {
+                    if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
+                        allGlobalSubcats = allGlobalSubcats.concat(adminCategories[c]);
+                    }
+                });
+                query = query.in('category', allGlobalSubcats);
+            }
+        } else if (t1 === 'budget') {
+            query = query.eq('category', 'budget');
+            if (t2 !== 'all') query = query.eq('country', t2);
+            if (t3 !== 'all') query = query.eq('meal_type', t3);
+        } else if (t1 === 'special') {
+            query = query.eq('category', 'special');
+            if (t2 !== 'all') query = query.eq('country', t2);
+        } else if (t1 === 'plan') {
+            query = query.eq('category', '7-Day Meal Plans');
+        } else if (t1 === 'pet') {
+            if (t2 !== 'all') { query = query.eq('category', t2); } 
+            else { query = query.in('category', adminCategories['Pet Food & Treats']); }
+        }
+
+        return query;
+    }
+
+    // --- QUEUE & LIBRARY RENDERING ---
+    async function loadReviewQueue() {
+        const list = document.getElementById('review-list');
+        list.innerHTML = "Checking for new submissions based on filters...";
+
+        const { data, error } = await buildQuery('review', 'pending');
+        
+        if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+        if (data.length === 0) { list.innerHTML = `<p>Queue is empty for this filter! You are all caught up.</p>`; return; }
+
+        renderItems(data, list, 'review');
+    }
+
+    async function loadLibrary() {
+        const list = document.getElementById('library-list');
+        list.innerHTML = "Loading library based on filters...";
+
+        const { data, error } = await buildQuery('library', 'approved');
+        
+        if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+        if (data.length === 0) { list.innerHTML = `<p>No approved content found matching this filter.</p>`; return; }
+
+        renderItems(data, list, 'lib');
+    }
+
+    function renderItems(data, container, contextPrefix) {
+        let html = '';
+        data.forEach(meal => {
+            let badgeStyle = '';
+            let statusBadge = contextPrefix === 'review' 
+                ? `<span class="badge" style="background:#ffcc00;">PENDING</span>` 
+                : `<span class="badge" style="color: #28a745; border-color: #28a745;">APPROVED</span>`;
+            
+            let typeInfo = `Global Recipe (${meal.category})`;
+            
+            if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country}) - ${meal.meal_type || 'Unknown'}`; } 
+            else if (meal.category === 'special') { badgeStyle = 'badge-special'; typeInfo = `Local Special (${meal.country})`; } 
+            else if (meal.category === '7-Day Meal Plans') { badgeStyle = 'badge-plan'; typeInfo = `Meal Plan (Global)`; } 
+            else if (adminCategories['Pet Food & Treats'].includes(meal.category)) { badgeStyle = 'badge-pet'; typeInfo = `Pet Food (${meal.category})`; }
+
+            html += `
+            <div class="card" id="${contextPrefix}-${meal.id}">
+                <div class="card-content">
+                    <p class="card-title">${meal.title} ${statusBadge}</p>
+                    <p class="meta">Type: ${typeInfo} | ID: ${meal.id} | Date: ${new Date(meal.created_at).toLocaleDateString()}</p>
+                </div>
+                <div class="card-actions">`;
+            
+            if (contextPrefix === 'review') {
+                html += `<button class="btn-success" onclick="approveRecipe(${meal.id}, 'review-${meal.id}')">Approve</button>`;
+            }
+            
+            html += `
+                    <button class="btn-edit" onclick="openEdit(${meal.id})">Edit</button>
+                    <button class="btn-danger" onclick="deleteRecord('meals', ${meal.id}, '${contextPrefix}-${meal.id}')">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    // --- CORE ADMIN FUNCTIONS ---
     async function loginAdmin() {
         const email = document.getElementById('admin-email').value;
         const password = document.getElementById('admin-password').value;
-        const { data, error } = await myDatabase.auth.signInWithPassword({ email, password });
-        if (error) alert("Login Failed: " + error.message);
-        else showDashboard();
+        const { error } = await myDatabase.auth.signInWithPassword({ email, password });
+        if (error) alert("Login Failed: " + error.message); else showDashboard();
     }
 
     async function logoutAdmin() {
@@ -219,180 +362,57 @@
 
     function switchTab(tab) {
         document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
-        if (document.getElementById(`tab-${tab}`)) {
-            document.getElementById(`tab-${tab}`).classList.add('active');
-        }
+        if (document.getElementById(`tab-${tab}`)) { document.getElementById(`tab-${tab}`).classList.add('active'); }
         
-        document.getElementById('view-inbox').style.display = 'none';
-        document.getElementById('view-review').style.display = 'none';
-        document.getElementById('view-library').style.display = 'none';
-        document.getElementById('view-settings').style.display = 'none';
-        document.getElementById('view-edit').style.display = 'none';
-        
-        if (document.getElementById(`view-${tab}`)) {
-            document.getElementById(`view-${tab}`).style.display = 'block';
-        }
+        ['inbox', 'review', 'library', 'settings', 'edit'].forEach(v => {
+            document.getElementById(`view-${v}`).style.display = 'none';
+        });
+        document.getElementById(`view-${tab}`).style.display = 'block';
 
         if (tab === 'inbox') loadMessages();
         else if (tab === 'review') loadReviewQueue();
-        else if (tab === 'library') searchLibrary();
+        else if (tab === 'library') loadLibrary();
+    }
+
+    async function approveRecipe(id, elementId) {
+        const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
+        if (error) alert("Error approving: " + error.message); else document.getElementById(elementId).remove();
     }
 
     async function loadMessages() {
         const list = document.getElementById('messages-list');
-        list.innerHTML = "Loading messages...";
         const { data, error } = await myDatabase.from('messages').select('*').order('created_at', { ascending: false });
-        
         if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-        if (data.length === 0) { list.innerHTML = `<p>Inbox is completely empty.</p>`; return; }
-
+        if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
         let html = '<div style="display:flex; flex-direction:column; gap: 15px;">';
         data.forEach(msg => {
-            const date = new Date(msg.created_at).toLocaleString();
             const isReport = msg.name.startsWith("REPORTED");
-            const cardColor = isReport ? '#fff0f0' : '#fafafa';
-            const border = isReport ? '2px solid #dc3545' : '2px solid #000';
-            
             html += `
-            <div class="card" id="msg-${msg.id}" style="background: ${cardColor}; border: ${border}; flex-direction: column; align-items: flex-start;">
+            <div class="card" id="msg-${msg.id}" style="background: ${isReport ? '#fff0f0' : '#fafafa'}; border: ${isReport ? '2px solid #dc3545' : '2px solid #000'}; flex-direction: column; align-items: flex-start;">
                 <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-                    <div>
-                        <p class="card-title">${msg.name} <span class="meta">(${msg.email})</span></p>
-                        <p class="meta">${date}</p>
-                    </div>
+                    <div><p class="card-title">${msg.name} <span class="meta">(${msg.email})</span></p><p class="meta">${new Date(msg.created_at).toLocaleString()}</p></div>
                     <button class="btn-danger" onclick="deleteRecord('messages', ${msg.id}, 'msg-${msg.id}')">Delete</button>
                 </div>
                 <p style="white-space: pre-wrap; margin: 0;">${msg.message}</p>
             </div>`;
         });
-        html += '</div>';
-        list.innerHTML = html;
+        list.innerHTML = html + '</div>';
     }
 
-    function updateReviewSubcategories() {
-        const mainCat = document.getElementById('review-main-cat').value;
-        const subSelect = document.getElementById('review-sub-cat');
-        
-        subSelect.innerHTML = '<option value="all">-- All Subcategories --</option>';
-
-        if (mainCat !== 'all') {
-            const subs = adminCategories[mainCat];
-            if (subs) {
-                subs.forEach(sub => {
-                    subSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
-                });
-            }
-        }
-        loadReviewQueue();
+    async function deleteRecord(table, id, elementId) {
+        if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
+        const { error } = await myDatabase.from(table).delete().eq('id', id);
+        if (error) alert("Error deleting: " + error.message);
+        else if (elementId !== 'none' && document.getElementById(elementId)) document.getElementById(elementId).remove();
+        else location.reload();
     }
 
-    async function loadReviewQueue() {
-        const list = document.getElementById('review-list');
-        list.innerHTML = "Checking for new submissions...";
-
-        let query = myDatabase.from('meals').select('id, title, category, country').eq('status', 'pending').order('created_at', { ascending: false });
-
-        const mainCat = document.getElementById('review-main-cat') ? document.getElementById('review-main-cat').value : 'all';
-        const subCat = document.getElementById('review-sub-cat') ? document.getElementById('review-sub-cat').value : 'all';
-
-        if (subCat !== 'all') {
-            query = query.eq('category', subCat);
-        } else if (mainCat !== 'all') {
-            const subs = adminCategories[mainCat];
-            if (subs && subs.length > 0) {
-                query = query.in('category', subs);
-            }
-        }
-
-        const { data, error } = await query;
-        
-        if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-        if (data.length === 0) { list.innerHTML = `<p>Queue is empty for this filter! You are all caught up.</p>`; return; }
-
-        let html = '';
-        data.forEach(meal => {
-            let badgeStyle = '';
-            let typeInfo = `Global Recipe (${meal.category})`;
-            
-            if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country})`; } 
-            else if (meal.category === 'special') { badgeStyle = 'badge-special'; typeInfo = `Local Special (${meal.country})`; } 
-            else if (meal.category === '7-Day Meal Plans') { badgeStyle = 'badge-plan'; typeInfo = `Meal Plan (Global)`; } 
-            else if (meal.category === 'Pet Food & Treats') { badgeStyle = 'badge-pet'; typeInfo = `Pet Food (Global)`; }
-
-            html += `
-            <div class="card" id="review-${meal.id}">
-                <div class="card-content">
-                    <p class="card-title">${meal.title} <span class="badge ${badgeStyle}">PENDING</span></p>
-                    <p class="meta">Type: ${typeInfo} | ID: ${meal.id}</p>
-                </div>
-                <div class="card-actions">
-                    <button class="btn-success" onclick="approveRecipe(${meal.id}, 'review-${meal.id}')">Approve</button>
-                    <button class="btn-edit" onclick="openEdit(${meal.id})">Edit</button>
-                    <button class="btn-danger" onclick="deleteRecord('meals', ${meal.id}, 'review-${meal.id}')">Decline</button>
-                </div>
-            </div>`;
-        });
-        list.innerHTML = html;
-    }
-
-    async function approveRecipe(id, elementId) {
-        const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
-        if (error) alert("Error approving: " + error.message);
-        else document.getElementById(elementId).remove();
-    }
-
-    async function searchLibrary() {
-        const term = document.getElementById('search-input') ? document.getElementById('search-input').value.trim() : '';
-        const filterCat = document.getElementById('filter-category') ? document.getElementById('filter-category').value : 'all';
-        const list = document.getElementById('library-list');
-        list.innerHTML = "Loading library...";
-        
-        let query = myDatabase.from('meals').select('id, title, category, country, created_at').eq('status', 'approved').order('created_at', { ascending: false });
-        
-        if (filterCat !== 'all') {
-            query = query.eq('category', filterCat);
-        }
-
-        if (term !== '') {
-            query = query.ilike('title', `%${term}%`); 
-        } else {
-            query = query.limit(50);
-        }
-
-        const { data, error } = await query;
-        
-        if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-        if (data.length === 0) { list.innerHTML = `<p>No approved content found matching that search.</p>`; return; }
-
-        let html = term === '' && filterCat === 'all' ? '<p class="meta" style="margin-bottom: 15px;">Showing most recent 50 approved items. Use search to find older ones.</p>' : '';
-        data.forEach(meal => {
-            let typeInfo = `Global Recipe (${meal.category})`;
-            if (meal.category === 'budget') typeInfo = `Budget Meal (${meal.country})`;
-            if (meal.category === 'special') typeInfo = `Local Special (${meal.country})`;
-            if (meal.category === '7-Day Meal Plans') typeInfo = `Meal Plan (Global)`;
-            if (meal.category === 'Pet Food & Treats') typeInfo = `Pet Food (Global)`;
-
-            html += `
-            <div class="card" id="lib-${meal.id}">
-                <div class="card-content">
-                    <p class="card-title">${meal.title} <span class="badge" style="color: #28a745; border-color: #28a745;">APPROVED</span></p>
-                    <p class="meta">Type: ${typeInfo} | ID: ${meal.id}</p>
-                </div>
-                <div class="card-actions">
-                    <button class="btn-edit" onclick="openEdit(${meal.id})">Edit</button>
-                    <button class="btn-danger" onclick="deleteRecord('meals', ${meal.id}, 'lib-${meal.id}')">Delete</button>
-                </div>
-            </div>`;
-        });
-        list.innerHTML = html;
-    }
-
+    // --- EDIT RECORD LOGIC ---
     async function openEdit(id) {
         switchTab('edit'); 
-        document.getElementById('edit-ingredients-list').innerHTML = 'Loading record data...';
-        
+        document.getElementById('edit-ingredients-list').innerHTML = 'Loading...';
         const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
-        if (error) { alert("Error loading recipe: " + error.message); return; }
+        if (error) { alert("Error: " + error.message); return; }
 
         document.getElementById('edit-id').value = data.id;
         document.getElementById('edit-title').value = data.title || '';
@@ -408,44 +428,28 @@
         const ingList = document.getElementById('edit-ingredients-list');
         ingList.innerHTML = ''; 
         if (data.ingredients && Array.isArray(data.ingredients)) {
-            data.ingredients.forEach(ing => {
-                adminAddIngredientRow(ing.item, ing.qty, ing.unit);
-            });
+            data.ingredients.forEach(ing => adminAddIngredientRow(ing.item, ing.qty, ing.unit));
         }
         adminAddIngredientRow(); 
     }
 
     function toggleAdminFields() {
         const cat = document.getElementById('edit-category').value.toLowerCase();
-        const mealType = document.getElementById('edit-meal-type').value;
-
-        if (cat === 'budget') {
-            document.getElementById('edit-budget-fields').style.display = 'flex';
-        } else {
-            document.getElementById('edit-budget-fields').style.display = 'none';
-        }
-
-        if (mealType === 'takeaway') {
-            document.getElementById('edit-ingredients-container').style.display = 'none';
-        } else {
-            document.getElementById('edit-ingredients-container').style.display = 'block';
-        }
+        const mType = document.getElementById('edit-meal-type').value;
+        document.getElementById('edit-budget-fields').style.display = cat === 'budget' ? 'flex' : 'none';
+        document.getElementById('edit-ingredients-container').style.display = mType === 'takeaway' ? 'none' : 'block';
     }
 
     function adminAddIngredientRow(name = '', qty = '', unit = '') {
         const list = document.getElementById('edit-ingredients-list');
         const row = document.createElement('div');
         row.className = 'ingredient-row';
-        row.style.display = 'flex';
-        row.style.gap = '5px';
-        row.style.marginBottom = '8px';
-        
+        row.style.display = 'flex'; row.style.gap = '5px'; row.style.marginBottom = '8px';
         const safeQty = (qty !== null && qty !== undefined) ? qty : '';
-        
         row.innerHTML = `
-            <input type="text" class="ing-name" placeholder="Item Name (e.g. Flour)" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0; padding: 8px;">
+            <input type="text" class="ing-name" placeholder="Item Name" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0; padding: 8px;">
             <input type="number" step="any" class="ing-qty" placeholder="Qty" value="${safeQty}" style="flex: 1; margin: 0; padding: 8px;">
-            <input type="text" class="ing-unit" placeholder="Unit (e.g. cup, g)" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0; padding: 8px;">
+            <input type="text" class="ing-unit" placeholder="Unit" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0; padding: 8px;">
             <button onclick="this.parentElement.remove()" style="margin: 0; background: #dc3545; color: #fff; padding: 0 10px; border: 2px solid #bd2130;">X</button>
         `;
         list.appendChild(row);
@@ -453,109 +457,48 @@
 
     async function saveEdit() {
         const id = document.getElementById('edit-id').value;
-        const title = document.getElementById('edit-title').value.trim();
-        const category = document.getElementById('edit-category').value.trim();
-        const country = document.getElementById('edit-country').value.trim();
-        const mealType = document.getElementById('edit-meal-type').value;
-        const instructions = document.getElementById('edit-instructions').value.trim();
+        const cat = document.getElementById('edit-category').value.trim();
+        const mType = document.getElementById('edit-meal-type').value;
         
-        if (!title || !instructions) return alert("Title and Instructions cannot be empty.");
-
         let structuredIngredients = null;
-
-        if (mealType !== 'takeaway') {
+        if (mType !== 'takeaway') {
             structuredIngredients = [];
-            const rows = document.querySelectorAll('#edit-ingredients-list .ingredient-row');
-            rows.forEach(row => {
+            document.querySelectorAll('#edit-ingredients-list .ingredient-row').forEach(row => {
                 const name = row.querySelector('.ing-name').value.trim();
-                const qtyRaw = row.querySelector('.ing-qty').value;
-                const unit = row.querySelector('.ing-unit').value.trim();
-                
-                if (name !== "") {
-                    structuredIngredients.push({ 
-                        item: name, 
-                        qty: qtyRaw !== '' ? parseFloat(qtyRaw) : null, 
-                        unit: unit 
-                    });
-                }
+                const qty = row.querySelector('.ing-qty').value;
+                if (name !== "") structuredIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: row.querySelector('.ing-unit').value.trim() });
             });
         }
 
-        let updatePayload = {
-            title: title,
-            category: category,
-            country: country,
-            meal_type: mealType === "" ? null : mealType,
-            recipe: instructions,
-            ingredients: structuredIngredients
+        let payload = {
+            title: document.getElementById('edit-title').value.trim(), category: cat, country: document.getElementById('edit-country').value.trim(),
+            meal_type: mType === "" ? null : mType, recipe: document.getElementById('edit-instructions').value.trim(), ingredients: structuredIngredients
         };
 
-        if (category.toLowerCase() === 'budget') {
-            updatePayload.cost = parseFloat(document.getElementById('edit-cost').value);
-            updatePayload.servings = parseInt(document.getElementById('edit-servings').value);
-        } else {
-            updatePayload.cost = null;
-            updatePayload.servings = null;
-        }
+        if (cat.toLowerCase() === 'budget') {
+            payload.cost = parseFloat(document.getElementById('edit-cost').value);
+            payload.servings = parseInt(document.getElementById('edit-servings').value);
+        } else { payload.cost = null; payload.servings = null; }
 
-        const { error } = await myDatabase.from('meals').update(updatePayload).eq('id', id);
-        
-        if (error) {
-            alert("Error saving update: " + error.message);
-        } else {
-            alert("Record updated successfully!");
-            document.getElementById('view-edit').style.display = 'none';
-            document.getElementById('view-library').style.display = 'block';
-            searchLibrary(); 
-        }
+        const { error } = await myDatabase.from('meals').update(payload).eq('id', id);
+        if (error) alert("Error saving: " + error.message);
+        else { alert("Updated successfully!"); switchTab('library'); }
     }
 
     async function uploadTeamPhoto(event) {
-        const fileInput = document.getElementById('team-photo-upload');
-        const file = fileInput.files[0];
-        if (!file) return alert("Please select an image file first.");
-
-        const btn = event.target;
-        const originalText = btn.innerText;
-        btn.innerText = "Uploading... please wait.";
-        btn.disabled = true;
-
-        const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '');
-        const fileName = `team-${Date.now()}-${cleanName}`;
+        const file = document.getElementById('team-photo-upload').files[0];
+        if (!file) return alert("Select an image.");
+        const btn = event.target; btn.innerText = "Uploading..."; btn.disabled = true;
+        const name = `team-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
         
-        const { error: uploadError } = await myDatabase.storage.from('website_assets').upload(fileName, file);
+        const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
+        if (err1) { btn.innerText = "Upload"; btn.disabled = false; return alert("Failed: " + err1.message); }
 
-        if (uploadError) {
-            btn.innerText = originalText;
-            btn.disabled = false;
-            return alert("Upload failed: " + uploadError.message);
-        }
-
-        const { data: publicUrlData } = myDatabase.storage.from('website_assets').getPublicUrl(fileName);
-        const newUrl = publicUrlData.publicUrl;
-
-        const { error: dbError } = await myDatabase.from('site_config').update({ team_photo_url: newUrl }).eq('id', 1);
-
-        btn.innerText = originalText;
-        btn.disabled = false;
-
-        if (dbError) {
-            return alert("Database update failed: " + dbError.message);
-        }
+        const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
+        const { error: err2 } = await myDatabase.from('site_config').update({ team_photo_url: url }).eq('id', 1);
         
-        alert("Team photo updated successfully! Refresh your main website to see the change.");
-        fileInput.value = ""; 
-    }
-
-    async function deleteRecord(table, id, elementId) {
-        if (!confirm("Are you 100% sure you want to permanently delete this? It cannot be undone.")) return;
-        const { error } = await myDatabase.from(table).delete().eq('id', id);
-        if (error) alert("Error deleting: " + error.message);
-        else if (elementId !== 'none' && document.getElementById(elementId)) {
-            document.getElementById(elementId).remove();
-        } else {
-            location.reload();
-        }
+        btn.innerText = "Upload"; btn.disabled = false;
+        if (err2) alert("Failed: " + err2.message); else alert("Updated! Refresh main site.");
     }
 </script>
 </body>
