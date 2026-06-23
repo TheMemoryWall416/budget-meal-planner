@@ -11,13 +11,14 @@
         input, textarea, select { width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #000; box-sizing: border-box; font-size: 1rem; font-family: sans-serif; }
         button { background: #000; color: #fff; border: 2px solid #000; padding: 8px 16px; font-weight: bold; cursor: pointer; }
         button:hover { background: #333; }
+        button:disabled { background: #999; cursor: not-allowed; border-color: #666; }
         .btn-success { background: #28a745; color: white; border-color: #1e7e34; }
         .btn-success:hover { background: #218838; }
         .btn-danger { background: #dc3545; color: white; border-color: #bd2130; }
         .btn-danger:hover { background: #c82333; }
         .btn-edit { background: #ffc107; color: #000; border-color: #d39e00; }
         .btn-edit:hover { background: #e0a800; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 15px; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 15px; flex-wrap: wrap; }
         .nav-tabs button { background: #e0e0e0; color: #000; border: 2px solid #000; font-size: 1rem; }
         .nav-tabs button.active { background: #000; color: #fff; }
         .card { border: 2px solid #000; padding: 15px; margin-bottom: 15px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; }
@@ -52,6 +53,7 @@
         <button id="tab-inbox" class="active" onclick="switchTab('inbox')">📥 Inbox & Reports</button>
         <button id="tab-review" onclick="switchTab('review')">⏳ New Recipe Queue</button>
         <button id="tab-library" onclick="switchTab('library')">📚 Manage Library</button>
+        <button id="tab-settings" onclick="switchTab('settings')">⚙️ Site Settings</button>
     </div>
 
     <div id="view-inbox">
@@ -79,6 +81,16 @@
             <button onclick="searchLibrary()">Search</button>
         </div>
         <div id="library-list">Loading...</div>
+    </div>
+
+    <div id="view-settings" style="display: none;">
+        <h2>Site Settings</h2>
+        <div class="card" style="flex-direction: column; align-items: flex-start;">
+            <h3 style="margin-top: 0;">📸 Update Team Photo</h3>
+            <p style="font-size: 0.9rem; color: #555;">Choose a file to replace the picture on the home page's "Meet the Team" section.</p>
+            <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 10px; display: block;">
+            <button class="btn-success" onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
+        </div>
     </div>
 
     <div id="view-edit" style="display: none;">
@@ -173,6 +185,7 @@
         document.getElementById('view-inbox').style.display = 'none';
         document.getElementById('view-review').style.display = 'none';
         document.getElementById('view-library').style.display = 'none';
+        document.getElementById('view-settings').style.display = 'none';
         document.getElementById('view-edit').style.display = 'none';
         
         if (document.getElementById(`view-${tab}`)) {
@@ -436,6 +449,45 @@
         }
     }
 
+    // --- 5. SETTINGS & PHOTO UPLOAD LOGIC ---
+    async function uploadTeamPhoto(event) {
+        const fileInput = document.getElementById('team-photo-upload');
+        const file = fileInput.files[0];
+        if (!file) return alert("Please select an image file first.");
+
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = "Uploading... please wait.";
+        btn.disabled = true;
+
+        // Clean filename and add timestamp to prevent overwriting
+        const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '');
+        const fileName = `team-${Date.now()}-${cleanName}`;
+        
+        const { error: uploadError } = await myDatabase.storage.from('website_assets').upload(fileName, file);
+
+        if (uploadError) {
+            btn.innerText = originalText;
+            btn.disabled = false;
+            return alert("Upload failed: " + uploadError.message);
+        }
+
+        const { data: publicUrlData } = myDatabase.storage.from('website_assets').getPublicUrl(fileName);
+        const newUrl = publicUrlData.publicUrl;
+
+        const { error: dbError } = await myDatabase.from('site_config').update({ team_photo_url: newUrl }).eq('id', 1);
+
+        btn.innerText = originalText;
+        btn.disabled = false;
+
+        if (dbError) {
+            return alert("Database update failed: " + dbError.message);
+        }
+        
+        alert("Team photo updated successfully! Refresh your main website to see the change.");
+        fileInput.value = ""; // Clear the input
+    }
+
     // --- GLOBAL DELETE LOGIC ---
     async function deleteRecord(table, id, elementId) {
         if (!confirm("Are you 100% sure you want to permanently delete this? It cannot be undone.")) return;
@@ -444,7 +496,6 @@
         else if (elementId !== 'none' && document.getElementById(elementId)) {
             document.getElementById(elementId).remove();
         } else {
-            // Fallback reload if it was deleted from a view that requires refreshing
             location.reload();
         }
     }
