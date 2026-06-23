@@ -6,7 +6,7 @@ let selectedCountry = "";
 let selectedSubcategory = "";
 let totalApprovedRecipes = 0; 
 let totalVisitors = 10000;
-let teamPhotoUrl = 'https://via.placeholder.com/300';
+let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
 
 const currencyMap = { "Afghanistan": "؋", "Albania": "L", "Algeria": "دج", "Andorra": "€", "Angola": "Kz", "Antigua and Barbuda": "$", "Argentina": "$", "Armenia": "֏", "Australia": "A$", "Austria": "€", "Azerbaijan": "₼", "Bahamas": "$", "Bahrain": "BD", "Bangladesh": "৳", "Barbados": "$", "Belarus": "Br", "Belgium": "€", "Belize": "$", "Benin": "CFA", "Bhutan": "Nu", "Bolivia": "Bs", "Bosnia and Herzegovina": "KM", "Botswana": "P", "Brazil": "R$", "Brunei": "$", "Bulgaria": "лв", "Burkina Faso": "CFA", "Burundi": "FBu", "Cabo Verde": "Esc", "Cambodia": "៛", "Cameroon": "CFA", "Canada": "CA$", "Central African Republic": "CFA", "Chad": "CFA", "Chile": "$", "China": "¥", "Colombia": "$", "Comoros": "CF", "Congo": "CFA", "Costa Rica": "₡", "Croatia": "€", "Cuba": "$", "Cyprus": "€", "Czech Republic": "Kč", "Denmark": "kr", "Djibouti": "Fdj", "Dominica": "$", "Dominican Republic": "$", "Ecuador": "$", "Egypt": "£", "El Salvador": "$", "Equatorial Guinea": "CFA", "Eritrea": "Nfa", "Estonia": "€", "Eswatini": "E", "Ethiopia": "Br", "Fiji": "$", "Finland": "€", "France": "€", "Gabon": "CFA", "Gambia": "D", "Georgia": "₾", "Germany": "€", "Ghana": "₵", "Greece": "€", "Grenada": "$", "Guatemala": "Q", "Guinea": "FG", "Guinea-Bissau": "CFA", "Guyana": "$", "Haiti": "G", "Honduras": "L", "Hungary": "Ft", "Iceland": "kr", "India": "₹", "Indonesia": "Rp", "Iran": "﷼", "Iraq": "ع.د", "Ireland": "€", "Israel": "₪", "Italy": "€", "Jamaica": "$", "Japan": "¥", "Jordan": "JD", "Kazakhstan": "₸", "Kenya": "KSh", "Kiribati": "$", "Kuwait": "KD", "Kyrgyzstan": "som", "Laos": "₭", "Latvia": "€", "Lebanon": "£", "Lesotho": "L", "Liberia": "$", "Libya": "LD", "Liechtenstein": "CHF", "Lithuania": "€", "Luxembourg": "€", "Madagascar": "Ar", "Malawi": "MK", "Malaysia": "RM", "Maldives": "Rf", "Mali": "CFA", "Malta": "€", "Marshall Islands": "$", "Mauritania": "UM", "Mauritius": "₨", "Mexico": "$", "Micronesia": "$", "Moldova": "L", "Monaco": "€", "Mongolia": "₮", "Montenegro": "€", "Morocco": "DH", "Mozambique": "MT", "Myanmar": "Ks", "Namibia": "N$", "Nauru": "$", "Nepal": "₨", "Netherlands": "€", "New Zealand": "NZ$", "Nicaragua": "C$", "Niger": "CFA", "Nigeria": "₦", "North Macedonia": "ден", "Norway": "kr", "Oman": "ر.ع.", "Pakistan": "₨", "Palau": "$", "Palestine": "₪", "Panama": "B/.", "Papua New Guinea": "K", "Paraguay": "₲", "Peru": "S/", "Philippines": "₱", "Poland": "zł", "Portugal": "€", "Qatar": "QR", "Romania": "lei", "Russia": "₽", "Rwanda": "FRw", "Saint Kitts and Nevis": "$", "Saint Lucia": "$", "Saint Vincent and the Grenadines": "$", "Samoa": "WS$", "San Marino": "€", "Sao Tome and Principe": "Db", "Saudi Arabia": "﷼", "Senegal": "CFA", "Serbia": "дин", "Seychelles": "₨", "Sierra Leone": "Le", "Singapore": "S$", "Slovakia": "€", "Slovenia": "€", "Solomon Islands": "$", "Somalia": "Sh", "South Africa": "R", "South Sudan": "£", "Spain": "€", "Sri Lanka": "₨", "Sudan": "£", "Suriname": "$", "Sweden": "kr", "Switzerland": "CHF", "Syria": "£", "Taiwan": "NT$", "Tajikistan": "SM", "Tanzania": "TSh", "Thailand": "฿", "Timor-Leste": "$", "Togo": "CFA", "Tonga": "T$", "Trinidad and Tobago": "TT$", "Tunisia": "DT", "Turkey": "₺", "Turkmenistan": "m", "Tuvalu": "$", "Uganda": "USh", "Ukraine": "₴", "United Arab Emirates": "AED", "UK": "£", "USA": "$", "Uruguay": "$", "Uzbekistan": "so'm", "Vanuatu": "VT", "Vatican City": "€", "Venezuela": "Bs", "Vietnam": "₫", "Yemen": "﷼", "Zambia": "ZK", "Zimbabwe": "Z$" };
 const countries = Object.keys(currencyMap).sort();
@@ -152,7 +152,7 @@ const subcategoryMeta = {
 async function handleVisitorSession() {
     const now = Date.now();
     const lastVisit = localStorage.getItem('last_visit_time');
-    const cooldown = 30 * 60 * 1000; // 30 minutes in milliseconds
+    const cooldown = 30 * 60 * 1000; 
 
     if (!lastVisit || (now - parseInt(lastVisit)) > cooldown) {
         await myDatabase.rpc('increment_visitor_count');
@@ -162,37 +162,25 @@ async function handleVisitorSession() {
 }
 
 async function fetchStats() {
-    // 1. Fetch total recipes
     const { count, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
-    if (!recipeError && count !== null) {
-        totalApprovedRecipes = count;
-    }
+    if (!recipeError && count !== null) { totalApprovedRecipes = count; }
 
-    // 2. Fetch total visitors
     const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
-    if (vData) {
-        totalVisitors = vData.visitor_count;
-    }
+    if (vData) { totalVisitors = vData.visitor_count; }
 
-    // 3. Fetch Team Photo URL
     const { data: tData } = await myDatabase.from('site_config').select('team_photo_url').eq('id', 1).single();
-    if (tData) {
+    if (tData && tData.team_photo_url) {
         teamPhotoUrl = tData.team_photo_url;
-        
-        // Update the picture directly on the home page if it's currently loaded
+        localStorage.setItem('cached_team_photo', teamPhotoUrl); 
         const homePhoto = document.getElementById('home-team-photo');
-        if (homePhoto) {
-            homePhoto.src = teamPhotoUrl;
-        }
+        if (homePhoto && homePhoto.src !== teamPhotoUrl) { homePhoto.src = teamPhotoUrl; }
     }
 
-    // Update Nav Bar UI
     const navCounter = document.getElementById('nav-counter');
     if (navCounter) {
         navCounter.innerHTML = `🌍 ${totalApprovedRecipes} Recipes Live<br><span style="font-size: 0.9em; color: #008080; display: inline-block; margin-top: 5px;">👀 ${totalVisitors.toLocaleString()} Total Visits</span>`;
     }
 
-    // Update Home Page UI (if the user is currently on the home page)
     const homeCounter = document.getElementById('home-visitor-counter');
     if (homeCounter) {
         homeCounter.innerHTML = `👀 ${totalVisitors.toLocaleString()} Total Visits to Website`;
@@ -222,6 +210,7 @@ function applyTheme(color) {
     root.style.setProperty('--bg', selected.bg);
 }
 
+// --- DEEP LINKING MAGIC (ROUTING FROM URL) ---
 function confirmCountry() {
     const s = document.getElementById('modal-country-select').value;
     const color = document.getElementById('modal-color-select').value;
@@ -229,7 +218,16 @@ function confirmCountry() {
     selectedCountry = s;
     applyTheme(color);
     document.getElementById('country-modal').style.display = 'none';
-    showPage('home');
+    
+    // Check if the user arrived via a Shared Link
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('recipe')) {
+        viewRecipe(params.get('recipe'));
+    } else if (params.get('budget')) {
+        viewBudgetMeal(params.get('budget'));
+    } else {
+        showPage('home');
+    }
 }
 
 window.onload = function() {
@@ -239,9 +237,58 @@ window.onload = function() {
     handleVisitorSession();
 };
 
+// --- GLOBAL SEARCH BAR LOGIC ---
+async function executeSearch() {
+    const term = document.getElementById('search-input').value.trim();
+    if (!term) return;
+    const view = document.getElementById('main-view');
+    view.innerHTML = `<h1>Searching for "${term}"...</h1>`;
+
+    const { data, error } = await myDatabase.from('meals')
+        .select('id, title, category, author, created_at, meal_type')
+        .or(`title.ilike.%${term}%,recipe.ilike.%${term}%`)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        view.innerHTML = `<h1>Error</h1><p>${error.message}</p><button onclick="renderCategoryList('find')">← Back</button>`;
+        return;
+    }
+
+    let html = `
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+            <button onclick="renderCategoryList('find')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to Categories</button>
+            <h1 style="margin: 0;">Search Results</h1>
+        </div>
+    `;
+
+    if (data.length === 0) {
+        html += `<p>No recipes found matching "${term}". Try a different ingredient or meal name.</p>`;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px;">`;
+        data.forEach(meal => {
+            const author = meal.author || "Community";
+            const isBudget = meal.category === 'budget';
+            const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
+            const badge = isBudget ? `<span style="background: #ffcc00; padding: 2px 6px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); margin-left: 10px;">BUDGET</span>` : '';
+
+            html += `<div 
+                        onclick="${clickAction}" 
+                        style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
+                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title} ${badge}</div>
+                        <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
+                     </div>`;
+        });
+        html += `</div>`;
+    }
+    view.innerHTML = html;
+}
+
 // --- MAIN ROUTER ---
 function showPage(page) {
     const view = document.getElementById('main-view');
+    // Clear URL parameters when navigating naturally so they don't get stuck
+    window.history.pushState({}, document.title, window.location.pathname);
+
     if (page === 'home') {
         view.innerHTML = `
             <h1 style="margin-top:0;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
@@ -318,7 +365,6 @@ function showPage(page) {
     }
 }
 
-// --- DRILL-DOWN MENU LOGIC ---
 function renderCategoryList(context) {
     const view = document.getElementById('main-view');
     const title = context === 'find' ? 'FIND RECIPES' : 'ADD RECIPE';
@@ -329,13 +375,22 @@ function renderCategoryList(context) {
     let html = `
         <h1 style="margin-top: 0; margin-bottom: 5px;">${title}</h1>
         <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">${subtitle}</p>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
     `;
+
+    // SEARCH BAR INJECTION
+    if (context === 'find') {
+        html += `
+        <div style="display: flex; gap: 10px; max-width: 600px; margin-bottom: 30px;">
+            <input type="text" id="search-input" placeholder="Search recipes by name or ingredient..." style="margin-bottom: 0; flex: 1;">
+            <button onclick="executeSearch()" style="margin: 0; background: #000; color: #fff;">🔍 Search</button>
+        </div>
+        `;
+    }
+        
+    html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">`;
 
     Object.keys(categories).forEach(cat => {
         const meta = categoryMeta[cat] || { icon: "🍽️", desc: "Explore recipes in this category." };
-        
         html += `
             <div onclick="renderSubcategoryList('${cat}', '${context}')" 
                  style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
@@ -386,14 +441,11 @@ function renderSubcategoryList(mainCategory, context) {
 
 function getParentCategory(subcategoryName) {
     for (const [mainCat, subCats] of Object.entries(categories)) {
-        if (subCats.includes(subcategoryName)) {
-            return mainCat;
-        }
+        if (subCats.includes(subcategoryName)) { return mainCat; }
     }
     return null;
 }
 
-// --- CREATOR HUB LOGIC (THE NEW DASHBOARD) ---
 function renderCreatorHub() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
@@ -401,37 +453,30 @@ function renderCreatorHub() {
         <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">What would you like to share with the community today?</p>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
-            
             <div onclick="addRecipeMenu()" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
                 <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipe</h3>
                 <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Share a classic family favorite, quick dinner, or an everyday recipe with the world.</p>
             </div>
-
             <div onclick="showPage('add-budget-meal')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
                 <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meal</h3>
                 <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Post a cost-calculated meal or a clever takeaway hack for your specific country.</p>
             </div>
-
             <div onclick="showPage('add-special')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
                 <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Special</h3>
                 <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Spotted a great grocery deal or bulk special? Share it locally before it expires.</p>
             </div>
-
             <div onclick="showPage('add-meal-plan')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
                 <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plan</h3>
                 <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Help others by sharing a full week of planned, budget-friendly eating.</p>
             </div>
-
             <div onclick="renderSubcategoryList('Pet Food & Treats', 'add')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
                 <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
                 <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Homemade, cost-effective nutrition and treat recipes for our furry friends.</p>
             </div>
-
         </div>
     `;
 }
 
-// --- 7-DAY MEAL PLAN LOGIC ---
 function renderAddMealPlanForm() {
     const view = document.getElementById('main-view');
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -447,12 +492,10 @@ function renderAddMealPlanForm() {
     view.innerHTML = `
         <h1>ADD 7-DAY MEAL PLAN</h1>
         <input type="text" id="plan-title" placeholder="Meal Plan Title (e.g., R500 Student Survival Week)" style="width: 100%; max-width: 600px; box-sizing: border-box; font-weight: bold; font-size: 1.1rem;">
-        
         <div style="background: #fff; border: 2px solid var(--border); padding: 20px; max-width: 600px; box-sizing: border-box; margin-top: 10px;">
             <p style="margin-top: 0; font-size: 0.95rem; color: #555;">Fill out the meals for each day. If you plan to eat leftovers or skip a meal, just leave that day blank!</p>
             ${daysHTML}
         </div>
-        
         <div style="display: flex; gap: 10px; margin-top: 15px;">
             <button onclick="saveMealPlan()" style="margin: 0;">Save Meal Plan</button>
             <button onclick="showPage('creator-hub')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
@@ -484,36 +527,20 @@ async function saveMealPlan() {
         recipe: finalRecipe.trim()
     }]);
     
-    if (error) {
-        alert("Error: " + error.message);
-    } else { 
-        alert("Meal Plan Saved successfully!"); 
-        showPage('find-meal-plans'); 
-    }
+    if (error) { alert("Error: " + error.message); } 
+    else { alert("Meal Plan Saved successfully!"); showPage('find-meal-plans'); }
 }
 
-// --- LOCAL SPECIALS LOGIC ---
 async function loadSpecials() {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Local Specials...</h1>`;
 
-    if (!selectedCountry) {
-        view.innerHTML = `<h1>Error</h1><p>Please select a country first.</p>`;
-        return;
-    }
+    if (!selectedCountry) { view.innerHTML = `<h1>Error</h1><p>Please select a country first.</p>`; return; }
 
     const now = new Date().toISOString();
-    
-    const { data, error } = await myDatabase.from('meals')
-        .select('*')
-        .eq('category', 'special')
-        .eq('country', selectedCountry)
-        .gt('expiry_date', now);
+    const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
 
-    if (error) {
-        view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`;
-        return;
-    }
+    if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`; return; }
 
     let html = `<h1>Local Specials in ${selectedCountry}</h1>`;
     
@@ -523,7 +550,6 @@ async function loadSpecials() {
         html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px;">`;
         data.forEach(meal => {
             const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
-            
             html += `
             <div style="padding: 15px; background: #fff; border: 2px solid var(--border);">
                 <div style="margin-bottom: 8px;">
@@ -564,7 +590,6 @@ function renderAddSpecialForm() {
         </select>
 
         <textarea id="special-details" rows="4" placeholder="What is included in the deal? Any specific conditions?" style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
-        
         <button onclick="saveSpecial()" style="margin-top: 10px;">Post Local Special</button>
         <button onclick="showPage('creator-hub')" style="margin-top: 10px; background: var(--bg); color: var(--text);">Cancel</button>
     `;
@@ -576,36 +601,23 @@ async function saveSpecial() {
     const duration = document.getElementById('special-duration').value;
     const details = document.getElementById('special-details').value.trim();
 
-    if (!title || !cost || !duration || !details) return alert("Please fill in all the details, including the duration of the special.");
+    if (!title || !cost || !duration || !details) return alert("Please fill in all the details.");
 
     let expiryDate = new Date();
-    if (duration === "3") {
-        expiryDate.setDate(expiryDate.getDate() + 3);
-    } else if (duration === "7") {
-        expiryDate.setDate(expiryDate.getDate() + 7);
-    } else if (duration === "month") {
-        expiryDate = new Date(expiryDate.getFullYear(), expiryDate.getMonth() + 1, 0, 23, 59, 59);
-    }
+    if (duration === "3") { expiryDate.setDate(expiryDate.getDate() + 3); } 
+    else if (duration === "7") { expiryDate.setDate(expiryDate.getDate() + 7); } 
+    else if (duration === "month") { expiryDate = new Date(expiryDate.getFullYear(), expiryDate.getMonth() + 1, 0, 23, 59, 59); }
     
     const expiryISO = expiryDate.toISOString();
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, 
-        title: title, 
-        recipe: details, 
-        cost: cost, 
-        category: 'special',
-        expiry_date: expiryISO
+        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', expiry_date: expiryISO
     }]);
 
     if (error) alert("Error: " + error.message); 
-    else { 
-        alert("Special shared successfully!"); 
-        showPage('find-specials'); 
-    }
+    else { alert("Special shared successfully!"); showPage('find-specials'); }
 }
 
-// --- BUDGET MEAL LOGIC ---
 function toggleMealType() {
     const type = document.getElementById('meal-type').value;
     if (type === 'home') {
@@ -622,17 +634,10 @@ async function loadBudgetMeals(filter = 'all') {
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
     let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
-    
-    if (filter !== 'all') {
-        query = query.eq('meal_type', filter);
-    }
+    if (filter !== 'all') { query = query.eq('meal_type', filter); }
 
     const { data, error } = await query;
-
-    if (error) {
-        view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`;
-        return;
-    }
+    if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`; return; }
 
     let html = `<h1>Budget Meals in ${selectedCountry}</h1>`;
     html += `
@@ -670,12 +675,36 @@ async function loadBudgetMeals(filter = 'all') {
     view.innerHTML = html;
 }
 
+// LIKES & SHARE HELPERS
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Link copied to clipboard!");
+    }).catch(err => {
+        alert("Failed to copy link. You can manually copy the URL in your browser.");
+    });
+}
+
+async function likeMeal(id, btnElement) {
+    // Optimistic UI update so it feels instantly responsive
+    const countSpan = btnElement.querySelector('.like-count');
+    let currentLikes = parseInt(countSpan.innerText) || 0;
+    currentLikes++;
+    countSpan.innerText = currentLikes;
+    btnElement.disabled = true; 
+    btnElement.style.opacity = '0.6';
+    btnElement.innerHTML = `❤️ Liked (${currentLikes})`;
+
+    // Send the actual update to the database in the background
+    const { data } = await myDatabase.from('meals').select('likes').eq('id', id).single();
+    const dbLikes = (data && data.likes ? data.likes : 0) + 1;
+    await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
+}
+
 async function viewBudgetMeal(id) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading...</h1>`;
 
     const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
-
     if (error) return;
 
     let contentHTML = "";
@@ -705,9 +734,19 @@ async function viewBudgetMeal(id) {
     }
 
     const costPer = (data.cost / data.servings).toFixed(2);
+    
+    // DEEP LINKING URL GENERATOR
+    const currentUrl = window.location.origin + window.location.pathname + '?budget=' + data.id;
+    const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
     view.innerHTML = `
-        <button onclick="showPage('find-budget-meals')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to Budget Meals</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button onclick="showPage('find-budget-meals')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back</button>
+            <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+            <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff; border:2px solid var(--border);">🔗 Copy Link</button>
+            <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
+        </div>
+        
         <h1 style="font-size: 2.5rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
         <div style="font-size: 1.2rem; margin-bottom: 20px; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
             <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
@@ -719,23 +758,14 @@ async function viewBudgetMeal(id) {
     `;
 }
 
-// --- GLOBAL RECIPE LOGIC ---
 async function loadSubcategory(subcategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
-    const { data, error } = await myDatabase
-        .from('meals')
-        .select('id, title, category, author, created_at')
-        .eq('category', subcategory)
-        .order('created_at', { ascending: false });
-
+    const { data, error } = await myDatabase.from('meals').select('id, title, category, author, created_at').eq('category', subcategory).order('created_at', { ascending: false });
     const parentCat = getParentCategory(subcategory);
 
-    if (error) {
-        view.innerHTML = `<h1>Error Loading Recipes</h1><p>${error.message}</p><button onclick="renderSubcategoryList('${parentCat}', 'find')">← Back to ${parentCat}</button>`;
-        return;
-    }
+    if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p><button onclick="renderSubcategoryList('${parentCat}', 'find')">← Back</button>`; return; }
 
     let html = `
         <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
@@ -745,19 +775,13 @@ async function loadSubcategory(subcategory) {
     `;
 
     if (data.length === 0) {
-        html += `
-            <p>No recipes found in this category yet.</p>
-            <button onclick="showForm('${subcategory}')" style="margin-top: 10px;">Be the first to share one!</button>
-        `;
+        html += `<p>No recipes found in this category yet.</p><button onclick="showForm('${subcategory}')" style="margin-top: 10px;">Be the first to share one!</button>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px;">`;
         data.forEach(meal => {
             const author = meal.author || "Home Cook";
             const date = meal.created_at ? new Date(meal.created_at).toLocaleDateString() : "Unknown Date";
-
-            html += `<div 
-                        onclick="viewRecipe(${meal.id})" 
-                        style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
+            html += `<div onclick="viewRecipe(${meal.id})" style="padding: 15px; background: #fff; border: 2px solid var(--border); cursor: pointer;">
                         <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}</div>
                         <div style="font-size: 0.85rem; color: #666;">By ${author} • ${date}</div>
                      </div>`;
@@ -772,27 +796,33 @@ async function viewRecipe(id) {
     view.innerHTML = `<h1>Loading Recipe...</h1>`;
 
     const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
-
     if (error) return;
 
     let ingredientsHTML = `<ul style="font-size: 1.1rem; line-height: 1.8; background: #fff; padding: 20px 40px; border: 2px solid var(--border); max-width: 600px; margin-top: 10px;">`;
-    
     if (data.ingredients && Array.isArray(data.ingredients)) {
         data.ingredients.forEach(ing => {
             let qty = ing.qty ? ing.qty : '';
             let unit = ing.unit ? ing.unit : '';
             ingredientsHTML += `<li><strong>${qty} ${unit}</strong> ${ing.item}</li>`;
         });
-    } else {
-        ingredientsHTML += `<li>No structured ingredients found.</li>`;
-    }
+    } else { ingredientsHTML += `<li>No structured ingredients found.</li>`; }
     ingredientsHTML += `</ul>`;
 
     const author = data.author || "Home Cook";
     const date = data.created_at ? new Date(data.created_at).toLocaleDateString() : "Unknown Date";
 
+    // DEEP LINKING URL GENERATOR
+    const currentUrl = window.location.origin + window.location.pathname + '?recipe=' + data.id;
+    const whatsappText = encodeURIComponent(`Check out this recipe for ${data.title} on Budget Meal Planner! ${currentUrl}`);
+
     view.innerHTML = `
-        <button onclick="loadSubcategory('${data.category}')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${data.category}</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button onclick="loadSubcategory('${data.category}')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${data.category}</button>
+            <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+            <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff; border:2px solid var(--border);">🔗 Copy Link</button>
+            <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
+        </div>
+
         <h1 style="font-size: 2.5rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
         <p style="font-size: 1rem; color: #666; margin-top: 0; margin-bottom: 20px;">By ${author} • ${date}</p>
         
@@ -804,22 +834,14 @@ async function viewRecipe(id) {
                 <input type="number" step="any" id="conv-amount" oninput="calculateConversion()" placeholder="Qty" style="flex: 1; margin: 0; min-width: 60px;">
                 <select id="conv-from" onchange="updateConverter()" style="flex: 1.5; margin: 0; padding: 8px; border: 2px solid var(--border); background: #fff;">
                     <optgroup label="Weight">
-                        <option value="g">Gram (g)</option>
-                        <option value="kg">Kilogram (kg)</option>
-                        <option value="oz">Ounce (oz)</option>
-                        <option value="lb">Pound (lb)</option>
+                        <option value="g">Gram (g)</option><option value="kg">Kilogram (kg)</option><option value="oz">Ounce (oz)</option><option value="lb">Pound (lb)</option>
                     </optgroup>
                     <optgroup label="Volume">
-                        <option value="ml">Milliliter (ml)</option>
-                        <option value="l">Liter (L)</option>
-                        <option value="tsp">Teaspoon (tsp)</option>
-                        <option value="tbsp">Tablespoon (tbsp)</option>
-                        <option value="cup">Cup</option>
-                        <option value="fl oz">Fluid Ounce (fl oz)</option>
+                        <option value="ml">Milliliter (ml)</option><option value="l">Liter (L)</option><option value="tsp">Teaspoon (tsp)</option>
+                        <option value="tbsp">Tablespoon (tbsp)</option><option value="cup">Cup</option><option value="fl oz">Fluid Ounce (fl oz)</option>
                     </optgroup>
                     <optgroup label="Temperature">
-                        <option value="c">Celsius (°C)</option>
-                        <option value="f">Fahrenheit (°F)</option>
+                        <option value="c">Celsius (°C)</option><option value="f">Fahrenheit (°F)</option>
                     </optgroup>
                 </select>
                 <span style="font-weight: bold; padding: 0 5px;">to</span>
@@ -840,7 +862,6 @@ async function viewRecipe(id) {
     updateConverter();
 }
 
-// --- SMART CONVERTER LOGIC ---
 const convFamilies = { weight: ['g', 'kg', 'oz', 'lb'], volume: ['ml', 'l', 'tsp', 'tbsp', 'cup', 'fl oz'], temp: ['c', 'f'] };
 const convRates = { 'g': 1, 'kg': 1000, 'oz': 28.3495, 'lb': 453.592, 'ml': 1, 'l': 1000, 'tsp': 4.9289, 'tbsp': 14.7868, 'cup': 250, 'fl oz': 29.5735 };
 
@@ -882,10 +903,7 @@ function calculateConversion() {
     resDiv.innerHTML = `Result: ${+(Math.round(result + "e+2")  + "e-2")} ${to}`;
 }
 
-// --- SAVING DATA (RECIPES & BUDGET MEALS) ---
-function addRecipeMenu() {
-    renderCategoryList('add');
-}
+function addRecipeMenu() { renderCategoryList('add'); }
 
 function showForm(subcategory) {
     selectedSubcategory = subcategory;
@@ -961,19 +979,11 @@ async function saveRecipe() {
     if (!title || !instructions) return alert("Please enter a title and instructions.");
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        title: title,
-        author: author, 
-        category: selectedSubcategory, 
-        ingredients: structuredIngredients,
-        recipe: instructions,
-        created_at: new Date().toISOString()
+        title: title, author: author, category: selectedSubcategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString()
     }]);
     
     if (error) alert("Error: " + error.message);
-    else { 
-        alert("Recipe Saved successfully!"); 
-        loadSubcategory(selectedSubcategory); // Send them directly to see their new recipe in the list
-    }
+    else { alert("Recipe Saved successfully!"); loadSubcategory(selectedSubcategory); }
 }
 
 async function saveBudgetMeal() {
@@ -997,43 +1007,26 @@ async function saveBudgetMeal() {
             if (name) finalIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: unit });
         });
         finalRecipe = document.getElementById('recipe-instructions').value;
-    } else {
-        finalRecipe = document.getElementById('takeaway-included').value;
-    }
+    } else { finalRecipe = document.getElementById('takeaway-included').value; }
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, 
-        title: title, 
-        recipe: finalRecipe, 
-        ingredients: finalIngredients,
-        cost: cost, 
-        servings: servings,
-        meal_type: type,
-        category: 'budget'
+        country: selectedCountry, title: title, recipe: finalRecipe, ingredients: finalIngredients, cost: cost, servings: servings, meal_type: type, category: 'budget'
     }]);
 
     if (error) alert("Error: " + error.message); 
     else { alert("Saved budget meal successfully!"); showPage('find-budget-meals'); }
 }
 
-// --- REPORTING LOGIC ---
 async function reportRecipe(title, id) {
     const reason = prompt("Why are you reporting this?");
     if (!reason) return;
 
-    const { error } = await myDatabase.from('messages').insert([{ 
-        name: "REPORTED: " + title, 
-        email: "System ID: " + id, 
-        message: "REASON: " + reason 
-    }]);
-
+    const { error } = await myDatabase.from('messages').insert([{ name: "REPORTED: " + title, email: "System ID: " + id, message: "REASON: " + reason }]);
     if (error) alert("Error sending report: " + error.message);
     else alert("Report submitted successfully. Thank you!");
 }
 
-// --- DAILY KITCHEN TIPS ---
 const masterKitchenHacks = [
-    // --- FRESHNESS & STORAGE ---
     "Store onions and potatoes in completely separate cupboards; they make each other rot faster.",
     "Wrap celery tightly in aluminum foil and keep it in the fridge to keep it crisp for weeks.",
     "Store your natural peanut butter upside down so the oil doesn't pool at the top.",
@@ -1054,8 +1047,6 @@ const masterKitchenHacks = [
     "Freeze bread in slices, not as a whole loaf. You can pop frozen slices straight into the toaster.",
     "Keep avocados on the counter until they are perfectly ripe, then move them to the fridge to hit 'pause' on the ripening.",
     "Store flour in an airtight container, not the paper bag it came in, to keep out moisture and pantry bugs.",
-
-    // --- SUPERMARKET & SHOPPING HACKS ---
     "Look up and look down. Supermarkets pay to put the most expensive, name-brand items right at your eye level.",
     "Never, ever go grocery shopping when you are hungry. You will buy 40% more junk food on impulse.",
     "Always check the 'Price per 100g' or 'Price per Kg' on the tag. It's the only real way to know which size is actually cheaper.",
@@ -1076,8 +1067,6 @@ const masterKitchenHacks = [
     "Avoid buying anything near the checkout line. It is entirely designed to trigger impulse buys while you wait.",
     "Meat is expensive. Pick one or two days a week to go completely vegetarian to stretch your budget.",
     "Keep a running list of what is in your freezer. People waste hundreds of Rands buying things they already have buried at the back.",
-
-    // --- ZERO WASTE & UPCYCLING ---
     "Keep a large ziplock bag in the freezer. Toss all your onion skins, carrot peels, and celery ends in it. Boil them later for free veggie stock.",
     "Never throw away the leftover carcass or bones from a roast chicken. Boil it with water and garlic for an incredible, free chicken stock.",
     "Don't throw away spring onion (scallion) roots! Put them in a glass with a little water on the windowsill and they will regrow in days.",
@@ -1098,8 +1087,6 @@ const masterKitchenHacks = [
     "Used coffee grounds are great for your garden. Sprinkle them around plants to add nitrogen to the soil and keep pests away.",
     "Got herbs that are about to go bad? Chop them up, put them in an ice cube tray, fill with olive oil, and freeze.",
     "Never pour pasta water down the drain! It's full of starch. Use a splash of it to thicken your pasta sauces.",
-
-    // --- COOKING & PREP SHORTCUTS ---
     "Use a regular spoon to peel ginger. It scrapes the skin off easily and gets into all the weird bumps without wasting the ginger.",
     "Grate freezing cold butter directly into your flour when making pastry or biscuits. It mixes easier and makes them super flaky.",
     "To peel a whole bulb of garlic fast, smash it with the heel of your hand, put the cloves in a hard container with a lid, and shake vigorously.",
@@ -1120,8 +1107,6 @@ const masterKitchenHacks = [
     "Make your own DIY self-raising flour: mix 1 cup of plain all-purpose flour with 1.5 teaspoons of baking powder and a pinch of salt.",
     "Use plain yogurt as a cheaper, healthier, 1-to-1 substitute for sour cream on baked potatoes and in recipes.",
     "Stretch expensive ground beef by mixing in an equal amount of finely chopped mushrooms or cooked brown lentils.",
-
-    // --- ENERGY SAVERS & EFFICIENCY ---
     "Always put a lid on your pot when boiling water or cooking stews. It traps the heat and uses up to 30% less electricity.",
     "Boil water in your electric kettle first, then pour it into your pot on the stove. Kettles are far more energy-efficient.",
     "Match the size of your pot to the size of the stove plate. Putting a small pot on a large burner wastes a massive amount of heat.",
@@ -1146,5 +1131,4 @@ function updateHack() {
         element.innerText = masterKitchenHacks[randomIndex];
     }
 }
-
 setInterval(updateHack, 30000);
