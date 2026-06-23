@@ -259,7 +259,7 @@ function showPage(page) {
             </div>
 
             <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid var(--border); max-width: 800px;">
-                <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Meet the Builders</h2>
+                <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Meet the Team</h2>
                 <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
                     <img src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid #008080; object-fit: cover;">
                     <div style="flex: 1; min-width: 300px;">
