@@ -4,6 +4,7 @@ const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let selectedCountry = "";
 let selectedSubcategory = "";
+let selectedParentCategory = ""; // ADDED: Tracks the parent category to prevent collisions
 let totalApprovedRecipes = 0; 
 let totalVisitors = 10000;
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
@@ -162,7 +163,6 @@ async function handleVisitorSession() {
 }
 
 async function fetchStats() {
-    // Removed the .eq('status', 'approved') filter here so the counter reflects ALL live recipes
     const { count, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
     if (!recipeError && count !== null) { totalApprovedRecipes = count; }
 
@@ -220,7 +220,6 @@ function confirmCountry() {
     applyTheme(color);
     document.getElementById('country-modal').style.display = 'none';
     
-    // Check if the user arrived via a Shared Link
     const params = new URLSearchParams(window.location.search);
     if (params.get('recipe')) {
         viewRecipe(params.get('recipe'));
@@ -245,9 +244,8 @@ async function executeSearch() {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Searching for "${term}"...</h1>`;
 
-    // Removed .eq('status', 'approved') from here
     const { data, error } = await myDatabase.from('meals')
-        .select('id, title, category, author, created_at, meal_type')
+        .select('id, title, category, parent_category, author, created_at, meal_type') // ADDED parent_category here
         .or(`title.ilike.%${term}%,recipe.ilike.%${term}%`)
         .order('created_at', { ascending: false });
 
@@ -288,7 +286,6 @@ async function executeSearch() {
 // --- MAIN ROUTER ---
 function showPage(page) {
     const view = document.getElementById('main-view');
-    // Clear URL parameters when navigating naturally so they don't get stuck
     window.history.pushState({}, document.title, window.location.pathname);
 
     if (page === 'home') {
@@ -355,7 +352,7 @@ function showPage(page) {
     } else if (page === 'add-special') {
         renderAddSpecialForm();
     } else if (page === 'find-meal-plans') {
-        loadSubcategory('7-Day Meal Plans');
+        loadSubcategory('7-Day Meal Plans', 'Specialized Plans'); // ADDED PARENT
     } else if (page === 'add-meal-plan') {
         renderAddMealPlanForm(); 
     } else if (page === 'find-pet-food') {
@@ -423,7 +420,8 @@ function renderSubcategoryList(mainCategory, context) {
     `;
 
     categories[mainCategory].forEach(sub => {
-        const action = context === 'find' ? `loadSubcategory('${sub}')` : `showForm('${sub}')`;
+        // ADDED: Passing mainCategory into loadSubcategory and showForm
+        const action = context === 'find' ? `loadSubcategory('${sub}', '${mainCategory}')` : `showForm('${sub}', '${mainCategory}')`;
         const meta = subcategoryMeta[sub] || { icon: "🍽️", desc: "Delicious homemade recipes." };
         
         html += `
@@ -486,7 +484,7 @@ function renderAddMealPlanForm() {
     days.forEach(day => {
         daysHTML += `
             <label style="font-weight: bold; margin-top: 15px; display: block; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 5px;">${day}</label>
-            <textarea id="plan-${day.toLowerCase()}" rows="4" placeholder="Breakfast: ...&#10;Lunch: ...&#10;Dinner: ..." style="width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 5px;"></textarea>
+            <textarea id="plan-${day.toLowerCase()}" rows="4" placeholder="Breakfast: ...\nLunch: ...\nDinner: ..." style="width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 5px;"></textarea>
         `;
     });
 
@@ -525,12 +523,13 @@ async function saveMealPlan() {
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: '7-Day Meal Plans', 
+        parent_category: 'Specialized Plans', // ADDED PARENT
         recipe: finalRecipe.trim(),
-        status: 'pending' // Still marked pending for the admin queue, but visible due to query changes
+        status: 'pending' 
     }]);
     
     if (error) { alert("Error: " + error.message); } 
-    else { alert("Meal Plan posted successfully!"); showPage('find-meal-plans'); }
+    else { alert("Meal Plan posted successfully!"); loadSubcategory('7-Day Meal Plans', 'Specialized Plans'); }
 }
 
 async function loadSpecials() {
@@ -540,7 +539,6 @@ async function loadSpecials() {
     if (!selectedCountry) { view.innerHTML = `<h1>Error</h1><p>Please select a country first.</p>`; return; }
 
     const now = new Date().toISOString();
-    // Removed .eq('status', 'approved') from here
     const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
 
     if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`; return; }
@@ -614,7 +612,7 @@ async function saveSpecial() {
     const expiryISO = expiryDate.toISOString();
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', expiry_date: expiryISO, status: 'pending'
+        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', parent_category: 'Specials', expiry_date: expiryISO, status: 'pending' // ADDED PARENT
     }]);
 
     if (error) alert("Error: " + error.message); 
@@ -636,7 +634,6 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Budget Meals...</h1>`;
 
-    // Removed .eq('status', 'approved') from here
     let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
     if (filter !== 'all') { query = query.eq('meal_type', filter); }
 
@@ -679,7 +676,6 @@ async function loadBudgetMeals(filter = 'all') {
     view.innerHTML = html;
 }
 
-// LIKES & SHARE HELPERS
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
         alert("Link copied to clipboard!");
@@ -759,25 +755,33 @@ async function viewBudgetMeal(id) {
     `;
 }
 
-async function loadSubcategory(subcategory) {
+// ADDED: Added parentCategory to function signature
+async function loadSubcategory(subcategory, parentCategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
-    // Removed .eq('status', 'approved') from here
-    const { data, error } = await myDatabase.from('meals').select('id, title, category, author, created_at').eq('category', subcategory).order('created_at', { ascending: false });
-    const parentCat = getParentCategory(subcategory);
+    // ADDED: Selects parent_category and filters by eq('parent_category', parentCategory)
+    const { data, error } = await myDatabase.from('meals')
+        .select('id, title, category, parent_category, author, created_at')
+        .eq('category', subcategory)
+        .eq('parent_category', parentCategory)
+        .order('created_at', { ascending: false });
 
-    if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p><button onclick="renderSubcategoryList('${parentCat}', 'find')">← Back</button>`; return; }
+    if (error) { 
+        view.innerHTML = `<h1>Error</h1><p>${error.message}</p><button onclick="renderSubcategoryList('${parentCategory}', 'find')">← Back</button>`; 
+        return; 
+    }
 
     let html = `
         <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-            <button onclick="renderSubcategoryList('${parentCat}', 'find')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCat}</button>
+            <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCategory}</button>
             <h1 style="margin: 0;">${subcategory}</h1>
         </div>
     `;
 
     if (data.length === 0) {
-        html += `<p>No recipes found in this category yet.</p><button onclick="showForm('${subcategory}')" style="margin-top: 10px;">Be the first to share one!</button>`;
+        // ADDED: Passed parentCategory to showForm
+        html += `<p>No recipes found in this category yet.</p><button onclick="showForm('${subcategory}', '${parentCategory}')" style="margin-top: 10px;">Be the first to share one!</button>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px;">`;
         data.forEach(meal => {
@@ -816,9 +820,12 @@ async function viewRecipe(id) {
     const currentUrl = window.location.origin + window.location.pathname + '?recipe=' + data.id;
     const whatsappText = encodeURIComponent(`Check out this recipe for ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
+    // ADDED: Grabs the parent_category from the database to route back correctly
+    const parentCat = data.parent_category || getParentCategory(data.category);
+
     view.innerHTML = `
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-            <button onclick="loadSubcategory('${data.category}')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${data.category}</button>
+            <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${data.category}</button>
             <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
             <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff; border:2px solid var(--border);">🔗 Copy Link</button>
             <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
@@ -906,13 +913,14 @@ function calculateConversion() {
 
 function addRecipeMenu() { renderCategoryList('add'); }
 
-function showForm(subcategory) {
+// ADDED: Added parentCategory to function signature
+function showForm(subcategory, parentCategory) {
     selectedSubcategory = subcategory;
-    const parentCat = getParentCategory(subcategory);
+    selectedParentCategory = parentCategory; // ADDED: Save to global variable to use in saveRecipe()
     const view = document.getElementById('main-view');
     
     view.innerHTML = `
-        <button onclick="renderSubcategoryList('${parentCat}', 'add')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCat}</button>
+        <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCategory}</button>
         <h1 style="margin-top: 0;">Adding to: ${subcategory}</h1>
         <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 10px;">
         <input type="text" id="author-name" placeholder="Your Name (Optional)" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 15px;">
@@ -979,12 +987,13 @@ async function saveRecipe() {
 
     if (!title || !instructions) return alert("Please enter a title and instructions.");
 
+    // ADDED: Added parent_category to insert query
     const { error } = await myDatabase.from('meals').insert([{ 
-        title: title, author: author, category: selectedSubcategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString(), status: 'pending'
+        title: title, author: author, category: selectedSubcategory, parent_category: selectedParentCategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString(), status: 'pending'
     }]);
     
     if (error) alert("Error: " + error.message);
-    else { alert("Recipe posted successfully!"); loadSubcategory(selectedSubcategory); }
+    else { alert("Recipe posted successfully!"); loadSubcategory(selectedSubcategory, selectedParentCategory); }
 }
 
 async function saveBudgetMeal() {
@@ -1010,8 +1019,9 @@ async function saveBudgetMeal() {
         finalRecipe = document.getElementById('recipe-instructions').value;
     } else { finalRecipe = document.getElementById('takeaway-included').value; }
 
+    // ADDED: Added parent_category: 'Budget'
     const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, title: title, recipe: finalRecipe, ingredients: finalIngredients, cost: cost, servings: servings, meal_type: type, category: 'budget', status: 'pending'
+        country: selectedCountry, title: title, recipe: finalRecipe, ingredients: finalIngredients, cost: cost, servings: servings, meal_type: type, category: 'budget', parent_category: 'Budget Meals', status: 'pending'
     }]);
 
     if (error) alert("Error: " + error.message); 
