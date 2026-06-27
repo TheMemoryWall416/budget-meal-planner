@@ -3,41 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <title>Terms of Service - Budget Meal Planner</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
-        body { font-family: sans-serif; display: flex; margin: 0; background: var(--bg); height: 100vh; color: var(--text); border: 2px solid var(--border); }
-        nav { width: 160px; background: var(--nav-color); color: var(--text); padding: 15px; flex-shrink: 0; border-right: 2px solid var(--border); }
-        nav h2 { font-size: 1.1rem; }
-        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 8px; margin-bottom: 8px; text-decoration: none; box-sizing: border-box; font-weight: bold; font-size: 0.8rem;}
+        
+        body { font-family: sans-serif; display: flex; margin: 0; background-color: #eaddcf; height: 100vh; overflow: hidden; color: var(--text); }
+        
+        nav { width: 220px; padding: 15px; flex-shrink: 0; border-right: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
+        .content { flex-grow: 1; padding: 30px; height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
+        
+        .window-box { background: #ffffff; border: 2px solid var(--border); padding: 20px; margin-bottom: 20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.15); border-radius: 4px; }
+        
+        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 8px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; }
         nav a:hover { filter: brightness(90%); }
-        .content { flex-grow: 1; padding: 40px; overflow-y: auto; background: var(--bg); }
     </style>
 </head>
 <body>
 <nav>
-    <h2>Menu</h2>
-    <a href="index.html">← Back to App</a>
-    <div style="margin-top: 30px; border-top: 2px solid var(--border); padding-top: 10px;">
+    <div class="window-box">
+        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 10px;">Menu</h2>
+    </div>
+    <div class="window-box" style="padding: 15px;">
+        <a href="index.html">← Back to App</a>
+    </div>
+    <div class="window-box" style="padding: 15px; text-align: center;">
         <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Privacy Policy</a>
         <a href="terms.html" style="background: #000; color: #fff; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Terms of Service</a>
-        <a href="contact.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Contact Us</a>
+        <a href="contact.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px; margin-bottom: 0;">Contact Us</a>
     </div>
 </nav>
+
 <div class="content">
-    <h1 style="margin-top: 0; font-size: 2.5rem;">Terms of Service</h1>
-    <div style="max-width: 800px; line-height: 1.8; font-size: 1.1rem; background: #fff; padding: 30px; border: 2px solid var(--border);">
-        <p><strong>Effective Date:</strong> June 2026</p>
-        <p>By accessing the Global Recipe & Meal Planner, you agree to be bound by these terms.</p>
-        
-        <h3>1. User-Generated Content</h3>
-        <p>Users are solely responsible for the recipes, meal data, and comments they post. We reserve the right to remove any content that is deemed inappropriate, spam, highly offensive, or violates the spirit of the community without prior notice. By posting a recipe, you grant us the right to display it publicly on the platform.</p>
-        
-        <h3>2. Disclaimer of Warranties</h3>
-        <p>The nutritional information, ingredient costs, and conversion calculations provided on this platform are for general informational purposes only. Costs vary globally, and we make no guarantees regarding the accuracy, safety, or dietary compliance of the recipes posted by the community. Use your own judgment when cooking.</p>
-        
-        <h3>3. Platform Availability</h3>
-        <p>We strive to keep the platform 100% free and online, but we reserve the right to modify, pause, or discontinue the service at any time.</p>
+    <div class="window-box" style="max-width: 800px; box-sizing: border-box;">
+        <h1 style="margin-top: 0; font-size: 2.5rem;">Terms of Service</h1>
+        <div style="line-height: 1.8; font-size: 1.1rem;">
+            <p><strong>Effective Date:</strong> June 2026</p>
+            <p>By accessing the Global Recipe & Meal Planner, you agree to be bound by these terms.</p>
+            
+            <h3>1. User-Generated Content</h3>
+            <p>Users are solely responsible for the recipes, meal data, and comments they post. We reserve the right to remove any content that is deemed inappropriate, spam, highly offensive, or violates the spirit of the community without prior notice. By posting a recipe, you grant us the right to display it publicly on the platform.</p>
+            
+            <h3>2. Disclaimer of Warranties</h3>
+            <p>The nutritional information, ingredient costs, and conversion calculations provided on this platform are for general informational purposes only. Costs vary globally, and we make no guarantees regarding the accuracy, safety, or dietary compliance of the recipes posted by the community. Use your own judgment when cooking.</p>
+            
+            <h3>3. Platform Availability</h3>
+            <p>We strive to keep the platform 100% free and online, but we reserve the right to modify, pause, or discontinue the service at any time.</p>
+        </div>
     </div>
 </div>
+
+<script>
+    const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
+    const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    window.onload = async function() {
+        const { data } = await myDatabase.from('site_config').select('main_background_url').eq('id', 1).single();
+        if (data && data.main_background_url) {
+            document.body.style.backgroundImage = `url('${data.main_background_url}')`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center center';
+            document.body.style.backgroundAttachment = 'fixed';
+            document.body.style.backgroundRepeat = 'no-repeat';
+        }
+    };
+</script>
 </body>
 </html>
