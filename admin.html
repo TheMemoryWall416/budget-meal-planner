@@ -1,4 +1,4 @@
-                <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -197,33 +197,12 @@
     </div>
 </div>
 
+<script src="config.js"></script>
+
 <script>
     const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
     const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-    const currencyMap = { "Afghanistan": "؋", "Albania": "L", "Algeria": "دج", "Andorra": "€", "Angola": "Kz", "Antigua and Barbuda": "$", "Argentina": "$", "Armenia": "֏", "Australia": "A$", "Austria": "€", "Azerbaijan": "₼", "Bahamas": "$", "Bahrain": "BD", "Bangladesh": "৳", "Barbados": "$", "Belarus": "Br", "Belgium": "€", "Belize": "$", "Benin": "CFA", "Bhutan": "Nu", "Bolivia": "Bs", "Bosnia and Herzegovina": "KM", "Botswana": "P", "Brazil": "R$", "Brunei": "$", "Bulgaria": "лв", "Burkina Faso": "CFA", "Burundi": "FBu", "Cabo Verde": "Esc", "Cambodia": "៛", "Cameroon": "CFA", "Canada": "CA$", "Central African Republic": "CFA", "Chad": "CFA", "Chile": "$", "China": "¥", "Colombia": "$", "Comoros": "CF", "Congo": "CFA", "Costa Rica": "₡", "Croatia": "€", "Cuba": "$", "Cyprus": "€", "Czech Republic": "Kč", "Denmark": "kr", "Djibouti": "Fdj", "Dominica": "$", "Dominican Republic": "$", "Ecuador": "$", "Egypt": "£", "El Salvador": "$", "Equatorial Guinea": "CFA", "Eritrea": "Nfa", "Estonia": "€", "Eswatini": "E", "Ethiopia": "Br", "Fiji": "$", "Finland": "€", "France": "€", "Gabon": "CFA", "Gambia": "D", "Georgia": "₾", "Germany": "€", "Ghana": "₵", "Greece": "€", "Grenada": "$", "Guatemala": "Q", "Guinea": "FG", "Guinea-Bissau": "CFA", "Guyana": "$", "Haiti": "G", "Honduras": "L", "Hungary": "Ft", "Iceland": "kr", "India": "₹", "Indonesia": "Rp", "Iran": "﷼", "Iraq": "ع.د", "Ireland": "€", "Israel": "₪", "Italy": "€", "Jamaica": "$", "Japan": "¥", "Jordan": "JD", "Kazakhstan": "₸", "Kenya": "KSh", "Kiribati": "$", "Kuwait": "KD", "Kyrgyzstan": "som", "Laos": "₭", "Latvia": "€", "Lebanon": "£", "Lesotho": "L", "Liberia": "$", "Libya": "LD", "Liechtenstein": "CHF", "Lithuania": "€", "Luxembourg": "€", "Madagascar": "Ar", "Malawi": "MK", "Malaysia": "RM", "Maldives": "Rf", "Mali": "CFA", "Malta": "€", "Marshall Islands": "$", "Mauritania": "UM", "Mauritius": "₨", "Mexico": "$", "Micronesia": "$", "Moldova": "L", "Monaco": "€", "Mongolia": "₮", "Montenegro": "€", "Morocco": "DH", "Mozambique": "MT", "Myanmar": "Ks", "Namibia": "N$", "Nauru": "$", "Nepal": "₨", "Netherlands": "€", "New Zealand": "NZ$", "Nicaragua": "C$", "Niger": "CFA", "Nigeria": "₦", "North Macedonia": "ден", "Norway": "kr", "Oman": "ر.ع.", "Pakistan": "₨", "Palau": "$", "Palestine": "₪", "Panama": "B/.", "Papua New Guinea": "K", "Paraguay": "₲", "Peru": "S/", "Philippines": "₱", "Poland": "zł", "Portugal": "€", "Qatar": "QR", "Romania": "lei", "Russia": "₽", "Rwanda": "FRw", "Saint Kitts and Nevis": "$", "Saint Lucia": "$", "Saint Vincent and the Grenadines": "$", "Samoa": "WS$", "San Marino": "€", "Sao Tome and Principe": "Db", "Saudi Arabia": "﷼", "Senegal": "CFA", "Serbia": "дин", "Seychelles": "₨", "Sierra Leone": "Le", "Singapore": "S$", "Slovakia": "€", "Slovenia": "€", "Solomon Islands": "$", "Somalia": "Sh", "South Africa": "R", "South Sudan": "£", "Spain": "€", "Sri Lanka": "₨", "Sudan": "£", "Suriname": "$", "Sweden": "kr", "Switzerland": "CHF", "Syria": "£", "Taiwan": "NT$", "Tajikistan": "SM", "Tanzania": "TSh", "Thailand": "฿", "Timor-Leste": "$", "Togo": "CFA", "Tonga": "T$", "Trinidad and Tobago": "TT$", "Tunisia": "DT", "Turkey": "₺", "Turkmenistan": "m", "Tuvalu": "$", "Uganda": "USh", "Ukraine": "₴", "United Arab Emirates": "AED", "UK": "£", "USA": "$", "Uruguay": "$", "Uzbekistan": "so'm", "Vanuatu": "VT", "Vatican City": "€", "Venezuela": "Bs", "Vietnam": "₫", "Yemen": "﷼", "Zambia": "ZK", "Zimbabwe": "Z$" };
-    const countries = Object.keys(currencyMap).sort();
-
-    const adminCategories = {
-        "Breakfast": ["Hot breakfasts", "Cold breakfasts", "Cereals & oats", "Breakfast sandwiches", "Pancakes, waffles & French toast"],
-        "Lunch": ["Light meals", "Sandwiches & wraps", "Salads", "Soups"],
-        "Main Meals": ["Beef dishes", "Chicken dishes", "Pork dishes", "Lamb dishes", "Seafood dishes", "Vegetarian meals", "Pasta dishes", "Rice dishes", "Casseroles & bakes", "Curries", "Stews"],
-        "Side Dishes": ["Vegetables", "Potatoes", "Rice sides", "Pasta sides", "Bread sides", "Salads"],
-        "Snacks & Finger Foods": ["Chips & crisps", "Dips", "Finger foods", "Party snacks", "Savoury snacks"],
-        "Fast Food & Takeaway Style": ["Burgers", "Pizza", "Hot dogs", "Wraps", "Fried foods"],
-        "Bread & Baking": ["Breads", "Rolls & buns", "Scones", "Muffins", "Savoury baked goods"],
-        "Desserts": ["Cakes", "Pies & tarts", "Puddings", "Custards", "Ice cream & frozen desserts", "Sweet pastries"],
-        "Biscuits, Cookies & Sweets": ["Cookies", "Biscuits", "Fudge", "Candy", "Chocolate treats"],
-        "Drinks": ["Hot drinks", "Cold drinks", "Smoothies", "Milkshakes", "Cocktails", "Mocktails"],
-        "Sauces, Condiments & Spreads": ["Sauces", "Gravies", "Marinades", "Dressings", "Jams & preserves"],
-        "Preserves & Fermented Foods": ["Pickles", "Chutneys", "Relishes", "Fermented foods"],
-        "Special Occasion Foods": ["Braai recipes", "Christmas recipes", "Birthday recipes", "Easter recipes", "Party foods"],
-        "Cuisine Types": ["South African", "Italian", "Mexican", "Indian", "Chinese", "American", "Greek", "French", "Middle Eastern", "Thai"],
-        "Dietary Categories": ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Low-carb", "Keto", "High-protein"],
-        "Specialized Plans": ["7-Day Meal Plans"],
-        "Pet Food & Treats": ["Dogs", "Cats", "Birds", "Small Pets", "Other Pets"]
-    };
 
     window.onload = async function() {
         setupFilters();
@@ -277,7 +256,7 @@
         if (t1 === 'global') {
             t2.style.display = 'block';
             t2.innerHTML = '<option value="all">-- All Main Categories --</option>';
-            Object.keys(adminCategories).forEach(cat => {
+            Object.keys(categories).forEach(cat => {
                 if (cat !== 'Pet Food & Treats' && cat !== 'Specialized Plans') {
                     t2.innerHTML += `<option value="${cat}">${cat}</option>`;
                 }
@@ -289,7 +268,7 @@
         } else if (t1 === 'pet') {
             t2.style.display = 'block';
             t2.innerHTML = '<option value="all">-- All Pets --</option>';
-            adminCategories['Pet Food & Treats'].forEach(sub => t2.innerHTML += `<option value="${sub}">${sub}</option>`);
+            categories['Pet Food & Treats'].forEach(sub => t2.innerHTML += `<option value="${sub}">${sub}</option>`);
         }
         
         if (context === 'review') loadReviewQueue(); else loadLibrary();
@@ -305,7 +284,7 @@
         if (t1 === 'global' && t2 !== 'all') {
             t3.style.display = 'block';
             t3.innerHTML = '<option value="all">-- All Subcategories --</option>';
-            adminCategories[t2].forEach(sub => t3.innerHTML += `<option value="${sub}">${sub}</option>`);
+            categories[t2].forEach(sub => t3.innerHTML += `<option value="${sub}">${sub}</option>`);
         } else if (t1 === 'budget') {
             t3.style.display = 'block';
             t3.innerHTML = `<option value="all">-- All Meal Types --</option><option value="home">Home-Cooked</option><option value="takeaway">Takeaway</option>`;
@@ -334,12 +313,12 @@
             if (t3 !== 'all') {
                 query = query.eq('category', t3);
             } else if (t2 !== 'all') {
-                query = query.in('category', adminCategories[t2]);
+                query = query.in('category', categories[t2]);
             } else {
                 let allGlobalSubcats = [];
-                Object.keys(adminCategories).forEach(c => {
+                Object.keys(categories).forEach(c => {
                     if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
-                        allGlobalSubcats = allGlobalSubcats.concat(adminCategories[c]);
+                        allGlobalSubcats = allGlobalSubcats.concat(categories[c]);
                     }
                 });
                 query = query.in('category', allGlobalSubcats);
@@ -355,7 +334,7 @@
             query = query.eq('category', '7-Day Meal Plans');
         } else if (t1 === 'pet') {
             if (t2 !== 'all') { query = query.eq('category', t2); } 
-            else { query = query.in('category', adminCategories['Pet Food & Treats']); }
+            else { query = query.in('category', categories['Pet Food & Treats']); }
         }
 
         return query;
@@ -399,7 +378,7 @@
             if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country}) - ${meal.meal_type || 'Unknown'}`; } 
             else if (meal.category === 'special') { badgeStyle = 'badge-special'; typeInfo = `Local Special (${meal.country})`; } 
             else if (meal.category === '7-Day Meal Plans') { badgeStyle = 'badge-plan'; typeInfo = `Meal Plan (Global)`; } 
-            else if (adminCategories['Pet Food & Treats'].includes(meal.category)) { badgeStyle = 'badge-pet'; typeInfo = `Pet Food (${meal.category})`; }
+            else if (categories['Pet Food & Treats'].includes(meal.category)) { badgeStyle = 'badge-pet'; typeInfo = `Pet Food (${meal.category})`; }
 
             html += `
             <div class="card" id="${contextPrefix}-${meal.id}">
