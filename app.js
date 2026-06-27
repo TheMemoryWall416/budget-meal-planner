@@ -4,7 +4,7 @@ const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let selectedCountry = "";
 let selectedSubcategory = "";
-let selectedParentCategory = ""; // ADDED: Tracks the parent category to prevent collisions
+let selectedParentCategory = ""; 
 let totalApprovedRecipes = 0; 
 let totalVisitors = 10000;
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
@@ -245,7 +245,7 @@ async function executeSearch() {
     view.innerHTML = `<h1>Searching for "${term}"...</h1>`;
 
     const { data, error } = await myDatabase.from('meals')
-        .select('id, title, category, parent_category, author, created_at, meal_type') // ADDED parent_category here
+        .select('id, title, category, parent_category, author, created_at, meal_type')
         .or(`title.ilike.%${term}%,recipe.ilike.%${term}%`)
         .order('created_at', { ascending: false });
 
@@ -283,6 +283,69 @@ async function executeSearch() {
     view.innerHTML = html;
 }
 
+// --- HUB FUNCTIONS ---
+function renderFindHub() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `
+        <h1 style="margin-top: 0; margin-bottom: 5px;">FIND RECIPES</h1>
+        <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">What are you looking for today?</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
+            <div onclick="renderCategoryList('find')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipes</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Search our open library of everyday recipes shared by cooks worldwide.</p>
+            </div>
+            <div onclick="showPage('find-budget-meals')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meals</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Find cost-calculated meals and clever takeaway hacks for your specific country.</p>
+            </div>
+            <div onclick="showPage('find-specials')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Specials</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Discover great grocery deals or bulk specials shared locally before they expire.</p>
+            </div>
+            <div onclick="showPage('find-meal-plans')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plans</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Browse full weeks of planned, budget-friendly eating to keep you on track.</p>
+            </div>
+            <div onclick="showPage('find-pet-food')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Find homemade, cost-effective nutrition and treat recipes for furry friends.</p>
+            </div>
+        </div>
+    `;
+}
+
+function renderCreatorHub() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `
+        <h1 style="margin-top: 0; margin-bottom: 5px;">ADD YOUR OWN</h1>
+        <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">What would you like to share with the community today?</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
+            <div onclick="addRecipeMenu()" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipe</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Share a classic family favorite, quick dinner, or an everyday recipe with the world.</p>
+            </div>
+            <div onclick="showPage('add-budget-meal')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meal</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Post a cost-calculated meal or a clever takeaway hack for your specific country.</p>
+            </div>
+            <div onclick="showPage('add-special')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Special</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Spotted a great grocery deal or bulk special? Share it locally before it expires.</p>
+            </div>
+            <div onclick="showPage('add-meal-plan')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plan</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Help others by sharing a full week of planned, budget-friendly eating.</p>
+            </div>
+            <div onclick="renderSubcategoryList('Pet Food & Treats', 'add')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Homemade, cost-effective nutrition and treat recipes for our furry friends.</p>
+            </div>
+        </div>
+    `;
+}
+
 // --- MAIN ROUTER ---
 function showPage(page) {
     const view = document.getElementById('main-view');
@@ -314,7 +377,7 @@ function showPage(page) {
             </div>
         `;
     } else if (page === 'find-recipes') {
-        renderCategoryList('find');
+        renderFindHub();
     } else if (page === 'find-budget-meals') {
         loadBudgetMeals(); 
     } else if (page === 'add-budget-meal') {
@@ -352,7 +415,7 @@ function showPage(page) {
     } else if (page === 'add-special') {
         renderAddSpecialForm();
     } else if (page === 'find-meal-plans') {
-        loadSubcategory('7-Day Meal Plans', 'Specialized Plans'); // ADDED PARENT
+        loadSubcategory('7-Day Meal Plans', 'Specialized Plans');
     } else if (page === 'add-meal-plan') {
         renderAddMealPlanForm(); 
     } else if (page === 'find-pet-food') {
@@ -366,12 +429,13 @@ function showPage(page) {
 
 function renderCategoryList(context) {
     const view = document.getElementById('main-view');
-    const title = context === 'find' ? 'FIND RECIPES' : 'ADD RECIPE';
+    const title = context === 'find' ? 'GLOBAL RECIPES' : 'ADD GLOBAL RECIPE';
     const subtitle = context === 'find' 
         ? `Search our open library of <strong>${totalApprovedRecipes}</strong> everyday recipes.`
         : `Select a primary category to post your recipe into.`;
 
     let html = `
+        <button onclick="${context === 'find' ? "showPage('find-recipes')" : "showPage('creator-hub')"}" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to Hub</button>
         <h1 style="margin-top: 0; margin-bottom: 5px;">${title}</h1>
         <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">${subtitle}</p>
     `;
@@ -388,6 +452,9 @@ function renderCategoryList(context) {
     html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">`;
 
     Object.keys(categories).forEach(cat => {
+        // Hides Specialized Plans and Pet Food from this grid to prevent redundancy
+        if (cat === 'Specialized Plans' || cat === 'Pet Food & Treats') return;
+
         const meta = categoryMeta[cat] || { icon: "🍽️", desc: "Explore recipes in this category." };
         html += `
             <div onclick="renderSubcategoryList('${cat}', '${context}')" 
@@ -400,11 +467,6 @@ function renderCategoryList(context) {
     });
 
     html += `</div>`;
-    
-    if (context === 'add') {
-        html += `<button onclick="showPage('creator-hub')" style="margin-top: 25px; background: var(--bg); color: var(--text);">← Cancel & Back to Hub</button>`;
-    }
-    
     view.innerHTML = html;
 }
 
@@ -420,7 +482,6 @@ function renderSubcategoryList(mainCategory, context) {
     `;
 
     categories[mainCategory].forEach(sub => {
-        // ADDED: Passing mainCategory into loadSubcategory and showForm
         const action = context === 'find' ? `loadSubcategory('${sub}', '${mainCategory}')` : `showForm('${sub}', '${mainCategory}')`;
         const meta = subcategoryMeta[sub] || { icon: "🍽️", desc: "Delicious homemade recipes." };
         
@@ -443,37 +504,6 @@ function getParentCategory(subcategoryName) {
         if (subCats.includes(subcategoryName)) { return mainCat; }
     }
     return null;
-}
-
-function renderCreatorHub() {
-    const view = document.getElementById('main-view');
-    view.innerHTML = `
-        <h1 style="margin-top: 0; margin-bottom: 5px;">ADD YOUR OWN</h1>
-        <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 25px;">What would you like to share with the community today?</p>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
-            <div onclick="addRecipeMenu()" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipe</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Share a classic family favorite, quick dinner, or an everyday recipe with the world.</p>
-            </div>
-            <div onclick="showPage('add-budget-meal')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meal</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Post a cost-calculated meal or a clever takeaway hack for your specific country.</p>
-            </div>
-            <div onclick="showPage('add-special')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Special</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Spotted a great grocery deal or bulk special? Share it locally before it expires.</p>
-            </div>
-            <div onclick="showPage('add-meal-plan')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plan</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Help others by sharing a full week of planned, budget-friendly eating.</p>
-            </div>
-            <div onclick="renderSubcategoryList('Pet Food & Treats', 'add')" style="background: #fff; border: 2px solid var(--border); padding: 20px; cursor: pointer; text-align: center; box-shadow: 3px 3px 0 var(--border);">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Homemade, cost-effective nutrition and treat recipes for our furry friends.</p>
-            </div>
-        </div>
-    `;
 }
 
 function renderAddMealPlanForm() {
@@ -523,7 +553,7 @@ async function saveMealPlan() {
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: '7-Day Meal Plans', 
-        parent_category: 'Specialized Plans', // ADDED PARENT
+        parent_category: 'Specialized Plans', 
         recipe: finalRecipe.trim(),
         status: 'pending' 
     }]);
@@ -543,7 +573,12 @@ async function loadSpecials() {
 
     if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`; return; }
 
-    let html = `<h1>Local Specials in ${selectedCountry}</h1>`;
+    let html = `
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+            <button onclick="showPage('find-recipes')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to Hub</button>
+            <h1 style="margin: 0;">Local Specials in ${selectedCountry}</h1>
+        </div>
+    `;
     
     if (data.length === 0) {
         html += `<p>No active specials posted for ${selectedCountry}. Be the first to share a deal!</p>`;
@@ -612,7 +647,7 @@ async function saveSpecial() {
     const expiryISO = expiryDate.toISOString();
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', parent_category: 'Specials', expiry_date: expiryISO, status: 'pending' // ADDED PARENT
+        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', parent_category: 'Specials', expiry_date: expiryISO, status: 'pending'
     }]);
 
     if (error) alert("Error: " + error.message); 
@@ -640,7 +675,12 @@ async function loadBudgetMeals(filter = 'all') {
     const { data, error } = await query;
     if (error) { view.innerHTML = `<h1>Error</h1><p>${error.message}</p>`; return; }
 
-    let html = `<h1>Budget Meals in ${selectedCountry}</h1>`;
+    let html = `
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+            <button onclick="showPage('find-recipes')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to Hub</button>
+            <h1 style="margin: 0;">Budget Meals in ${selectedCountry}</h1>
+        </div>
+    `;
     html += `
         <div style="margin-bottom: 20px;">
             <button onclick="loadBudgetMeals('all')" style="${filter === 'all' ? 'background: #000; color: #fff;' : 'margin-right: 10px;'}">All</button>
@@ -755,12 +795,10 @@ async function viewBudgetMeal(id) {
     `;
 }
 
-// ADDED: Added parentCategory to function signature
 async function loadSubcategory(subcategory, parentCategory) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading ${subcategory}...</h1>`;
 
-    // ADDED: Selects parent_category and filters by eq('parent_category', parentCategory)
     const { data, error } = await myDatabase.from('meals')
         .select('id, title, category, parent_category, author, created_at')
         .eq('category', subcategory)
@@ -780,7 +818,6 @@ async function loadSubcategory(subcategory, parentCategory) {
     `;
 
     if (data.length === 0) {
-        // ADDED: Passed parentCategory to showForm
         html += `<p>No recipes found in this category yet.</p><button onclick="showForm('${subcategory}', '${parentCategory}')" style="margin-top: 10px;">Be the first to share one!</button>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px;">`;
@@ -820,7 +857,6 @@ async function viewRecipe(id) {
     const currentUrl = window.location.origin + window.location.pathname + '?recipe=' + data.id;
     const whatsappText = encodeURIComponent(`Check out this recipe for ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
-    // ADDED: Grabs the parent_category from the database to route back correctly
     const parentCat = data.parent_category || getParentCategory(data.category);
 
     view.innerHTML = `
@@ -870,53 +906,11 @@ async function viewRecipe(id) {
     updateConverter();
 }
 
-const convFamilies = { weight: ['g', 'kg', 'oz', 'lb'], volume: ['ml', 'l', 'tsp', 'tbsp', 'cup', 'fl oz'], temp: ['c', 'f'] };
-const convRates = { 'g': 1, 'kg': 1000, 'oz': 28.3495, 'lb': 453.592, 'ml': 1, 'l': 1000, 'tsp': 4.9289, 'tbsp': 14.7868, 'cup': 250, 'fl oz': 29.5735 };
-
-function updateConverter() {
-    const fromUnit = document.getElementById('conv-from').value;
-    const toSelect = document.getElementById('conv-to');
-    toSelect.innerHTML = '';
-    let family = [];
-    if (convFamilies.weight.includes(fromUnit)) family = convFamilies.weight;
-    else if (convFamilies.volume.includes(fromUnit)) family = convFamilies.volume;
-    else if (convFamilies.temp.includes(fromUnit)) family = convFamilies.temp;
-
-    family.forEach(unit => {
-        if (unit !== fromUnit) {
-            let opt = document.createElement('option');
-            opt.value = unit;
-            opt.innerHTML = unit;
-            toSelect.appendChild(opt);
-        }
-    });
-    calculateConversion();
-}
-
-function calculateConversion() {
-    const amt = parseFloat(document.getElementById('conv-amount').value);
-    const from = document.getElementById('conv-from').value;
-    const to = document.getElementById('conv-to').value;
-    const resDiv = document.getElementById('conv-result');
-
-    if (isNaN(amt) || !from || !to) { resDiv.innerHTML = ''; return; }
-    let result = 0;
-    if (convFamilies.temp.includes(from)) {
-        if (from === 'c' && to === 'f') result = (amt * 9/5) + 32;
-        if (from === 'f' && to === 'c') result = (amt - 32) * 5/9;
-    } else {
-        const baseAmt = amt * convRates[from];
-        result = baseAmt / convRates[to];
-    }
-    resDiv.innerHTML = `Result: ${+(Math.round(result + "e+2")  + "e-2")} ${to}`;
-}
-
 function addRecipeMenu() { renderCategoryList('add'); }
 
-// ADDED: Added parentCategory to function signature
 function showForm(subcategory, parentCategory) {
     selectedSubcategory = subcategory;
-    selectedParentCategory = parentCategory; // ADDED: Save to global variable to use in saveRecipe()
+    selectedParentCategory = parentCategory; 
     const view = document.getElementById('main-view');
     
     view.innerHTML = `
@@ -987,45 +981,12 @@ async function saveRecipe() {
 
     if (!title || !instructions) return alert("Please enter a title and instructions.");
 
-    // ADDED: Added parent_category to insert query
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, author: author, category: selectedSubcategory, parent_category: selectedParentCategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString(), status: 'pending'
     }]);
     
     if (error) alert("Error: " + error.message);
     else { alert("Recipe posted successfully!"); loadSubcategory(selectedSubcategory, selectedParentCategory); }
-}
-
-async function saveBudgetMeal() {
-    const type = document.getElementById('meal-type').value;
-    const title = document.getElementById('budget-title').value;
-    const cost = parseFloat(document.getElementById('budget-cost').value);
-    const servings = parseInt(document.getElementById('budget-servings').value);
-
-    if (!title || !cost || !servings) return alert("Please fill in the meal name, total cost, and servings.");
-
-    let finalIngredients = null;
-    let finalRecipe = "";
-
-    if (type === 'home') {
-        const rows = document.querySelectorAll('.ingredient-row');
-        finalIngredients = [];
-        rows.forEach(r => {
-            const name = r.querySelector('.ing-name').value.trim();
-            const qty = r.querySelector('.ing-qty').value;
-            const unit = r.querySelector('.ing-unit').value;
-            if (name) finalIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: unit });
-        });
-        finalRecipe = document.getElementById('recipe-instructions').value;
-    } else { finalRecipe = document.getElementById('takeaway-included').value; }
-
-    // ADDED: Added parent_category: 'Budget'
-    const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, title: title, recipe: finalRecipe, ingredients: finalIngredients, cost: cost, servings: servings, meal_type: type, category: 'budget', parent_category: 'Budget Meals', status: 'pending'
-    }]);
-
-    if (error) alert("Error: " + error.message); 
-    else { alert("Budget meal posted successfully!"); showPage('find-budget-meals'); }
 }
 
 async function reportRecipe(title, id) {
@@ -1036,110 +997,3 @@ async function reportRecipe(title, id) {
     if (error) alert("Error sending report: " + error.message);
     else alert("Report submitted successfully. Thank you!");
 }
-
-const masterKitchenHacks = [
-    "Store onions and potatoes in completely separate cupboards; they make each other rot faster.",
-    "Wrap celery tightly in aluminum foil and keep it in the fridge to keep it crisp for weeks.",
-    "Store your natural peanut butter upside down so the oil doesn't pool at the top.",
-    "Treat fresh herbs like asparagus and coriander like flowers: trim the stems and put them in a glass of water in the fridge.",
-    "Wash your berries in a mix of 1 part vinegar to 3 parts water, rinse, and dry thoroughly. They will last twice as long without molding.",
-    "Never put tomatoes in the fridge! The cold kills their flavor and turns them mushy. Keep them on the counter.",
-    "Wrap the crown (the top stem part) of a bunch of bananas in cling wrap to slow down the ripening process.",
-    "Put a paper towel inside your bags of spinach or salad greens to absorb moisture and stop them from getting slimy.",
-    "Keep dairy at the back of the fridge where it's coldest, never in the door where the temperature fluctuates.",
-    "Got too much fresh ginger? Put it in a ziplock bag in the freezer. It actually grates much easier when frozen solid.",
-    "Store mushrooms in a brown paper bag, not plastic. Plastic traps moisture and makes them slimy.",
-    "Freeze leftover tomato paste in 1-tablespoon blobs on wax paper, then bag them. No more half-empty tins going moldy.",
-    "Revive wilted, sad-looking veggies (like carrots or celery) by soaking them in ice water for 30 minutes.",
-    "If your brown sugar turned into a literal brick, put a slice of soft bread in the container overnight. It will be soft by morning.",
-    "Store nuts and seeds in the freezer. Their natural oils make them go rancid quickly at room temperature.",
-    "Keep a bag of rice or a few dried beans in your salt shaker to absorb humidity and stop the salt from clumping.",
-    "Store blocks of cheese wrapped in baking paper or wax paper, not tightly sealed in plastic, so they can breathe.",
-    "Freeze bread in slices, not as a whole loaf. You can pop frozen slices straight into the toaster.",
-    "Keep avocados on the counter until they are perfectly ripe, then move them to the fridge to hit 'pause' on the ripening.",
-    "Store flour in an airtight container, not the paper bag it came in, to keep out moisture and pantry bugs.",
-    "Look up and look down. Supermarkets pay to put the most expensive, name-brand items right at your eye level.",
-    "Never, ever go grocery shopping when you are hungry. You will buy 40% more junk food on impulse.",
-    "Always check the 'Price per 100g' or 'Price per Kg' on the tag. It's the only real way to know which size is actually cheaper.",
-    "Buy blocks of cheese instead of pre-grated. Pre-grated cheese costs more and is coated in anti-caking powder that ruins sauces.",
-    "Skip the pre-cut fruits and veggies. You are paying a massive premium just for someone else to use a knife.",
-    "Buy spices in the 'international' or ethnic aisles of the supermarket; they are usually half the price of the baking aisle spices.",
-    "Whole chickens are drastically cheaper than buying pre-cut breasts or thighs. Learn to break one down yourself.",
-    "Always check the clearance bakery rack. Day-old bread is perfect for toast, croutons, and French toast.",
-    "Generic supermarket brands are often made in the exact same factories as the expensive name brands. Give them a try.",
-    "Plan your weekly meals based on what is currently on special, not what you randomly crave.",
-    "Don't buy bottled water. Buy a good reusable bottle and a filter if you don't like the taste of your tap water.",
-    "Dried beans and lentils are infinitely cheaper than canned ones. Soak them overnight and batch-cook them.",
-    "Buy rice, oats, and pasta in the biggest bulk bags you can comfortably store.",
-    "Shop the perimeter of the grocery store first. That's where the real, unprocessed food lives.",
-    "Always check your receipt before leaving the parking lot. Cash registers ring up sale items at full price surprisingly often.",
-    "Sign up for every free loyalty card available, but only use the points for essentials, not treats.",
-    "If meat is marked down on clearance because it's expiring today, buy it and throw it straight in the freezer when you get home.",
-    "Avoid buying anything near the checkout line. It is entirely designed to trigger impulse buys while you wait.",
-    "Meat is expensive. Pick one or two days a week to go completely vegetarian to stretch your budget.",
-    "Keep a running list of what is in your freezer. People waste hundreds of Rands buying things they already have buried at the back.",
-    "Keep a large ziplock bag in the freezer. Toss all your onion skins, carrot peels, and celery ends in it. Boil them later for free veggie stock.",
-    "Never throw away the leftover carcass or bones from a roast chicken. Boil it with water and garlic for an incredible, free chicken stock.",
-    "Don't throw away spring onion (scallion) roots! Put them in a glass with a little water on the windowsill and they will regrow in days.",
-    "Stale bread? Dice it up, toss it in olive oil and herbs, and bake until crispy for homemade soup croutons.",
-    "Don't throw away parmesan cheese rinds. Drop them into soups, stews, or bolognese sauces while they simmer for a massive flavor boost.",
-    "Save your bacon grease in a glass jar in the fridge. Use it instead of butter or oil to fry eggs or roast potatoes.",
-    "If you have fruit that is getting too soft to eat, chop it up and freeze it immediately. It's perfect for smoothies.",
-    "Leftover wine that's been open too long? Freeze it in ice cube trays to drop into stews and pasta sauces.",
-    "Before juicing a lemon, use a grater to take off the yellow zest. Freeze the zest in a small bag to add flavor to baking and sauces later.",
-    "Don't dump pickle juice when the pickles are gone. Use it to marinate chicken—it makes it incredibly tender and flavorful.",
-    "Leftover mashed potatoes? Mix in an egg and some flour, and fry them in a pan for amazing potato pancakes.",
-    "Broccoli stems are just as good as the florets. Peel the tough outer skin with a potato peeler and chop the soft inside for stir-fries.",
-    "Got a tiny bit of jam left in the jar? Pour in some olive oil and vinegar, put the lid on, and shake it for a quick, sweet salad dressing.",
-    "Roast your pumpkin or butternut seeds with a little salt and oil instead of throwing them in the bin.",
-    "Turn leftover cooked rice into fried rice the next day. Day-old, slightly dried-out rice actually fries much better than fresh rice.",
-    "Don't toss the leafy green tops of carrots! They make a fantastic, peppery pesto when blended with garlic and oil.",
-    "If your coffee goes cold, don't pour it down the sink. Freeze it into coffee ice cubes for iced coffee that doesn't get watered down.",
-    "Used coffee grounds are great for your garden. Sprinkle them around plants to add nitrogen to the soil and keep pests away.",
-    "Got herbs that are about to go bad? Chop them up, put them in an ice cube tray, fill with olive oil, and freeze.",
-    "Never pour pasta water down the drain! It's full of starch. Use a splash of it to thicken your pasta sauces.",
-    "Use a regular spoon to peel ginger. It scrapes the skin off easily and gets into all the weird bumps without wasting the ginger.",
-    "Grate freezing cold butter directly into your flour when making pastry or biscuits. It mixes easier and makes them super flaky.",
-    "To peel a whole bulb of garlic fast, smash it with the heel of your hand, put the cloves in a hard container with a lid, and shake vigorously.",
-    "Cut a dozen cherry tomatoes at once by sandwiching them between two plastic tub lids and running a long knife horizontally through the middle.",
-    "If you accidentally made a soup or stew too salty, drop in a peeled, raw potato and simmer for 15 minutes. It will absorb a lot of the salt.",
-    "To get the most juice out of a lemon or lime, roll it hard on the counter under your palm before cutting it.",
-    "Soak raw onions in a bowl of ice water for 10 minutes before adding them to salads. It keeps them crunchy but removes the harsh onion 'bite'.",
-    "Trying to cut meat into super thin strips for a stir-fry? Put it in the freezer for 20 minutes first so it firms up.",
-    "Always let cooked meat rest on a board for 5 to 10 minutes before cutting into it. If you cut it immediately, all the juices will run out.",
-    "Use a wire egg slicer to perfectly and quickly slice strawberries or button mushrooms.",
-    "Cook bacon on a sheet pan in the oven at 200°C instead of frying it. No flipping, no grease splatters, and it cooks perfectly flat.",
-    "Put a damp paper towel or kitchen cloth under your cutting board. It stops the board from dangerously slipping around while you chop.",
-    "Always toast your dry spices in a warm pan for 30 seconds before adding liquids. It wakes up the oils and doubles their flavor.",
-    "Shred cooked chicken breast in 10 seconds by throwing it in a bowl and using a hand mixer on low speed.",
-    "To easily remove the seed from an avocado, whack it gently with the blade of a heavy knife, twist, and pull.",
-    "If a recipe calls for buttermilk and you don't have it, add 1 tablespoon of lemon juice or vinegar to a cup of normal milk and wait 5 minutes.",
-    "Out of eggs for baking? You can often substitute one egg with 1/4 cup of unsweetened applesauce or half a mashed banana.",
-    "Make your own DIY self-raising flour: mix 1 cup of plain all-purpose flour with 1.5 teaspoons of baking powder and a pinch of salt.",
-    "Use plain yogurt as a cheaper, healthier, 1-to-1 substitute for sour cream on baked potatoes and in recipes.",
-    "Stretch expensive ground beef by mixing in an equal amount of finely chopped mushrooms or cooked brown lentils.",
-    "Always put a lid on your pot when boiling water or cooking stews. It traps the heat and uses up to 30% less electricity.",
-    "Boil water in your electric kettle first, then pour it into your pot on the stove. Kettles are far more energy-efficient.",
-    "Match the size of your pot to the size of the stove plate. Putting a small pot on a large burner wastes a massive amount of heat.",
-    "Turn off your electric stove or oven 5 to 10 minutes before your food is completely done. The residual heat will finish the cooking for free.",
-    "Never open the oven door just to 'check' on your baking. You lose about 20% of the heat every time you open it, costing you money to reheat.",
-    "If you are using the oven, try to cook multiple things at once. Roast veggies on the bottom rack while baking chicken on the top.",
-    "Keep your freezer as full as possible. A full freezer uses less energy to stay cold than an empty one. (If it's empty, fill it with bottles of water).",
-    "Thaw your frozen meat by leaving it in the fridge overnight instead of using the microwave. The frozen block actually helps cool the fridge!",
-    "Cut your root vegetables (like potatoes and carrots) into smaller, uniform pieces. They will cook significantly faster, saving gas/electricity.",
-    "Air dry your dishes instead of using the heated dry setting on your dishwasher.",
-    "Descale your kettle regularly with a mix of water and vinegar. A kettle with limescale buildup takes much longer to boil and wastes electricity.",
-    "Use a microwave for reheating or cooking small portions. It uses about 80% less energy than firing up a whole conventional oven.",
-    "Keep the coils at the back of your fridge clean and dust-free. If they get clogged, the motor has to work overtime, spiking your electric bill.",
-    "Invest in a slow cooker (Crockpot). They cook tough, cheap cuts of meat beautifully while using less electricity than a standard lightbulb.",
-    "Use cold water from the tap to wash your vegetables. There is no need to run the hot water heater just to rinse a tomato."
-];
-
-function updateHack() {
-    const element = document.getElementById("hack-text");
-    if (element) {
-        const randomIndex = Math.floor(Math.random() * masterKitchenHacks.length);
-        element.innerText = masterKitchenHacks[randomIndex];
-    }
-}
-setInterval(updateHack, 30000);
