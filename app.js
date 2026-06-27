@@ -457,7 +457,8 @@ function renderCategoryList(context) {
         html += `
         <div class="window-box" style="display: flex; gap: 10px; max-width: 900px; width: 100%; box-sizing: border-box; margin-bottom: 20px;">
             <input type="text" id="search-input" placeholder="Search recipes by name or ingredient..." style="margin-bottom: 0; flex: 1;">
-            <button onclick="executeSearch()" style="margin: 0; background: #000; color: #fff;">🔍 Search</button>
+            
+            <button onclick="executeSearch()" style="margin: 0;">🔍 Search</button>
         </div>
         `;
     }
@@ -697,11 +698,13 @@ async function loadBudgetMeals(filter = 'all') {
             <h1 style="margin: 0;">Budget Meals in ${selectedCountry}</h1>
         </div>
     `;
+    
+    // THE FIX: Active budget filter buttons now light up in Wifey's Pastel Pink
     html += `
         <div class="window-box" style="margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="loadBudgetMeals('all')" style="${filter === 'all' ? 'background: #000; color: #fff;' : 'margin-right: 10px;'}">All</button>
-            <button onclick="loadBudgetMeals('takeaway')" style="${filter === 'takeaway' ? 'background: #000; color: #fff;' : 'margin-right: 10px;'}">Takeaway Only</button>
-            <button onclick="loadBudgetMeals('home')" style="${filter === 'home' ? 'background: #000; color: #fff;' : ''}">Home-Cooked Only</button>
+            <button onclick="loadBudgetMeals('all')" style="${filter === 'all' ? 'background: var(--nav-color); border-color: var(--border);' : 'margin-right: 10px;'}">All</button>
+            <button onclick="loadBudgetMeals('takeaway')" style="${filter === 'takeaway' ? 'background: var(--nav-color); border-color: var(--border);' : 'margin-right: 10px;'}">Takeaway Only</button>
+            <button onclick="loadBudgetMeals('home')" style="${filter === 'home' ? 'background: var(--nav-color); border-color: var(--border);' : ''}">Home-Cooked Only</button>
         </div>
     `;
     
@@ -814,7 +817,7 @@ async function viewBudgetMeal(id) {
         ${contentHTML}
         
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
-            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.8rem;">⚠️ Report Recipe</button>
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.8rem; margin: 0;">⚠️ Report Recipe</button>
         </div>
     `;
 }
