@@ -157,9 +157,9 @@ async function executeSearch() {
     }
 
     let html = `
-        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="renderCategoryList('find')" style="margin:0;">← Back to Categories</button>
-            <h1 style="margin: 0;">Search Results</h1>
+        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <button onclick="renderCategoryList('find')" style="margin:0;">← Back</button>
+            <h1 style="margin: 0; font-size: 1.8rem;">Search Results</h1>
         </div>
     `;
 
@@ -186,8 +186,8 @@ async function executeSearch() {
 function renderFindHub() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box;">
-            <h1 style="margin-top: 0; margin-bottom: 5px;">FIND RECIPES</h1>
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">FIND RECIPES</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">What are you looking for today?</p>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
@@ -218,8 +218,8 @@ function renderFindHub() {
 function renderCreatorHub() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box;">
-            <h1 style="margin-top: 0; margin-bottom: 5px;">ADD YOUR OWN</h1>
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">ADD YOUR OWN</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">What would you like to share with the community today?</p>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
@@ -253,8 +253,8 @@ function showPage(page) {
 
     if (page === 'home') {
         view.innerHTML = `
-            <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color);">
-                <h1 style="margin-top:0;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
+            <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+                <h1 style="margin-top:0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
                 <p style="margin: 0; font-size: 1.2rem; margin-bottom: 8px;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
                 <div id="home-visitor-counter" style="display: inline-block; background: #f0f0f0; border: 1px solid var(--border); padding: 5px 15px; font-weight: bold; color: #000; font-size: 1.1rem; box-shadow: 2px 2px 0px var(--border); margin-top: 10px;">
                     👀 ${totalVisitors.toLocaleString()} Total Visits to Website
@@ -281,9 +281,12 @@ function showPage(page) {
         loadBudgetMeals(); 
     } else if (page === 'add-budget-meal') {
         view.innerHTML = `
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+                <h1 style="margin-top: 0; font-size: 1.8rem;">ADD BUDGET MEAL</h1>
+                <p style="margin: 0;">Posting for: <strong>${selectedCountry}</strong></p>
+            </div>
+            
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-                <h1 style="margin-top: 0;">ADD BUDGET MEAL</h1>
-                <p>Posting for: <strong>${selectedCountry}</strong></p>
                 <select id="meal-type" onchange="toggleMealType()" style="width: 100%; max-width: 450px; padding: 8px; margin-bottom: 15px; border: 2px solid var(--border); box-sizing: border-box;">
                     <option value="home">Home-Cooked (Ingredients)</option>
                     <option value="takeaway">Takeaway / Fast Food</option>
@@ -336,10 +339,10 @@ function renderCategoryList(context) {
         : `Select a primary category to post your recipe into.`;
 
     let html = `
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box;">
-            <button onclick="${context === 'find' ? "showPage('find-recipes')" : "showPage('creator-hub')"}" style="margin-bottom: 20px;">← Back to Hub</button>
-            <h1 style="margin-top: 0; margin-bottom: 5px;">${title}</h1>
-            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 10px;">${subtitle}</p>
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <button onclick="${context === 'find' ? "showPage('find-recipes')" : "showPage('creator-hub')"}" style="margin-bottom: 15px;">← Back</button>
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">${title}</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 5px;">${subtitle}</p>
         </div>
     `;
 
@@ -375,9 +378,9 @@ function renderSubcategoryList(mainCategory, context) {
     const view = document.getElementById('main-view');
     
     let html = `
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box;">
-            <button onclick="renderCategoryList('${context}')" style="margin-bottom: 20px;">← Back to All Categories</button>
-            <h1 style="margin-top: 0; margin-bottom: 5px;">${mainCategory}</h1>
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <button onclick="renderCategoryList('${context}')" style="margin-bottom: 15px;">← Back</button>
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">${mainCategory}</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Select a specific subcategory.</p>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; width: 100%; max-width: 900px;">
@@ -420,8 +423,10 @@ function renderAddMealPlanForm() {
     });
 
     view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">ADD 7-DAY MEAL PLAN</h1>
+        </div>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
-            <h1 style="margin-top: 0;">ADD 7-DAY MEAL PLAN</h1>
             <input type="text" id="plan-title" placeholder="Meal Plan Title (e.g., R500 Student Survival Week)" style="width: 100%; box-sizing: border-box; font-weight: bold; font-size: 1.1rem;">
             <div style="background: #f0f0f0; border: 2px solid var(--border); padding: 20px; box-sizing: border-box; margin-top: 10px;">
                 <p style="margin-top: 0; font-size: 0.95rem; color: #555;">Fill out the meals for each day. If you plan to eat leftovers or skip a meal, just leave that day blank!</p>
@@ -477,9 +482,9 @@ async function loadSpecials() {
     if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
 
     let html = `
-        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="showPage('find-recipes')" style="margin:0;">← Back to Hub</button>
-            <h1 style="margin: 0;">Local Specials in ${selectedCountry}</h1>
+        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <button onclick="showPage('find-recipes')" style="margin:0;">← Back</button>
+            <h1 style="margin: 0; font-size: 1.8rem;">Local Specials in ${selectedCountry}</h1>
         </div>
     `;
     
@@ -512,8 +517,10 @@ async function loadSpecials() {
 function renderAddSpecialForm() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">SHARE A LOCAL SPECIAL</h1>
+        </div>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-            <h1 style="margin-top: 0;">SHARE A LOCAL SPECIAL</h1>
             <p>Posting deal for: <strong>${selectedCountry}</strong></p>
             <input type="text" id="special-title" placeholder="Deal Name & Store (e.g. Checkers 5kg Braai Pack)" style="width: 100%; max-width: 450px; box-sizing: border-box;">
             
@@ -582,9 +589,9 @@ async function loadBudgetMeals(filter = 'all') {
     if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
 
     let html = `
-        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="showPage('find-recipes')" style="margin:0;">← Back to Hub</button>
-            <h1 style="margin: 0;">Budget Meals in ${selectedCountry}</h1>
+        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <button onclick="showPage('find-recipes')" style="margin:0;">← Back</button>
+            <h1 style="margin: 0; font-size: 1.8rem;">Budget Meals in ${selectedCountry}</h1>
         </div>
     `;
     
@@ -688,15 +695,15 @@ async function viewBudgetMeal(id) {
     const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
-            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                 <button onclick="showPage('find-budget-meals')" style="margin:0;">← Back</button>
                 <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
                 <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
                 <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
             </div>
             
-            <h1 style="font-size: 2.5rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
+            <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
             </div>
@@ -726,9 +733,9 @@ async function loadSubcategory(subcategory, parentCategory) {
     }
 
     let html = `
-        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin:0;">← Back to ${parentCategory}</button>
-            <h1 style="margin: 0;">${subcategory}</h1>
+        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin:0;">← Back</button>
+            <h1 style="margin: 0; font-size: 1.8rem;">${subcategory}</h1>
         </div>
     `;
 
@@ -775,15 +782,15 @@ async function viewRecipe(id) {
     const parentCat = data.parent_category || getParentCategory(data.category);
 
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
-            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin:0;">← Back to ${data.category}</button>
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin:0;">← Back</button>
                 <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
                 <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
                 <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
             </div>
 
-            <h1 style="font-size: 2.5rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
+            <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date}</p>
         </div>
         
@@ -870,9 +877,11 @@ function showForm(subcategory, parentCategory) {
     const view = document.getElementById('main-view');
     
     view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 15px;">← Back</button>
+            <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">Adding to: ${subcategory}</h1>
+        </div>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 20px;">← Back to ${parentCategory}</button>
-            <h1 style="margin-top: 0;">Adding to: ${subcategory}</h1>
             <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 10px;">
             <input type="text" id="author-name" placeholder="Your Name (Optional)" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 15px;">
             <div id="ingredients-container" style="width: 100%; max-width: 450px; background: #f0f0f0; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
