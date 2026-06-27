@@ -251,7 +251,7 @@
         if (context === 'library') {
             const term = document.getElementById('library-search').value.trim();
             if (term !== '') { query = query.or(`title.ilike.%${term}%,recipe.ilike.%${term}%`); } 
-            else { query = query.limit(50); } // Prevent loading thousands of records at once
+            else { query = query.limit(50); }
         } else {
             query = query.limit(100);
         }
@@ -519,7 +519,6 @@
         
         const name = `bg-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
         
-        // 1. Send file to the 'website_assets' storage bucket
         const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
         if (err1) { 
             btn.innerText = "Upload & Save Background"; 
@@ -527,10 +526,8 @@
             return alert("Upload Failed: " + err1.message); 
         }
 
-        // 2. Get the public URL
         const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
         
-        // 3. Save the URL to your site_config table
         const { error: err2 } = await myDatabase.from('site_config').update({ main_background_url: url }).eq('id', 1);
         
         btn.innerText = "Upload & Save Background"; 
