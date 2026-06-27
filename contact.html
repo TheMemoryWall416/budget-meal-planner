@@ -5,46 +5,85 @@
     <title>Contact Us - Budget Meal Planner</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
+        :root { --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
-        body { font-family: sans-serif; display: flex; margin: 0; background-color: #eaddcf; height: 100vh; overflow: hidden; color: var(--text); }
+        /* The foundation: Let the page breathe naturally */
+        body { 
+            font-family: sans-serif; 
+            margin: 0; 
+            padding: 5vh 20px; 
+            background-color: #eaddcf; 
+            min-height: 100vh; 
+            box-sizing: border-box; 
+            color: var(--text); 
+        }
         
-        nav { width: 220px; padding: 15px; flex-shrink: 0; border-right: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
-        .content { flex-grow: 1; padding: 30px; height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
+        /* Auto-margins center the window perfectly on the screen */
+        .content { width: 100%; max-width: 700px; margin: 0 auto; }
         
-        .window-box { background: #ffffff; border: 2px solid var(--border); padding: 20px; margin-bottom: 20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.15); border-radius: 4px; }
+        /* The distinctly light-grey window */
+        .window-box { 
+            background: #f0f0f0; 
+            border: 2px solid var(--border); 
+            padding: 40px; 
+            box-shadow: 4px 4px 15px rgba(0,0,0,0.2); 
+            border-radius: 4px; 
+        }
         
-        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 8px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; }
-        nav a:hover { filter: brightness(90%); }
+        .back-btn { 
+            background: var(--btn-grey); 
+            color: var(--text); 
+            padding: 8px 16px; 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            display: inline-block; 
+            border: 2px solid var(--border); 
+            font-weight: bold; 
+            margin-bottom: 20px; 
+            cursor: pointer; 
+            box-shadow: 2px 2px 0px var(--border);
+        }
+        .back-btn:hover { filter: brightness(90%); }
+
+        /* Form Styling: Inputs remain white to pop against the grey window */
+        input, textarea { 
+            width: 100%; 
+            border: 2px solid var(--border); 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            background: #ffffff; 
+            font-family: sans-serif; 
+            box-sizing: border-box; 
+            font-size: 1rem; 
+        }
         
-        /* Form Styling */
-        input, textarea { width: 100%; max-width: 500px; border: 2px solid var(--border); padding: 10px; margin-bottom: 15px; background: #fff; font-family: sans-serif; box-sizing: border-box; font-size: 1rem; }
-        button { cursor: pointer; background: #000; color: #fff; border: 2px solid var(--border); padding: 10px 20px; font-size: 1rem; font-weight: bold; box-sizing: border-box; margin-top: 10px; }
-        button:hover { background: #333; }
+        /* THE FIX: Button is now grey with black text to match the aesthetic */
+        button { 
+            cursor: pointer; 
+            background: var(--btn-grey); 
+            color: var(--text); 
+            border: 2px solid var(--border); 
+            padding: 12px 24px; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            box-sizing: border-box; 
+            margin-top: 5px; 
+            width: 100%; 
+        }
+        button:hover { filter: brightness(90%); }
     </style>
 </head>
 <body>
-<nav>
-    <div class="window-box">
-        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 10px;">Menu</h2>
-    </div>
-    <div class="window-box" style="padding: 15px;">
-        <a href="index.html">← Back to App</a>
-    </div>
-    <div class="window-box" style="padding: 15px; text-align: center;">
-        <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Privacy Policy</a>
-        <a href="terms.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Terms of Service</a>
-        <a href="contact.html" style="background: #000; color: #fff; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px; margin-bottom: 0;">Contact Us</a>
-    </div>
-</nav>
 
 <div class="content">
-    <div class="window-box" style="max-width: 700px; box-sizing: border-box;">
+    <a href="index.html" class="back-btn">← Back to App</a>
+    
+    <div class="window-box">
         <h1 style="margin-top: 0; font-size: 2.5rem;">Contact Us</h1>
         <div style="line-height: 1.8; font-size: 1.1rem;">
             <p>Have a question, suggestion, or need to report a bug? Send us a message directly using the form below. Our administration team receives these messages directly in our dashboard and will review them shortly.</p>
             
-            <div id="form-container" style="margin-top: 25px; padding: 25px; background: #f9f9f9; border: 2px solid var(--border);">
+            <div id="form-container" style="margin-top: 25px;">
                 <input type="text" id="contact-name" placeholder="Your Name" required>
                 <input type="email" id="contact-email" placeholder="Your Email Address" required>
                 <textarea id="contact-message" rows="6" placeholder="How can we help you?" required></textarea>
@@ -55,7 +94,7 @@
                 Thank you! Your message has been sent successfully. Our team will review it shortly.
             </div>
             
-            <div style="background: var(--bg); padding: 15px; border: 2px solid var(--border); font-size: 0.9rem; margin-top: 30px;">
+            <div style="background: #ffb7c5; padding: 15px; border: 2px solid var(--border); font-size: 0.9rem; margin-top: 30px;">
                 <strong>Note:</strong> We prioritize user feedback. Please allow 24-48 hours for a response via the email address you provided above.
             </div>
         </div>
@@ -67,7 +106,6 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
     const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    // FETCH BACKGROUND SCRIPT
     window.onload = async function() {
         const { data } = await myDatabase.from('site_config').select('main_background_url').eq('id', 1).single();
         if (data && data.main_background_url) {
