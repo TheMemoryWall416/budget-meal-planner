@@ -5,56 +5,17 @@
     <title>Budget Meal Planner</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* The permanent Pastel Pink theme is locked in here */
         :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
-        /* THE WALL: Fixed background, screen-height lock */
-        body { 
-            font-family: sans-serif; 
-            display: flex; 
-            margin: 0; 
-            background-color: #eaddcf; 
-            height: 100vh; 
-            overflow: hidden; 
-            color: var(--text); 
-        }
+        body { font-family: sans-serif; display: flex; margin: 0; background-color: #eaddcf; height: 100vh; overflow: hidden; color: var(--text); }
         
-        /* WINDOW 1: Left Navigation */
-        nav { 
-            width: 220px; 
-            padding: 15px; 
-            flex-shrink: 0; 
-            border-right: 2px solid var(--border); 
-            height: 100vh; 
-            overflow-y: auto; 
-            box-sizing: border-box; 
-            background: transparent; 
-        }
-        
-        /* WINDOW 2: Center Content */
-        .content { 
-            flex-grow: 1; 
-            padding: 30px; 
-            height: 100vh; 
-            overflow-y: auto; 
-            box-sizing: border-box; 
-            background: transparent; 
-        }
-        
-        /* WINDOW 3: Right Sidebar */
-        aside { 
-            width: 280px; 
-            padding: 15px; 
-            flex-shrink: 0; 
-            border-left: 2px solid var(--border); 
-            height: 100vh; 
-            overflow-y: auto; 
-            box-sizing: border-box; 
-            background: transparent; 
-        }
+        nav { width: 220px; padding: 15px; flex-shrink: 0; border-right: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
+        .content { flex-grow: 1; padding: 30px; height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
+        aside { width: 280px; padding: 15px; flex-shrink: 0; border-left: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
 
-        /* THE FLOATING WINDOW */
         .window-box { 
-            background: #ffffff; 
+            background: #f9f9f9; 
             border: 2px solid var(--border); 
             padding: 20px; 
             margin-bottom: 20px; 
@@ -65,15 +26,15 @@
         nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 8px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; }
         nav a:hover { filter: brightness(90%); }
         
-        .ad-placeholder { display: flex; align-items: center; justify-content: center; height: 250px; background: #f4f4f4; border: 2px dashed #999; color: #666; font-weight: bold; text-align: center; padding: 10px; }
+        .ad-placeholder { display: flex; align-items: center; justify-content: center; height: 250px; background: #e0e0e0; border: 2px dashed #999; color: #666; font-weight: bold; text-align: center; padding: 10px; }
         
         button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; }
         button:hover { filter: brightness(90%); }
-        textarea, input, select { width: 100%; max-width: 450px; border: 2px solid var(--border); padding: 8px; margin-bottom: 15px; background: #fff; font-family: sans-serif; box-sizing: border-box; font-size: 0.9rem; }
+        
+        textarea, input, select { width: 100%; max-width: 450px; border: 2px solid var(--border); padding: 8px; margin-bottom: 15px; background: #ffffff; font-family: sans-serif; box-sizing: border-box; font-size: 0.9rem; }
         #main-view { display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
         .ingredient-row input, .ingredient-row select { margin-bottom: 0; }
 
-        /* --- FARMHOUSE SCROLL STYLING --- */
         .farmhouse-scroll { position: relative; margin: 30px 0; width: 100%; max-width: 650px; background-color: #fdf6e3; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E"); box-shadow: inset 0 0 40px rgba(139, 69, 19, 0.15), inset 0 0 10px rgba(139, 69, 19, 0.1), 0 15px 25px rgba(0,0,0,0.1); border-radius: 3px; padding: 50px 40px; box-sizing: border-box; color: #3e2723; font-family: 'Georgia', 'Times New Roman', serif; font-size: 1.15rem; line-height: 1.8; }
         .farmhouse-scroll::before, .farmhouse-scroll::after { content: ''; position: absolute; left: -15px; right: -15px; height: 30px; background: linear-gradient(to bottom, #5c3a21, #2b1a10, #5c3a21); border-radius: 15px; box-shadow: 0 8px 15px rgba(0,0,0,0.4), inset 0 3px 6px rgba(255,255,255,0.1); z-index: 2; }
         .farmhouse-scroll::before { top: -15px; }
@@ -82,15 +43,13 @@
     </style>
 </head>
 <body>
-<div id="country-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+
+<div id="country-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center;">
     <div id="modal-content" class="window-box" style="background: var(--nav-color); padding: 40px; text-align: center; border-width: 3px;">
-        <h2 style="color: var(--text); margin-top: 0;">Select Your Country & Color Scheme</h2>
-        <select id="modal-country-select" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 10px;"></select><br>
-        <select id="modal-color-select" onchange="previewTheme()" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 10px;">
-            <option value="pink">Pastel Pink</option><option value="blue">Pastel Blue</option><option value="green">Pastel Green</option><option value="darkgrey">Dark Grey</option>
-            <option value="purple">Dark Purple</option><option value="orange">Dark Orange</option><option value="teal">Dark Teal</option>
-        </select><br>
-        <button onclick="confirmCountry()" style="padding: 10px 20px; background: var(--btn-grey); border: 2px solid var(--border); cursor: pointer; font-weight: bold; margin: 0;">Confirm</button>
+        <h2 style="color: var(--text); margin-top: 0;">Select Your Country</h2>
+        <p style="font-size: 0.9rem; margin-top: 0; margin-bottom: 20px;">To accurately calculate your budget meals.</p>
+        <select id="modal-country-select" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 20px;"></select><br>
+        <button onclick="confirmCountry()" style="padding: 12px 24px; background: #000; color: #fff; border: 2px solid var(--border); cursor: pointer; font-weight: bold; margin: 0; font-size: 1rem;">Enter Kitchen</button>
     </div>
 </div>
 
@@ -145,5 +104,6 @@
         document.getElementById('cookie-banner').style.display = 'none';
     }
 </script>
+
 </body>
 </html>
