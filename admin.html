@@ -1,46 +1,109 @@
-<!DOCTYPE html>
+                <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Admin Command Center</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; margin: 0; padding: 0; color: #333; }
-        .container { max-width: 1000px; margin: 40px auto; padding: 20px; background: #fff; border: 2px solid #000; box-shadow: 5px 5px 0px #000; }
-        h1 { border-bottom: 2px solid #000; padding-bottom: 10px; margin-top: 0; }
-        input, textarea, select { width: 100%; padding: 10px; margin-bottom: 15px; border: 2px solid #000; box-sizing: border-box; font-size: 1rem; font-family: sans-serif; }
-        button { background: #000; color: #fff; border: 2px solid #000; padding: 8px 16px; font-weight: bold; cursor: pointer; }
-        button:hover { background: #333; }
-        button:disabled { background: #999; cursor: not-allowed; border-color: #666; }
-        .btn-success { background: #28a745; color: white; border-color: #1e7e34; }
-        .btn-success:hover { background: #218838; }
-        .btn-danger { background: #dc3545; color: white; border-color: #bd2130; }
-        .btn-danger:hover { background: #c82333; }
-        .btn-edit { background: #ffc107; color: #000; border-color: #d39e00; }
-        .btn-edit:hover { background: #e0a800; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 15px; flex-wrap: wrap; }
-        .nav-tabs button { background: #e0e0e0; color: #000; border: 2px solid #000; font-size: 1rem; }
-        .nav-tabs button.active { background: #000; color: #fff; }
-        .card { border: 2px solid #000; padding: 15px; margin-bottom: 15px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; }
+        /* Locking in the permanent Pastel Pink theme */
+        :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
+        
+        body { 
+            font-family: sans-serif; 
+            margin: 0; 
+            padding: 5vh 20px; 
+            background-color: #eaddcf; 
+            min-height: 100vh; 
+            box-sizing: border-box; 
+            color: var(--text); 
+        }
+        
+        /* The main floating window - crisp light grey */
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 40px; 
+            background: #f9f9f9; 
+            border: 2px solid var(--border); 
+            box-shadow: 4px 4px 15px rgba(0,0,0,0.2); 
+            border-radius: 4px; 
+        }
+        
+        h1 { border-bottom: 2px dashed rgba(139, 69, 19, 0.3); padding-bottom: 10px; margin-top: 0; font-family: 'Georgia', 'Times New Roman', serif; }
+        h2 { font-family: 'Georgia', 'Times New Roman', serif; }
+        
+        input, textarea, select { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            border: 2px solid var(--border); 
+            box-sizing: border-box; 
+            font-size: 1rem; 
+            font-family: sans-serif; 
+            background: #ffffff; /* White inputs pop against grey window */
+        }
+        
+        /* Standardized Buttons */
+        button { 
+            cursor: pointer; 
+            background: var(--btn-grey); 
+            color: var(--text); 
+            border: 2px solid var(--border); 
+            padding: 10px 20px; 
+            font-weight: bold; 
+            font-size: 0.95rem; 
+            box-sizing: border-box; 
+            box-shadow: 2px 2px 0px var(--border);
+        }
+        button:hover { filter: brightness(90%); transform: translate(-1px, -1px); box-shadow: 3px 3px 0px var(--border); }
+        button:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px var(--border); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
+        
+        /* Pastel Action Buttons with hard black borders */
+        .btn-success { background: #d4edda; }
+        .btn-danger { background: #f8d7da; }
+        .btn-edit { background: #fff3cd; }
+        
+        /* Admin Navigation Tabs */
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 15px; flex-wrap: wrap; }
+        .nav-tabs button { background: #ffffff; box-shadow: none; border-bottom-width: 4px; }
+        .nav-tabs button.active { background: var(--nav-color); border-bottom-color: var(--border); } /* Wifey's Pink for active tab */
+        
+        /* Content Cards */
+        .card { 
+            border: 2px solid var(--border); 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            background: #ffffff; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
         .card-content { flex-grow: 1; }
         .card-actions { display: flex; gap: 10px; margin-left: 15px; flex-wrap: wrap; justify-content: flex-end;}
         .card-title { font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0; }
         .meta { font-size: 0.85rem; color: #666; margin: 0; }
-        .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #e0e0e0; padding: 15px; border: 2px solid #000; }
-        .badge { padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid #000; margin-left: 10px; background: #fff; display: inline-block; margin-bottom: 5px;}
-        .badge-special { background: #fff3cd; color: #856404; border-color: #ffeeba; }
-        .badge-plan { background: #cce5ff; color: #004085; border-color: #b8daff; }
-        .badge-pet { background: #e2d9f3; color: #381885; border-color: #d2c4eb; }
+        
+        /* Search Box */
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #ffffff; padding: 20px; border: 2px solid var(--border); }
+        
+        /* Badges */
+        .badge { padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: 2px solid var(--border); margin-left: 10px; background: #fff; display: inline-block; margin-bottom: 5px;}
+        .badge-special { background: #fff3cd; }
+        .badge-plan { background: #cce5ff; }
+        .badge-pet { background: #e2d9f3; }
+        .badge-pending { background: #ffeeba; }
+        .badge-approved { background: #d4edda; }
     </style>
 </head>
 <body>
 
 <div class="container" id="login-screen">
-    <h1>Admin Login</h1>
-    <p>Authorized personnel only.</p>
+    <h1>Admin Command Center</h1>
+    <p style="font-size: 1.1rem; margin-bottom: 25px;">Authorized personnel only.</p>
     <input type="email" id="admin-email" placeholder="Email Address">
     <input type="password" id="admin-password" placeholder="Password">
-    <button onclick="loginAdmin()">Access Dashboard</button>
+    <button onclick="loginAdmin()" style="width: 100%;">Access Dashboard</button>
 </div>
 
 <div class="container" id="dashboard-screen" style="display: none;">
@@ -63,7 +126,7 @@
 
     <div id="view-review" style="display: none;">
         <h2>Needs Approval</h2>
-        <p style="margin-top:0; color:#555;">Review pending community submissions.</p>
+        <p style="margin-top:0; color:#555; margin-bottom: 20px;">Review pending community submissions.</p>
         
         <div class="search-box">
             <select id="review-tier1" onchange="updateTier2('review')" style="flex: 1; min-width: 200px; margin-bottom: 0; cursor: pointer;"></select>
@@ -91,23 +154,23 @@
         
         <div class="card" style="flex-direction: column; align-items: flex-start;">
             <h3 style="margin-top: 0;">📸 Update Team Photo</h3>
-            <p style="font-size: 0.9rem; color: #555;">Choose a file to replace the picture on the home page's "Meet the Team" section.</p>
-            <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 10px; display: block;">
+            <p style="font-size: 0.95rem; color: #555; margin-top: 0;">Choose a file to replace the picture on the home page's "Meet the Team" section.</p>
+            <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
             <button class="btn-success" onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
         </div>
 
-        <div class="card" style="flex-direction: column; align-items: flex-start; margin-top: 15px;">
+        <div class="card" style="flex-direction: column; align-items: flex-start; margin-top: 20px;">
             <h3 style="margin-top: 0;">🖼️ Update Website Background</h3>
-            <p style="font-size: 0.9rem; color: #555;">Upload the custom sanctuary background image. It will remain fixed behind the content windows.</p>
-            <input type="file" id="bg-photo-upload" accept="image/*" style="margin-bottom: 10px; display: block;">
+            <p style="font-size: 0.95rem; color: #555; margin-top: 0;">Upload the custom sanctuary background image. It will securely sync to all pages.</p>
+            <input type="file" id="bg-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
             <button class="btn-success" onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
         </div>
     </div>
 
     <div id="view-edit" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="margin: 0;">Edit Record</h2>
-            <button onclick="switchTab('library')" style="background: #e0e0e0; color: #000;">Cancel & Return</button>
+            <button onclick="switchTab('library')">Cancel & Return</button>
         </div>
         
         <input type="hidden" id="edit-id">
@@ -123,10 +186,10 @@
             <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Total Cost</label><input type="number" id="edit-cost" placeholder="Cost" step="any" style="margin-bottom: 0;"></div>
             <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Servings</label><input type="number" id="edit-servings" placeholder="Servings" style="margin-bottom: 0;"></div>
         </div>
-        <div id="edit-ingredients-container" style="background: #fff; border: 2px solid #000; padding: 15px; margin-bottom: 15px;">
+        <div id="edit-ingredients-container" style="background: #ffffff; border: 2px solid var(--border); padding: 20px; margin-bottom: 20px;">
             <h3 style="margin-top: 0;">Ingredients</h3>
             <div id="edit-ingredients-list"></div>
-            <button onclick="adminAddIngredientRow()" style="margin-top: 10px; background: #e0e0e0; color: #000; border: 1px solid #000; padding: 5px 10px; font-size: 0.8rem;">+ Add Ingredient Row</button>
+            <button onclick="adminAddIngredientRow()" style="margin-top: 15px;">+ Add Ingredient Row</button>
         </div>
         <label style="font-weight: bold; font-size: 0.9rem;">Instructions / What is Included</label>
         <textarea id="edit-instructions" rows="8" placeholder="Instructions..."></textarea>
@@ -164,6 +227,17 @@
 
     window.onload = async function() {
         setupFilters();
+        
+        // Fetch and apply the global background image to the admin panel
+        const { data: config } = await myDatabase.from('site_config').select('main_background_url').eq('id', 1).single();
+        if (config && config.main_background_url) {
+            document.body.style.backgroundImage = `url('${config.main_background_url}')`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center center';
+            document.body.style.backgroundAttachment = 'fixed';
+            document.body.style.backgroundRepeat = 'no-repeat';
+        }
+
         const { data: { session } } = await myDatabase.auth.getSession();
         if (session) showDashboard();
     };
@@ -317,8 +391,8 @@
         data.forEach(meal => {
             let badgeStyle = '';
             let statusBadge = contextPrefix === 'review' 
-                ? `<span class="badge" style="background:#ffcc00;">PENDING</span>` 
-                : `<span class="badge" style="color: #28a745; border-color: #28a745;">APPROVED</span>`;
+                ? `<span class="badge badge-pending">PENDING</span>` 
+                : `<span class="badge badge-approved">APPROVED</span>`;
             
             let typeInfo = `Global Recipe (${meal.category})`;
             
@@ -396,7 +470,7 @@
         data.forEach(msg => {
             const isReport = msg.name.startsWith("REPORTED");
             html += `
-            <div class="card" id="msg-${msg.id}" style="background: ${isReport ? '#fff0f0' : '#fafafa'}; border: ${isReport ? '2px solid #dc3545' : '2px solid #000'}; flex-direction: column; align-items: flex-start;">
+            <div class="card" id="msg-${msg.id}" style="background: ${isReport ? '#fff0f0' : '#ffffff'}; border: ${isReport ? '2px solid #dc3545' : '2px solid var(--border)'}; flex-direction: column; align-items: flex-start;">
                 <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
                     <div><p class="card-title">${msg.name} <span class="meta">(${msg.email})</span></p><p class="meta">${new Date(msg.created_at).toLocaleString()}</p></div>
                     <button class="btn-danger" onclick="deleteRecord('messages', ${msg.id}, 'msg-${msg.id}')">Delete</button>
@@ -452,13 +526,13 @@
         const list = document.getElementById('edit-ingredients-list');
         const row = document.createElement('div');
         row.className = 'ingredient-row';
-        row.style.display = 'flex'; row.style.gap = '5px'; row.style.marginBottom = '8px';
+        row.style.display = 'flex'; row.style.gap = '10px'; row.style.marginBottom = '10px';
         const safeQty = (qty !== null && qty !== undefined) ? qty : '';
         row.innerHTML = `
-            <input type="text" class="ing-name" placeholder="Item Name" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0; padding: 8px;">
-            <input type="number" step="any" class="ing-qty" placeholder="Qty" value="${safeQty}" style="flex: 1; margin: 0; padding: 8px;">
-            <input type="text" class="ing-unit" placeholder="Unit" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0; padding: 8px;">
-            <button onclick="this.parentElement.remove()" style="margin: 0; background: #dc3545; color: #fff; padding: 0 10px; border: 2px solid #bd2130;">X</button>
+            <input type="text" class="ing-name" placeholder="Item Name" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0;">
+            <input type="number" step="any" class="ing-qty" placeholder="Qty" value="${safeQty}" style="flex: 1; margin: 0;">
+            <input type="text" class="ing-unit" placeholder="Unit" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0;">
+            <button class="btn-danger" onclick="this.parentElement.remove()" style="margin: 0; padding: 0 15px;">X</button>
         `;
         list.appendChild(row);
     }
