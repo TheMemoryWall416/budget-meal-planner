@@ -5,7 +5,7 @@
     <title>Budget Meal Planner</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* The permanent Pastel Pink theme is locked in here */
+        /* The permanent Pastel Pink & Premium Grey theme is locked in here */
         :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
         body { font-family: sans-serif; display: flex; margin: 0; background-color: #eaddcf; height: 100vh; overflow: hidden; color: var(--text); }
@@ -14,6 +14,7 @@
         .content { flex-grow: 1; padding: 30px; height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
         aside { width: 280px; padding: 15px; flex-shrink: 0; border-left: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
 
+        /* The distinctly premium light-grey window */
         .window-box { 
             background: #f9f9f9; 
             border: 2px solid var(--border); 
@@ -29,7 +30,8 @@
         .ad-placeholder { display: flex; align-items: center; justify-content: center; height: 250px; background: #e0e0e0; border: 2px dashed #999; color: #666; font-weight: bold; text-align: center; padding: 10px; }
         
         button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; }
-        button:hover { filter: brightness(90%); }
+        button:hover { filter: brightness(90%); transform: translate(-1px, -1px); box-shadow: 2px 2px 0px var(--border); }
+        button:active { transform: translate(1px, 1px); box-shadow: none; }
         
         textarea, input, select { width: 100%; max-width: 450px; border: 2px solid var(--border); padding: 8px; margin-bottom: 15px; background: #ffffff; font-family: sans-serif; box-sizing: border-box; font-size: 0.9rem; }
         #main-view { display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
@@ -49,22 +51,26 @@
         <h2 style="color: var(--text); margin-top: 0;">Select Your Country</h2>
         <p style="font-size: 0.9rem; margin-top: 0; margin-bottom: 20px;">To accurately calculate your budget meals.</p>
         <select id="modal-country-select" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 20px;"></select><br>
-        
         <button onclick="confirmCountry()" style="padding: 12px 24px; margin: 0; font-size: 1rem;">Enter Kitchen</button>
     </div>
 </div>
 
 <nav>
     <div class="window-box">
-        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 10px;">Menu</h2>
-        <div id="nav-counter" style="font-size: 0.85rem; font-weight: bold; color: #555; padding-bottom: 5px;">🌍 Loading live recipes...</div>
+        <h2 style="margin-top: 0; font-size: 1.1rem; margin-bottom: 15px; border-bottom: 2px dashed rgba(0,0,0,0.2); padding-bottom: 8px; text-align: center;">Community Stats</h2>
+        <div id="nav-counter" style="font-size: 0.85rem; line-height: 1.6; color: #333;">
+            🌍 Loading live stats...
+        </div>
     </div>
+    
     <div class="window-box" style="padding: 15px;">
+        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Menu</h2>
         <a href="#" onclick="showPage('home')">Home</a>
         <a href="#" onclick="showPage('find-recipes')">Find Recipes</a>
         <a href="#" onclick="showPage('creator-hub')">Add Your Own</a>
         <a href="contact.html">Contact</a>
     </div>
+    
     <div class="window-box" style="padding: 15px; text-align: center;">
         <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Privacy Policy</a>
         <a href="terms.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px; margin-bottom: 0;">Terms of Service</a>
