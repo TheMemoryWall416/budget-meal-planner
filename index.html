@@ -68,15 +68,12 @@
 </div>
 
 <script>
-    // 1. Check if the user has already accepted cookies in the past
     document.addEventListener('DOMContentLoaded', function() {
         if (!localStorage.getItem('cookies_accepted')) {
-            // If they haven't, show the banner
             document.getElementById('cookie-banner').style.display = 'flex';
         }
     });
 
-    // 2. When they click the button, memorize it and hide the banner
     function acceptCookies() {
         localStorage.setItem('cookies_accepted', 'true');
         document.getElementById('cookie-banner').style.display = 'none';
