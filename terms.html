@@ -5,36 +5,24 @@
     <title>Terms of Service - Budget Meal Planner</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
+        :root { --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
-        body { font-family: sans-serif; display: flex; margin: 0; background-color: #eaddcf; height: 100vh; overflow: hidden; color: var(--text); }
+        body { font-family: sans-serif; margin: 0; padding: 5vh 20px; background-color: #eaddcf; min-height: 100vh; box-sizing: border-box; color: var(--text); }
         
-        nav { width: 220px; padding: 15px; flex-shrink: 0; border-right: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
-        .content { flex-grow: 1; padding: 30px; height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
+        .content { width: 100%; max-width: 800px; margin: 0 auto; }
         
-        .window-box { background: #ffffff; border: 2px solid var(--border); padding: 20px; margin-bottom: 20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.15); border-radius: 4px; }
+        .window-box { background: #f0f0f0; border: 2px solid var(--border); padding: 40px; box-shadow: 4px 4px 15px rgba(0,0,0,0.2); border-radius: 4px; }
         
-        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 8px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; }
-        nav a:hover { filter: brightness(90%); }
+        .back-btn { background: var(--btn-grey); color: var(--text); padding: 8px 16px; font-size: 0.9rem; text-decoration: none; display: inline-block; border: 2px solid var(--border); font-weight: bold; margin-bottom: 20px; cursor: pointer; box-shadow: 2px 2px 0px var(--border);}
+        .back-btn:hover { filter: brightness(90%); }
     </style>
 </head>
 <body>
-<nav>
-    <div class="window-box">
-        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 10px;">Menu</h2>
-    </div>
-    <div class="window-box" style="padding: 15px;">
-        <a href="index.html">← Back to App</a>
-    </div>
-    <div class="window-box" style="padding: 15px; text-align: center;">
-        <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Privacy Policy</a>
-        <a href="terms.html" style="background: #000; color: #fff; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Terms of Service</a>
-        <a href="contact.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px; margin-bottom: 0;">Contact Us</a>
-    </div>
-</nav>
 
 <div class="content">
-    <div class="window-box" style="max-width: 800px; box-sizing: border-box;">
+    <a href="index.html" class="back-btn">← Back to App</a>
+    
+    <div class="window-box">
         <h1 style="margin-top: 0; font-size: 2.5rem;">Terms of Service</h1>
         <div style="line-height: 1.8; font-size: 1.1rem;">
             <p><strong>Effective Date:</strong> June 2026</p>
