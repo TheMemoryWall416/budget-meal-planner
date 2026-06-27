@@ -149,7 +149,6 @@ const subcategoryMeta = {
     "Other Pets": { icon: "🦎", desc: "Specialty food for reptiles, fish, and exotic pals." }
 };
 
-// --- INITIALIZATION & SESSION TRACKING ---
 async function handleVisitorSession() {
     const now = Date.now();
     const lastVisit = localStorage.getItem('last_visit_time');
@@ -199,35 +198,14 @@ async function fetchStats() {
     }
 }
 
-function previewTheme() {
-    const color = document.getElementById('modal-color-select').value;
-    const mc = document.getElementById('modal-content');
-    const previews = { 'blue': '#add8e6', 'green': '#98fb98', 'darkgrey': '#808080', 'purple': '#4b0082', 'orange': '#d2691e', 'teal': '#008080', 'pink': '#ffb7c5' };
-    mc.style.backgroundColor = previews[color] || '#ffb7c5';
-}
-
-function applyTheme(color) {
-    const root = document.documentElement;
-    const themes = {
-        'blue': { nav: '#add8e6', bg: '#f0f8ff' },
-        'green': { nav: '#98fb98', bg: '#f0fff0' },
-        'darkgrey': { nav: '#808080', bg: '#d3d3d3' },
-        'purple': { nav: '#4b0082', bg: '#e6e6fa' },
-        'orange': { nav: '#d2691e', bg: '#fff5e6' },
-        'teal': { nav: '#008080', bg: '#e0f7fa' },
-        'pink': { nav: '#ffb7c5', bg: '#fff0f5' }
-    };
-    const selected = themes[color] || themes['pink'];
-    root.style.setProperty('--nav-color', selected.nav);
-    root.style.setProperty('--bg', selected.bg);
-}
-
 function confirmCountry() {
     const s = document.getElementById('modal-country-select').value;
-    const color = document.getElementById('modal-color-select').value;
     if (!s) return alert("Select a country!");
     selectedCountry = s;
-    applyTheme(color);
+    
+    // Save to local storage so they don't have to see this again
+    localStorage.setItem('saved_country', s);
+    
     document.getElementById('country-modal').style.display = 'none';
     
     const params = new URLSearchParams(window.location.search);
@@ -242,9 +220,34 @@ function confirmCountry() {
 
 window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
-    countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
+    if (s2) {
+        countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
+    }
     updateHack(); 
     handleVisitorSession();
+
+    // Check if the user has been here before
+    const savedCountry = localStorage.getItem('saved_country');
+
+    if (savedCountry) {
+        // They have visited! Skip the modal completely.
+        selectedCountry = savedCountry;
+        const modal = document.getElementById('country-modal');
+        if (modal) modal.style.display = 'none';
+        
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('recipe')) {
+            viewRecipe(params.get('recipe'));
+        } else if (params.get('budget')) {
+            viewBudgetMeal(params.get('budget'));
+        } else {
+            showPage('home');
+        }
+    } else {
+        // First time visitor: Show the modal
+        const modal = document.getElementById('country-modal');
+        if (modal) modal.style.display = 'flex';
+    }
 };
 
 async function executeSearch() {
