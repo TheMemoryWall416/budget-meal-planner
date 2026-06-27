@@ -8,7 +8,7 @@ let selectedParentCategory = "";
 let totalApprovedRecipes = 0; 
 let totalVisitors = 10000;
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
-let dynamicBudgetTips = []; // Empty array, we will fill it from Supabase
+let dynamicBudgetTips = []; 
 
 async function handleVisitorSession() {
     const now = Date.now();
@@ -91,15 +91,11 @@ function confirmCountry() {
     }
 }
 
-// ----------------------------------------------------
-// THE NEW SUPABASE TIP FETCHING ENGINE
-// ----------------------------------------------------
 async function fetchBudgetTips() {
     const { data, error } = await myDatabase.from('budget_tips').select('tip_text');
     if (!error && data && data.length > 0) {
-        // Load all the tips from the cloud into our array
         dynamicBudgetTips = data.map(item => item.tip_text);
-        updateHack(); // Instantly show the first tip
+        updateHack(); 
     } else {
         document.getElementById("hack-text").innerText = "Add tips in your database to see them here!";
     }
@@ -112,7 +108,6 @@ function updateHack() {
         element.innerText = dynamicBudgetTips[randomIndex];
     }
 }
-// ----------------------------------------------------
 
 window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
@@ -121,10 +116,8 @@ window.onload = function() {
     }
     
     handleVisitorSession();
-    
-    // FETCH THE TIPS FROM SUPABASE ON LOAD
     fetchBudgetTips(); 
-    setInterval(updateHack, 30000); // Rotate them every 30 seconds
+    setInterval(updateHack, 30000); 
 
     const savedCountry = localStorage.getItem('saved_country');
 
@@ -263,7 +256,7 @@ function showPage(page) {
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color);">
                 <h1 style="margin-top:0;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
                 <p style="margin: 0; font-size: 1.2rem; margin-bottom: 8px;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
-                <div id="home-visitor-counter" style="display: inline-block; background: #fff; border: 1px solid var(--border); padding: 5px 15px; font-weight: bold; color: #000; font-size: 1.1rem; box-shadow: 2px 2px 0px var(--border); margin-top: 10px;">
+                <div id="home-visitor-counter" style="display: inline-block; background: #f0f0f0; border: 1px solid var(--border); padding: 5px 15px; font-weight: bold; color: #000; font-size: 1.1rem; box-shadow: 2px 2px 0px var(--border); margin-top: 10px;">
                     👀 ${totalVisitors.toLocaleString()} Total Visits to Website
                 </div>
             </div>
@@ -304,7 +297,7 @@ function showPage(page) {
                     <input type="number" id="budget-servings" placeholder="Servings (e.g. 4)" style="margin-bottom: 0; flex: 1; box-sizing: border-box;">
                 </div>
                 <div id="home-cooked-section" style="width: 100%; max-width: 450px;">
-                    <div style="background: #f9f9f9; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
+                    <div style="background: #f0f0f0; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
                         <h3 style="margin-top: 0;">Ingredients</h3>
                         <div id="ingredients-list"></div>
                         <button onclick="addIngredientRow()" style="margin: 10px 0 0 0; background: #e0e0e0; font-size: 0.75rem; border: 2px solid var(--border); padding: 6px 12px; cursor: pointer;">+ Add Another Ingredient</button>
@@ -430,7 +423,7 @@ function renderAddMealPlanForm() {
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
             <h1 style="margin-top: 0;">ADD 7-DAY MEAL PLAN</h1>
             <input type="text" id="plan-title" placeholder="Meal Plan Title (e.g., R500 Student Survival Week)" style="width: 100%; box-sizing: border-box; font-weight: bold; font-size: 1.1rem;">
-            <div style="background: #f9f9f9; border: 2px solid var(--border); padding: 20px; box-sizing: border-box; margin-top: 10px;">
+            <div style="background: #f0f0f0; border: 2px solid var(--border); padding: 20px; box-sizing: border-box; margin-top: 10px;">
                 <p style="margin-top: 0; font-size: 0.95rem; color: #555;">Fill out the meals for each day. If you plan to eat leftovers or skip a meal, just leave that day blank!</p>
                 ${daysHTML}
             </div>
@@ -878,11 +871,11 @@ function showForm(subcategory, parentCategory) {
     
     view.innerHTML = `
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCategory}</button>
+            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 20px;">← Back to ${parentCategory}</button>
             <h1 style="margin-top: 0;">Adding to: ${subcategory}</h1>
             <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 10px;">
             <input type="text" id="author-name" placeholder="Your Name (Optional)" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 15px;">
-            <div id="ingredients-container" style="width: 100%; max-width: 450px; background: #f9f9f9; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
+            <div id="ingredients-container" style="width: 100%; max-width: 450px; background: #f0f0f0; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
                 <h3 style="margin-top: 0;">Ingredients</h3>
                 <div id="ingredients-list"></div>
                 <button onclick="addIngredientRow()" style="margin: 10px 0 0 0; background: #e0e0e0; font-size: 0.75rem; border: 2px solid var(--border); padding: 6px 12px; cursor: pointer;">+ Add Another Ingredient</button>
