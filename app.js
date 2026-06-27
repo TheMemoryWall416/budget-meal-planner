@@ -452,7 +452,6 @@ function renderCategoryList(context) {
     html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">`;
 
     Object.keys(categories).forEach(cat => {
-        // Hides Specialized Plans and Pet Food from this grid to prevent redundancy
         if (cat === 'Specialized Plans' || cat === 'Pet Food & Treats') return;
 
         const meta = categoryMeta[cat] || { icon: "🍽️", desc: "Explore recipes in this category." };
@@ -738,6 +737,7 @@ async function likeMeal(id, btnElement) {
     await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
 }
 
+/* --- REFACTORED BUDGET MEAL FARMHOUSE SCROLL --- */
 async function viewBudgetMeal(id) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading...</h1>`;
@@ -748,26 +748,30 @@ async function viewBudgetMeal(id) {
     let contentHTML = "";
 
     if (data.meal_type === 'home') {
-        let ingredientsHTML = `<ul style="font-size: 1.1rem; line-height: 1.8; background: #fff; padding: 20px 40px; border: 2px solid var(--border); max-width: 600px; margin-top: 10px;">`;
+        let ingredientsHTML = `<ul style="margin: 0; padding-left: 20px;">`;
         if (data.ingredients && Array.isArray(data.ingredients)) {
             data.ingredients.forEach(ing => {
                 let qty = ing.qty ? ing.qty : '';
                 let unit = ing.unit ? ing.unit : '';
-                ingredientsHTML += `<li><strong>${qty} ${unit}</strong> ${ing.item}</li>`;
+                ingredientsHTML += `<li style="margin-bottom: 8px;"><strong>${qty} ${unit}</strong> ${ing.item}</li>`;
             });
         }
         ingredientsHTML += `</ul>`;
 
         contentHTML = `
-            <h2 style="margin-top: 20px;">Ingredients</h2>
-            ${ingredientsHTML}
-            <h2 style="margin-top: 20px;">Instructions</h2>
-            <div style="font-size: 1.1rem; line-height: 1.6; background: #fff; padding: 20px; border: 2px solid var(--border); max-width: 600px; white-space: pre-wrap;">${data.recipe}</div>
+            <div class="farmhouse-scroll">
+                <h2>Ingredients</h2>
+                ${ingredientsHTML}
+                <h2 style="margin-top: 30px;">Instructions</h2>
+                <div style="white-space: pre-wrap;">${data.recipe}</div>
+            </div>
         `;
     } else {
         contentHTML = `
-            <h2 style="margin-top: 20px;">What is included?</h2>
-            <div style="font-size: 1.1rem; line-height: 1.6; background: #fff; padding: 20px; border: 2px solid var(--border); max-width: 600px; white-space: pre-wrap;">${data.recipe}</div>
+            <div class="farmhouse-scroll">
+                <h2>What is included?</h2>
+                <div style="white-space: pre-wrap;">${data.recipe}</div>
+            </div>
         `;
     }
 
@@ -788,7 +792,9 @@ async function viewBudgetMeal(id) {
         <div style="font-size: 1.2rem; margin-bottom: 20px; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
             <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
         </div>
+        
         ${contentHTML}
+        
         <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ccc;">
             <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.8rem;">⚠️ Report Recipe</button>
         </div>
@@ -834,6 +840,7 @@ async function loadSubcategory(subcategory, parentCategory) {
     view.innerHTML = html;
 }
 
+/* --- REFACTORED GLOBAL RECIPE FARMHOUSE SCROLL --- */
 async function viewRecipe(id) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<h1>Loading Recipe...</h1>`;
@@ -841,12 +848,12 @@ async function viewRecipe(id) {
     const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
     if (error) return;
 
-    let ingredientsHTML = `<ul style="font-size: 1.1rem; line-height: 1.8; background: #fff; padding: 20px 40px; border: 2px solid var(--border); max-width: 600px; margin-top: 10px;">`;
+    let ingredientsHTML = `<ul style="margin: 0; padding-left: 20px;">`;
     if (data.ingredients && Array.isArray(data.ingredients)) {
         data.ingredients.forEach(ing => {
             let qty = ing.qty ? ing.qty : '';
             let unit = ing.unit ? ing.unit : '';
-            ingredientsHTML += `<li><strong>${qty} ${unit}</strong> ${ing.item}</li>`;
+            ingredientsHTML += `<li style="margin-bottom: 8px;"><strong>${qty} ${unit}</strong> ${ing.item}</li>`;
         });
     } else { ingredientsHTML += `<li>No structured ingredients found.</li>`; }
     ingredientsHTML += `</ul>`;
@@ -870,9 +877,7 @@ async function viewRecipe(id) {
         <h1 style="font-size: 2.5rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
         <p style="font-size: 1rem; color: #666; margin-top: 0; margin-bottom: 20px;">By ${author} • ${date}</p>
         
-        <h2 style="margin-top: 20px;">Ingredients</h2>
-        
-        <div style="background: var(--nav-color); border: 2px solid var(--border); padding: 15px; max-width: 600px; box-sizing: border-box;">
+        <div style="background: var(--nav-color); border: 2px solid var(--border); padding: 15px; max-width: 650px; box-sizing: border-box; margin-bottom: 20px;">
             <h3 style="margin-top: 0; font-size: 1.1rem;">Smart Converter</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="number" step="any" id="conv-amount" oninput="calculateConversion()" placeholder="Qty" style="flex: 1; margin: 0; min-width: 60px;">
@@ -894,16 +899,60 @@ async function viewRecipe(id) {
             <div id="conv-result" style="margin-top: 10px; font-weight: bold; font-size: 1.2rem; min-height: 25px; color: #333;"></div>
         </div>
 
-        ${ingredientsHTML}
-        
-        <h2 style="margin-top: 20px;">Instructions</h2>
-        <div style="font-size: 1.1rem; line-height: 1.6; background: #fff; padding: 20px; border: 2px solid var(--border); max-width: 600px; white-space: pre-wrap;">${data.recipe}</div>
+        <div class="farmhouse-scroll">
+            <h2>Ingredients</h2>
+            ${ingredientsHTML}
+            
+            <h2 style="margin-top: 30px;">Instructions</h2>
+            <div style="white-space: pre-wrap;">${data.recipe}</div>
+        </div>
         
         <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ccc;">
             <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.8rem;">⚠️ Report Recipe</button>
         </div>
     `;
     updateConverter();
+}
+
+const convFamilies = { weight: ['g', 'kg', 'oz', 'lb'], volume: ['ml', 'l', 'tsp', 'tbsp', 'cup', 'fl oz'], temp: ['c', 'f'] };
+const convRates = { 'g': 1, 'kg': 1000, 'oz': 28.3495, 'lb': 453.592, 'ml': 1, 'l': 1000, 'tsp': 4.9289, 'tbsp': 14.7868, 'cup': 250, 'fl oz': 29.5735 };
+
+function updateConverter() {
+    const fromUnit = document.getElementById('conv-from').value;
+    const toSelect = document.getElementById('conv-to');
+    toSelect.innerHTML = '';
+    let family = [];
+    if (convFamilies.weight.includes(fromUnit)) family = convFamilies.weight;
+    else if (convFamilies.volume.includes(fromUnit)) family = convFamilies.volume;
+    else if (convFamilies.temp.includes(fromUnit)) family = convFamilies.temp;
+
+    family.forEach(unit => {
+        if (unit !== fromUnit) {
+            let opt = document.createElement('option');
+            opt.value = unit;
+            opt.innerHTML = unit;
+            toSelect.appendChild(opt);
+        }
+    });
+    calculateConversion();
+}
+
+function calculateConversion() {
+    const amt = parseFloat(document.getElementById('conv-amount').value);
+    const from = document.getElementById('conv-from').value;
+    const to = document.getElementById('conv-to').value;
+    const resDiv = document.getElementById('conv-result');
+
+    if (isNaN(amt) || !from || !to) { resDiv.innerHTML = ''; return; }
+    let result = 0;
+    if (convFamilies.temp.includes(from)) {
+        if (from === 'c' && to === 'f') result = (amt * 9/5) + 32;
+        if (from === 'f' && to === 'c') result = (amt - 32) * 5/9;
+    } else {
+        const baseAmt = amt * convRates[from];
+        result = baseAmt / convRates[to];
+    }
+    resDiv.innerHTML = `Result: ${+(Math.round(result + "e+2")  + "e-2")} ${to}`;
 }
 
 function addRecipeMenu() { renderCategoryList('add'); }
