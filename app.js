@@ -169,12 +169,25 @@ async function fetchStats() {
     const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
     if (vData) { totalVisitors = vData.visitor_count; }
 
-    const { data: tData } = await myDatabase.from('site_config').select('team_photo_url').eq('id', 1).single();
-    if (tData && tData.team_photo_url) {
-        teamPhotoUrl = tData.team_photo_url;
-        localStorage.setItem('cached_team_photo', teamPhotoUrl); 
-        const homePhoto = document.getElementById('home-team-photo');
-        if (homePhoto && homePhoto.src !== teamPhotoUrl) { homePhoto.src = teamPhotoUrl; }
+    // Fetch BOTH the team photo and the background URL from site_config
+    const { data: configData } = await myDatabase.from('site_config').select('team_photo_url, main_background_url').eq('id', 1).single();
+    
+    if (configData) {
+        if (configData.team_photo_url) {
+            teamPhotoUrl = configData.team_photo_url;
+            localStorage.setItem('cached_team_photo', teamPhotoUrl); 
+            const homePhoto = document.getElementById('home-team-photo');
+            if (homePhoto && homePhoto.src !== teamPhotoUrl) { homePhoto.src = teamPhotoUrl; }
+        }
+        
+        // THE NEW BACKGROUND INJECTION ENGINE
+        if (configData.main_background_url) {
+            document.body.style.backgroundImage = `url('${configData.main_background_url}')`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center center';
+            document.body.style.backgroundAttachment = 'fixed';
+            document.body.style.backgroundRepeat = 'no-repeat';
+        }
     }
 
     const navCounter = document.getElementById('nav-counter');
