@@ -162,11 +162,19 @@ async function handleVisitorSession() {
 }
 
 async function fetchStats() {
-    const { count, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true });
-    if (!recipeError && count !== null) { totalApprovedRecipes = count; }
+    const { count: liveCount, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+    if (!recipeError && liveCount !== null) { totalApprovedRecipes = liveCount; }
 
     const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
     if (vData) { totalVisitors = vData.visitor_count; }
+
+    let totalShared = 0;
+    let totalLikes = 0;
+    const { data: interactionStats } = await myDatabase.rpc('get_kitchen_stats');
+    if (interactionStats) {
+        totalShared = interactionStats.total_shared;
+        totalLikes = interactionStats.total_likes;
+    }
 
     const { data: configData } = await myDatabase.from('site_config').select('team_photo_url, main_background_url').eq('id', 1).single();
     
@@ -189,7 +197,12 @@ async function fetchStats() {
 
     const navCounter = document.getElementById('nav-counter');
     if (navCounter) {
-        navCounter.innerHTML = `🌍 ${totalApprovedRecipes} Recipes Live<br><span style="font-size: 0.9em; color: #008080; display: inline-block; margin-top: 5px;">👀 ${totalVisitors.toLocaleString()} Total Visits</span>`;
+        navCounter.innerHTML = `
+            <div style="margin-bottom: 8px;">🌍 <strong>${totalApprovedRecipes}</strong> Live Recipes</div>
+            <div style="margin-bottom: 8px;">📤 <strong>${totalShared}</strong> Total Shared</div>
+            <div style="margin-bottom: 8px; color: #d00;">❤️ <strong>${totalLikes}</strong> Total Likes</div>
+            <div style="color: #008080;">👀 <strong>${totalVisitors.toLocaleString()}</strong> Total Visits</div>
+        `;
     }
 
     const homeCounter = document.getElementById('home-visitor-counter');
@@ -203,7 +216,6 @@ function confirmCountry() {
     if (!s) return alert("Select a country!");
     selectedCountry = s;
     
-    // Save to local storage so they don't have to see this again
     localStorage.setItem('saved_country', s);
     
     document.getElementById('country-modal').style.display = 'none';
@@ -226,11 +238,9 @@ window.onload = function() {
     updateHack(); 
     handleVisitorSession();
 
-    // Check if the user has been here before
     const savedCountry = localStorage.getItem('saved_country');
 
     if (savedCountry) {
-        // They have visited! Skip the modal completely.
         selectedCountry = savedCountry;
         const modal = document.getElementById('country-modal');
         if (modal) modal.style.display = 'none';
@@ -244,7 +254,6 @@ window.onload = function() {
             showPage('home');
         }
     } else {
-        // First time visitor: Show the modal
         const modal = document.getElementById('country-modal');
         if (modal) modal.style.display = 'flex';
     }
@@ -268,7 +277,7 @@ async function executeSearch() {
 
     let html = `
         <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="renderCategoryList('find')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to Categories</button>
+            <button onclick="renderCategoryList('find')" style="margin:0;">← Back to Categories</button>
             <h1 style="margin: 0;">Search Results</h1>
         </div>
     `;
@@ -447,7 +456,7 @@ function renderCategoryList(context) {
 
     let html = `
         <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box;">
-            <button onclick="${context === 'find' ? "showPage('find-recipes')" : "showPage('creator-hub')"}" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to Hub</button>
+            <button onclick="${context === 'find' ? "showPage('find-recipes')" : "showPage('creator-hub')"}" style="margin-bottom: 20px;">← Back to Hub</button>
             <h1 style="margin-top: 0; margin-bottom: 5px;">${title}</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 10px;">${subtitle}</p>
         </div>
@@ -457,7 +466,6 @@ function renderCategoryList(context) {
         html += `
         <div class="window-box" style="display: flex; gap: 10px; max-width: 900px; width: 100%; box-sizing: border-box; margin-bottom: 20px;">
             <input type="text" id="search-input" placeholder="Search recipes by name or ingredient..." style="margin-bottom: 0; flex: 1;">
-            
             <button onclick="executeSearch()" style="margin: 0;">🔍 Search</button>
         </div>
         `;
@@ -487,7 +495,7 @@ function renderSubcategoryList(mainCategory, context) {
     
     let html = `
         <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box;">
-            <button onclick="renderCategoryList('${context}')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to All Categories</button>
+            <button onclick="renderCategoryList('${context}')" style="margin-bottom: 20px;">← Back to All Categories</button>
             <h1 style="margin-top: 0; margin-bottom: 5px;">${mainCategory}</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Select a specific subcategory.</p>
         </div>
@@ -589,7 +597,7 @@ async function loadSpecials() {
 
     let html = `
         <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="showPage('find-recipes')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to Hub</button>
+            <button onclick="showPage('find-recipes')" style="margin:0;">← Back to Hub</button>
             <h1 style="margin: 0;">Local Specials in ${selectedCountry}</h1>
         </div>
     `;
@@ -694,12 +702,11 @@ async function loadBudgetMeals(filter = 'all') {
 
     let html = `
         <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="showPage('find-recipes')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to Hub</button>
+            <button onclick="showPage('find-recipes')" style="margin:0;">← Back to Hub</button>
             <h1 style="margin: 0;">Budget Meals in ${selectedCountry}</h1>
         </div>
     `;
     
-    // THE FIX: Active budget filter buttons now light up in Wifey's Pastel Pink
     html += `
         <div class="window-box" style="margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
             <button onclick="loadBudgetMeals('all')" style="${filter === 'all' ? 'background: var(--nav-color); border-color: var(--border);' : 'margin-right: 10px;'}">All</button>
@@ -802,9 +809,9 @@ async function viewBudgetMeal(id) {
     view.innerHTML = `
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
             <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                <button onclick="showPage('find-budget-meals')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back</button>
+                <button onclick="showPage('find-budget-meals')" style="margin:0;">← Back</button>
                 <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
-                <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff; border:2px solid var(--border);">🔗 Copy Link</button>
+                <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
                 <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
             </div>
             
@@ -839,7 +846,7 @@ async function loadSubcategory(subcategory, parentCategory) {
 
     let html = `
         <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCategory}</button>
+            <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin:0;">← Back to ${parentCategory}</button>
             <h1 style="margin: 0;">${subcategory}</h1>
         </div>
     `;
@@ -889,9 +896,9 @@ async function viewRecipe(id) {
     view.innerHTML = `
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
             <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin:0; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${data.category}</button>
+                <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin:0;">← Back to ${data.category}</button>
                 <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
-                <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff; border:2px solid var(--border);">🔗 Copy Link</button>
+                <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
                 <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
             </div>
 
@@ -986,7 +993,7 @@ function showForm(subcategory, parentCategory) {
     
     view.innerHTML = `
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCategory}</button>
+            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 20px;">← Back to ${parentCategory}</button>
             <h1 style="margin-top: 0;">Adding to: ${subcategory}</h1>
             <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 10px;">
             <input type="text" id="author-name" placeholder="Your Name (Optional)" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 15px;">
