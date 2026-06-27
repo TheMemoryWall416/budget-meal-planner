@@ -88,11 +88,19 @@
 
     <div id="view-settings" style="display: none;">
         <h2>Site Settings</h2>
+        
         <div class="card" style="flex-direction: column; align-items: flex-start;">
             <h3 style="margin-top: 0;">📸 Update Team Photo</h3>
             <p style="font-size: 0.9rem; color: #555;">Choose a file to replace the picture on the home page's "Meet the Team" section.</p>
             <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 10px; display: block;">
             <button class="btn-success" onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
+        </div>
+
+        <div class="card" style="flex-direction: column; align-items: flex-start; margin-top: 15px;">
+            <h3 style="margin-top: 0;">🖼️ Update Website Background</h3>
+            <p style="font-size: 0.9rem; color: #555;">Upload the custom sanctuary background image. It will remain fixed behind the content windows.</p>
+            <input type="file" id="bg-photo-upload" accept="image/*" style="margin-bottom: 10px; display: block;">
+            <button class="btn-success" onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
         </div>
     </div>
 
@@ -492,13 +500,44 @@
         const name = `team-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
         
         const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
-        if (err1) { btn.innerText = "Upload"; btn.disabled = false; return alert("Failed: " + err1.message); }
+        if (err1) { btn.innerText = "Upload & Save Image"; btn.disabled = false; return alert("Failed: " + err1.message); }
 
         const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
         const { error: err2 } = await myDatabase.from('site_config').update({ team_photo_url: url }).eq('id', 1);
         
-        btn.innerText = "Upload"; btn.disabled = false;
+        btn.innerText = "Upload & Save Image"; btn.disabled = false;
         if (err2) alert("Failed: " + err2.message); else alert("Updated! Refresh main site.");
+    }
+
+    async function uploadBackgroundPhoto(event) {
+        const file = document.getElementById('bg-photo-upload').files[0];
+        if (!file) return alert("Select an image.");
+        
+        const btn = event.target; 
+        btn.innerText = "Uploading..."; 
+        btn.disabled = true;
+        
+        const name = `bg-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+        
+        // 1. Send file to the 'website_assets' storage bucket
+        const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
+        if (err1) { 
+            btn.innerText = "Upload & Save Background"; 
+            btn.disabled = false; 
+            return alert("Upload Failed: " + err1.message); 
+        }
+
+        // 2. Get the public URL
+        const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
+        
+        // 3. Save the URL to your site_config table
+        const { error: err2 } = await myDatabase.from('site_config').update({ main_background_url: url }).eq('id', 1);
+        
+        btn.innerText = "Upload & Save Background"; 
+        btn.disabled = false;
+        
+        if (err2) alert("Database Update Failed: " + err2.message); 
+        else alert("Background Updated! Refresh the main site to see the changes.");
     }
 </script>
 </body>
