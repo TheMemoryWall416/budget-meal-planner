@@ -8,146 +8,7 @@ let selectedParentCategory = "";
 let totalApprovedRecipes = 0; 
 let totalVisitors = 10000;
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
-
-const currencyMap = { "Afghanistan": "؋", "Albania": "L", "Algeria": "دج", "Andorra": "€", "Angola": "Kz", "Antigua and Barbuda": "$", "Argentina": "$", "Armenia": "֏", "Australia": "A$", "Austria": "€", "Azerbaijan": "₼", "Bahamas": "$", "Bahrain": "BD", "Bangladesh": "৳", "Barbados": "$", "Belarus": "Br", "Belgium": "€", "Belize": "$", "Benin": "CFA", "Bhutan": "Nu", "Bolivia": "Bs", "Bosnia and Herzegovina": "KM", "Botswana": "P", "Brazil": "R$", "Brunei": "$", "Bulgaria": "лв", "Burkina Faso": "CFA", "Burundi": "FBu", "Cabo Verde": "Esc", "Cambodia": "៛", "Cameroon": "CFA", "Canada": "CA$", "Central African Republic": "CFA", "Chad": "CFA", "Chile": "$", "China": "¥", "Colombia": "$", "Comoros": "CF", "Congo": "CFA", "Costa Rica": "₡", "Croatia": "€", "Cuba": "$", "Cyprus": "€", "Czech Republic": "Kč", "Denmark": "kr", "Djibouti": "Fdj", "Dominica": "$", "Dominican Republic": "$", "Ecuador": "$", "Egypt": "£", "El Salvador": "$", "Equatorial Guinea": "CFA", "Eritrea": "Nfa", "Estonia": "€", "Eswatini": "E", "Ethiopia": "Br", "Fiji": "$", "Finland": "€", "France": "€", "Gabon": "CFA", "Gambia": "D", "Georgia": "₾", "Germany": "€", "Ghana": "₵", "Greece": "€", "Grenada": "$", "Guatemala": "Q", "Guinea": "FG", "Guinea-Bissau": "CFA", "Guyana": "$", "Haiti": "G", "Honduras": "L", "Hungary": "Ft", "Iceland": "kr", "India": "₹", "Indonesia": "Rp", "Iran": "﷼", "Iraq": "ع.د", "Ireland": "€", "Israel": "₪", "Italy": "€", "Jamaica": "$", "Japan": "¥", "Jordan": "JD", "Kazakhstan": "₸", "Kenya": "KSh", "Kiribati": "$", "Kuwait": "KD", "Kyrgyzstan": "som", "Laos": "₭", "Latvia": "€", "Lebanon": "£", "Lesotho": "L", "Liberia": "$", "Libya": "LD", "Liechtenstein": "CHF", "Lithuania": "€", "Luxembourg": "€", "Madagascar": "Ar", "Malawi": "MK", "Malaysia": "RM", "Maldives": "Rf", "Mali": "CFA", "Malta": "€", "Marshall Islands": "$", "Mauritania": "UM", "Mauritius": "₨", "Mexico": "$", "Micronesia": "$", "Moldova": "L", "Monaco": "€", "Mongolia": "₮", "Montenegro": "€", "Morocco": "DH", "Mozambique": "MT", "Myanmar": "Ks", "Namibia": "N$", "Nauru": "$", "Nepal": "₨", "Netherlands": "€", "New Zealand": "NZ$", "Nicaragua": "C$", "Niger": "CFA", "Nigeria": "₦", "North Macedonia": "ден", "Norway": "kr", "Oman": "ر.ع.", "Pakistan": "₨", "Palau": "$", "Palestine": "₪", "Panama": "B/.", "Papua New Guinea": "K", "Paraguay": "₲", "Peru": "S/", "Philippines": "₱", "Poland": "zł", "Portugal": "€", "Qatar": "QR", "Romania": "lei", "Russia": "₽", "Rwanda": "FRw", "Saint Kitts and Nevis": "$", "Saint Lucia": "$", "Saint Vincent and the Grenadines": "$", "Samoa": "WS$", "San Marino": "€", "Sao Tome and Principe": "Db", "Saudi Arabia": "﷼", "Senegal": "CFA", "Serbia": "дин", "Seychelles": "₨", "Sierra Leone": "Le", "Singapore": "S$", "Slovakia": "€", "Slovenia": "€", "Solomon Islands": "$", "Somalia": "Sh", "South Africa": "R", "South Sudan": "£", "Spain": "€", "Sri Lanka": "₨", "Sudan": "£", "Suriname": "$", "Sweden": "kr", "Switzerland": "CHF", "Syria": "£", "Taiwan": "NT$", "Tajikistan": "SM", "Tanzania": "TSh", "Thailand": "฿", "Timor-Leste": "$", "Togo": "CFA", "Tonga": "T$", "Trinidad and Tobago": "TT$", "Tunisia": "DT", "Turkey": "₺", "Turkmenistan": "m", "Tuvalu": "$", "Uganda": "USh", "Ukraine": "₴", "United Arab Emirates": "AED", "UK": "£", "USA": "$", "Uruguay": "$", "Uzbekistan": "so'm", "Vanuatu": "VT", "Vatican City": "€", "Venezuela": "Bs", "Vietnam": "₫", "Yemen": "﷼", "Zambia": "ZK", "Zimbabwe": "Z$" };
-const countries = Object.keys(currencyMap).sort();
-
-const categories = {
-    "Breakfast": ["Hot breakfasts", "Cold breakfasts", "Cereals & oats", "Breakfast sandwiches", "Pancakes, waffles & French toast"],
-    "Lunch": ["Light meals", "Sandwiches & wraps", "Salads", "Soups"],
-    "Main Meals": ["Beef dishes", "Chicken dishes", "Pork dishes", "Lamb dishes", "Seafood dishes", "Vegetarian meals", "Pasta dishes", "Rice dishes", "Casseroles & bakes", "Curries", "Stews"],
-    "Side Dishes": ["Vegetables", "Potatoes", "Rice sides", "Pasta sides", "Bread sides", "Salads"],
-    "Snacks & Finger Foods": ["Chips & crisps", "Dips", "Finger foods", "Party snacks", "Savoury snacks"],
-    "Fast Food & Takeaway Style": ["Burgers", "Pizza", "Hot dogs", "Wraps", "Fried foods"],
-    "Bread & Baking": ["Breads", "Rolls & buns", "Scones", "Muffins", "Savoury baked goods"],
-    "Desserts": ["Cakes", "Pies & tarts", "Puddings", "Custards", "Ice cream & frozen desserts", "Sweet pastries"],
-    "Biscuits, Cookies & Sweets": ["Cookies", "Biscuits", "Fudge", "Candy", "Chocolate treats"],
-    "Drinks": ["Hot drinks", "Cold drinks", "Smoothies", "Milkshakes", "Cocktails", "Mocktails"],
-    "Sauces, Condiments & Spreads": ["Sauces", "Gravies", "Marinades", "Dressings", "Jams & preserves"],
-    "Preserves & Fermented Foods": ["Pickles", "Chutneys", "Relishes", "Fermented foods"],
-    "Special Occasion Foods": ["Braai recipes", "Christmas recipes", "Birthday recipes", "Easter recipes", "Party foods"],
-    "Cuisine Types": ["South African", "Italian", "Mexican", "Indian", "Chinese", "American", "Greek", "French", "Middle Eastern", "Thai"],
-    "Dietary Categories": ["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Low-carb", "Keto", "High-protein"],
-    "Specialized Plans": ["7-Day Meal Plans"],
-    "Pet Food & Treats": ["Dogs", "Cats", "Birds", "Small Pets", "Other Pets"]
-};
-
-const categoryMeta = {
-    "Breakfast": { icon: "🍳", desc: "Start your morning right with hot meals, oats, and bakes." },
-    "Lunch": { icon: "🥪", desc: "Midday fuel from quick sandwiches to light salads and soups." },
-    "Main Meals": { icon: "🍲", desc: "Hearty dinners including stews, curries, and roasted dishes." },
-    "Side Dishes": { icon: "🥗", desc: "The perfect companions: rice, potatoes, veggies, and more." },
-    "Snacks & Finger Foods": { icon: "🥨", desc: "Bite-sized treats, party snacks, and savory dips." },
-    "Fast Food & Takeaway Style": { icon: "🍔", desc: "Recreate your favorite takeout meals right at home." },
-    "Bread & Baking": { icon: "🥖", desc: "Fresh from the oven: loaves, rolls, scones, and muffins." },
-    "Desserts": { icon: "🍰", desc: "Sweet endings: cakes, puddings, pies, and ice cream." },
-    "Biscuits, Cookies & Sweets": { icon: "🍪", desc: "Baked treats, fudge, candies, and chocolate delights." },
-    "Drinks": { icon: "🥤", desc: "Refreshing smoothies, hot beverages, and fun mocktails." },
-    "Sauces, Condiments & Spreads": { icon: "🍯", desc: "Elevate your meals with homemade marinades and gravies." },
-    "Preserves & Fermented Foods": { icon: "🥒", desc: "Pickles, chutneys, and relishes to store and enjoy." },
-    "Special Occasion Foods": { icon: "🎉", desc: "Festive dishes for holidays, birthdays, and braais." },
-    "Cuisine Types": { icon: "🌍", desc: "Explore authentic global flavors from around the world." },
-    "Dietary Categories": { icon: "🌱", desc: "Specialized meals: Vegan, Keto, Gluten-free, and more." },
-    "Specialized Plans": { icon: "📅", desc: "Full 7-day meal plans to keep you on budget." },
-    "Pet Food & Treats": { icon: "🐾", desc: "Homemade, cost-effective nutrition for our furry friends." }
-};
-
-const subcategoryMeta = {
-    "Hot breakfasts": { icon: "🍳", desc: "Warm and hearty morning meals." },
-    "Cold breakfasts": { icon: "🥣", desc: "Quick, refreshing, and no-cook morning fuel." },
-    "Cereals & oats": { icon: "🌾", desc: "Oatmeal, muesli, and crunchy cereals." },
-    "Breakfast sandwiches": { icon: "🥪", desc: "Eggs, bacon, and cheese stacked to go." },
-    "Pancakes, waffles & French toast": { icon: "🥞", desc: "Sweet, fluffy weekend favorites." },
-    "Light meals": { icon: "🥗", desc: "Healthy, easy portions for the midday slump." },
-    "Sandwiches & wraps": { icon: "🌯", desc: "Portable and packed with flavor." },
-    "Salads": { icon: "🥬", desc: "Fresh, crisp, and nutrient-dense greens." },
-    "Soups": { icon: "🥣", desc: "Comforting bowls for a chilly afternoon." },
-    "Beef dishes": { icon: "🥩", desc: "Hearty roasts, steaks, and mince meals." },
-    "Chicken dishes": { icon: "🍗", desc: "Versatile, affordable poultry dinners." },
-    "Pork dishes": { icon: "🥓", desc: "Chops, ribs, and slow-cooked pulled pork." },
-    "Lamb dishes": { icon: "🍖", desc: "Rich and tender lamb roasts and stews." },
-    "Seafood dishes": { icon: "🐟", desc: "Fresh fish, prawns, and savory bakes." },
-    "Vegetarian meals": { icon: "🍆", desc: "Meat-free mains that pack a punch." },
-    "Pasta dishes": { icon: "🍝", desc: "Classic Italian-style noodles and sauces." },
-    "Rice dishes": { icon: "🍚", desc: "Fried rice, risottos, and savory grains." },
-    "Casseroles & bakes": { icon: "🥘", desc: "One-pan wonders baked to perfection." },
-    "Curries": { icon: "🍛", desc: "Spicy, warming, and deeply flavorful." },
-    "Stews": { icon: "🍲", desc: "Slow-cooked, melt-in-your-mouth comfort." },
-    "Vegetables": { icon: "🥦", desc: "Roasted, steamed, or sautéed veggies." },
-    "Potatoes": { icon: "🥔", desc: "Mash, roasties, and creamy potato bakes." },
-    "Rice sides": { icon: "🍙", desc: "Simple grains to soak up the sauce." },
-    "Pasta sides": { icon: "🧀", desc: "Mac and cheese and cold pasta salads." },
-    "Bread sides": { icon: "🥖", desc: "Garlic bread, rolls, and flatbreads." },
-    "Chips & crisps": { icon: "🍟", desc: "Crunchy, salty, and perfect for dipping." },
-    "Dips": { icon: "🥣", desc: "Hummus, guacamole, and cheesy spreads." },
-    "Finger foods": { icon: "🍢", desc: "Easy to eat with one hand." },
-    "Party snacks": { icon: "🎉", desc: "Crowd-pleasers for your next gathering." },
-    "Savoury snacks": { icon: "🧀", desc: "Cheese bites, nuts, and salty treats." },
-    "Burgers": { icon: "🍔", desc: "Juicy patties with all the trimmings." },
-    "Pizza": { icon: "🍕", desc: "Homemade dough and endless toppings." },
-    "Hot dogs": { icon: "🌭", desc: "Classic franks, buns, and mustard." },
-    "Wraps": { icon: "🌯", desc: "Folded flatbreads stuffed with goodness." },
-    "Fried foods": { icon: "🍤", desc: "Crispy, golden, deep-fried indulgence." },
-    "Breads": { icon: "🍞", desc: "Classic loaves, sourdough, and rye." },
-    "Rolls & buns": { icon: "🥐", desc: "Soft, buttery, and perfect for sliders." },
-    "Scones": { icon: "🧁", desc: "Tea-time classics with jam and cream." },
-    "Muffins": { icon: "🫐", desc: "Sweet and savory on-the-go bakes." },
-    "Savoury baked goods": { icon: "🥧", desc: "Meat pies, sausage rolls, and quiches." },
-    "Cakes": { icon: "🎂", desc: "Sponges, layered treats, and cupcakes." },
-    "Pies & tarts": { icon: "🥧", desc: "Fruity, creamy, with a buttery crust." },
-    "Puddings": { icon: "🍮", desc: "Warm, gooey, and comforting desserts." },
-    "Custards": { icon: "🥄", desc: "Smooth, vanilla-rich sweet sauces." },
-    "Ice cream & frozen desserts": { icon: "🍦", desc: "Cool treats for a hot day." },
-    "Sweet pastries": { icon: "🥐", desc: "Flaky, sugar-dusted baker delights." },
-    "Cookies": { icon: "🍪", desc: "Chocolate chip, oatmeal, and chewy bites." },
-    "Biscuits": { icon: "☕", desc: "Crunchy dunkers for your tea or coffee." },
-    "Fudge": { icon: "🍬", desc: "Rich, dense, and melt-in-your-mouth." },
-    "Candy": { icon: "🍭", desc: "Homemade sweets and sugar crafts." },
-    "Chocolate treats": { icon: "🍫", desc: "Truffles, brownies, and cocoa heaven." },
-    "Hot drinks": { icon: "☕", desc: "Coffee, tea, and rich hot chocolate." },
-    "Cold drinks": { icon: "🥤", desc: "Iced teas, lemonades, and coolers." },
-    "Smoothies": { icon: "🍹", desc: "Blended fruits and healthy greens." },
-    "Milkshakes": { icon: "🥛", desc: "Thick, creamy, and ice-cream based." },
-    "Cocktails": { icon: "🍸", desc: "Adult beverages mixed to perfection." },
-    "Mocktails": { icon: "🍹", desc: "Alcohol-free fun with all the flavor." },
-    "Sauces": { icon: "🍅", desc: "Pasta sauces, dipping sauces, and more." },
-    "Gravies": { icon: "🥣", desc: "Rich meat and veggie drippings." },
-    "Marinades": { icon: "🥩", desc: "Flavor baths for tenderizing meats." },
-    "Dressings": { icon: "🥗", desc: "Vinaigrettes and creamy salad toppers." },
-    "Jams & preserves": { icon: "🍓", desc: "Boiled fruits set for toast and baking." },
-    "Pickles": { icon: "🥒", desc: "Crunchy veggies brined in vinegar." },
-    "Chutneys": { icon: "🥭", desc: "Sweet and spicy Indian-style relishes." },
-    "Relishes": { icon: "🧅", desc: "Tangy condiments for burgers and hotdogs." },
-    "Fermented foods": { icon: "🥬", desc: "Kimchi, kraut, and gut-friendly eats." },
-    "Braai recipes": { icon: "🔥", desc: "South African barbecue classics." },
-    "Christmas recipes": { icon: "🎄", desc: "Festive roasts, bakes, and treats." },
-    "Birthday recipes": { icon: "🎁", desc: "Party food and celebration cakes." },
-    "Easter recipes": { icon: "🐰", desc: "Hot cross buns and pickled fish." },
-    "Party foods": { icon: "🎈", desc: "Platters and snacks for a big crowd." },
-    "South African": { icon: "🇿🇦", desc: "Bobotie, potjiekos, and local favorites." },
-    "Italian": { icon: "🇮🇹", desc: "Pasta, pizza, and Mediterranean flair." },
-    "Mexican": { icon: "🇲🇽", desc: "Tacos, burritos, and spicy salsas." },
-    "Indian": { icon: "🇮🇳", desc: "Curries, naan, and aromatic spices." },
-    "Chinese": { icon: "🇨🇳", desc: "Stir-fries, dumplings, and noodles." },
-    "American": { icon: "🇺🇸", desc: "Burgers, BBQ, and diner classics." },
-    "Greek": { icon: "🇬🇷", desc: "Gyros, feta, and fresh olive oil dishes." },
-    "French": { icon: "🇫🇷", desc: "Rich butter, pastries, and rustic stews." },
-    "Middle Eastern": { icon: "🥙", desc: "Falafel, hummus, and spiced meats." },
-    "Thai": { icon: "🇹🇭", desc: "Sweet, sour, spicy, and fragrant bowls." },
-    "Vegetarian": { icon: "🥑", desc: "Plant-based goodness with dairy/eggs." },
-    "Vegan": { icon: "🌱", desc: "100% animal-product-free meals." },
-    "Gluten-free": { icon: "🚫", desc: "Wheat-free bakes and dinners." },
-    "Dairy-free": { icon: "🥥", desc: "No milk, cheese, or butter used." },
-    "Low-carb": { icon: "🥓", desc: "Minimal sugars and starches." },
-    "Keto": { icon: "🥩", desc: "High fat, moderate protein, very low carb." },
-    "High-protein": { icon: "💪", desc: "Muscle-building, filling portions." },
-    "7-Day Meal Plans": { icon: "📅", desc: "Full 7-day meal plans to keep you on budget." },
-    "Dogs": { icon: "🐶", desc: "Meals, biscuits, and healthy treats for dogs." },
-    "Cats": { icon: "🐱", desc: "Feline favorites, from wet food to crunchy snacks." },
-    "Birds": { icon: "🦜", desc: "Seed mixes and fresh fruit treats for pet birds." },
-    "Small Pets": { icon: "🐹", desc: "Nibbles for rabbits, hamsters, and guinea pigs." },
-    "Other Pets": { icon: "🦎", desc: "Specialty food for reptiles, fish, and exotic pals." }
-};
+let dynamicBudgetTips = []; // Empty array, we will fill it from Supabase
 
 async function handleVisitorSession() {
     const now = Date.now();
@@ -230,13 +91,40 @@ function confirmCountry() {
     }
 }
 
+// ----------------------------------------------------
+// THE NEW SUPABASE TIP FETCHING ENGINE
+// ----------------------------------------------------
+async function fetchBudgetTips() {
+    const { data, error } = await myDatabase.from('budget_tips').select('tip_text');
+    if (!error && data && data.length > 0) {
+        // Load all the tips from the cloud into our array
+        dynamicBudgetTips = data.map(item => item.tip_text);
+        updateHack(); // Instantly show the first tip
+    } else {
+        document.getElementById("hack-text").innerText = "Add tips in your database to see them here!";
+    }
+}
+
+function updateHack() {
+    const element = document.getElementById("hack-text");
+    if (element && dynamicBudgetTips.length > 0) {
+        const randomIndex = Math.floor(Math.random() * dynamicBudgetTips.length);
+        element.innerText = dynamicBudgetTips[randomIndex];
+    }
+}
+// ----------------------------------------------------
+
 window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     if (s2) {
         countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     }
-    updateHack(); 
+    
     handleVisitorSession();
+    
+    // FETCH THE TIPS FROM SUPABASE ON LOAD
+    fetchBudgetTips(); 
+    setInterval(updateHack, 30000); // Rotate them every 30 seconds
 
     const savedCountry = localStorage.getItem('saved_country');
 
@@ -943,9 +831,6 @@ async function viewRecipe(id) {
     updateConverter();
 }
 
-const convFamilies = { weight: ['g', 'kg', 'oz', 'lb'], volume: ['ml', 'l', 'tsp', 'tbsp', 'cup', 'fl oz'], temp: ['c', 'f'] };
-const convRates = { 'g': 1, 'kg': 1000, 'oz': 28.3495, 'lb': 453.592, 'ml': 1, 'l': 1000, 'tsp': 4.9289, 'tbsp': 14.7868, 'cup': 250, 'fl oz': 29.5735 };
-
 function updateConverter() {
     const fromUnit = document.getElementById('conv-from').value;
     const toSelect = document.getElementById('conv-to');
@@ -993,7 +878,7 @@ function showForm(subcategory, parentCategory) {
     
     view.innerHTML = `
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 20px;">← Back to ${parentCategory}</button>
+            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 20px; background:var(--btn-grey); border:2px solid var(--border);">← Back to ${parentCategory}</button>
             <h1 style="margin-top: 0;">Adding to: ${subcategory}</h1>
             <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 10px;">
             <input type="text" id="author-name" placeholder="Your Name (Optional)" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 15px;">
@@ -1076,111 +961,3 @@ async function reportRecipe(title, id) {
     if (error) alert("Error sending report: " + error.message);
     else alert("Report submitted successfully. Thank you!");
 }
-
-const masterKitchenHacks = [
-    "Store onions and potatoes in completely separate cupboards; they make each other rot faster.",
-    "Wrap celery tightly in aluminum foil and keep it in the fridge to keep it crisp for weeks.",
-    "Store your natural peanut butter upside down so the oil doesn't pool at the top.",
-    "Treat fresh herbs like asparagus and coriander like flowers: trim the stems and put them in a glass of water in the fridge.",
-    "Wash your berries in a mix of 1 part vinegar to 3 parts water, rinse, and dry thoroughly. They will last twice as long without molding.",
-    "Never put tomatoes in the fridge! The cold kills their flavor and turns them mushy. Keep them on the counter.",
-    "Wrap the crown (the top stem part) of a bunch of bananas in cling wrap to slow down the ripening process.",
-    "Put a paper towel inside your bags of spinach or salad greens to absorb moisture and stop them from getting slimy.",
-    "Keep dairy at the back of the fridge where it's coldest, never in the door where the temperature fluctuates.",
-    "Got too much fresh ginger? Put it in a ziplock bag in the freezer. It actually grates much easier when frozen solid.",
-    "Store mushrooms in a brown paper bag, not plastic. Plastic traps moisture and makes them slimy.",
-    "Freeze leftover tomato paste in 1-tablespoon blobs on wax paper, then bag them. No more half-empty tins going moldy.",
-    "Revive wilted, sad-looking veggies (like carrots or celery) by soaking them in ice water for 30 minutes.",
-    "If your brown sugar turned into a literal brick, put a slice of soft bread in the container overnight. It will be soft by morning.",
-    "Store nuts and seeds in the freezer. Their natural oils make them go rancid quickly at room temperature.",
-    "Keep a bag of rice or a few dried beans in your salt shaker to absorb humidity and stop the salt from clumping.",
-    "Store blocks of cheese wrapped in baking paper or wax paper, not tightly sealed in plastic, so they can breathe.",
-    "Freeze bread in slices, not as a whole loaf. You can pop frozen slices straight into the toaster.",
-    "Keep avocados on the counter until they are perfectly ripe, then move them to the fridge to hit 'pause' on the ripening.",
-    "Store flour in an airtight container, not the paper bag it came in, to keep out moisture and pantry bugs.",
-    "Look up and look down. Supermarkets pay to put the most expensive, name-brand items right at your eye level.",
-    "Never, ever go grocery shopping when you are hungry. You will buy 40% more junk food on impulse.",
-    "Always check the 'Price per 100g' or 'Price per Kg' on the tag. It's the only real way to know which size is actually cheaper.",
-    "Buy blocks of cheese instead of pre-grated. Pre-grated cheese costs more and is coated in anti-caking powder that ruins sauces.",
-    "Skip the pre-cut fruits and veggies. You are paying a massive premium just for someone else to use a knife.",
-    "Buy spices in the 'international' or ethnic aisles of the supermarket; they are usually half the price of the baking aisle spices.",
-    "Whole chickens are drastically cheaper than buying pre-cut breasts or thighs. Learn to break one down yourself.",
-    "Always check the clearance bakery rack. Day-old bread is perfect for toast, croutons, and French toast.",
-    "Generic supermarket brands are often made in the exact same factories as the expensive name brands. Give them a try.",
-    "Plan your weekly meals based on what is currently on special, not what you randomly crave.",
-    "Don't buy bottled water. Buy a good reusable bottle and a filter if you don't like the taste of your tap water.",
-    "Dried beans and lentils are infinitely cheaper than canned ones. Soak them overnight and batch-cook them.",
-    "Buy rice, oats, and pasta in the biggest bulk bags you can comfortably store.",
-    "Shop the perimeter of the grocery store first. That's where the real, unprocessed food lives.",
-    "Always check your receipt before leaving the parking lot. Cash registers ring up sale items at full price surprisingly often.",
-    "Sign up for every free loyalty card available, but only use the points for essentials, not treats.",
-    "If meat is marked down on clearance because it's expiring today, buy it and throw it straight in the freezer when you get home.",
-    "Avoid buying anything near the checkout line. It is entirely designed to trigger impulse buys while you wait.",
-    "Meat is expensive. Pick one or two days a week to go completely vegetarian to stretch your budget.",
-    "Keep a running list of what is in your freezer. People waste hundreds of Rands buying things they already have buried at the back.",
-    "Keep a large ziplock bag in the freezer. Toss all your onion skins, carrot peels, and celery ends in it. Boil them later for free veggie stock.",
-    "Never throw away the leftover carcass or bones from a roast chicken. Boil it with water and garlic for an incredible, free chicken stock.",
-    "Don't throw away spring onion (scallion) roots! Put them in a glass with a little water on the windowsill and they will regrow in days.",
-    "Stale bread? Dice it up, toss it in olive oil and herbs, and bake until crispy for homemade soup croutons.",
-    "Don't throw away parmesan cheese rinds. Drop them into soups, stews, or bolognese sauces while they simmer for a massive flavor boost.",
-    "Save your bacon grease in a glass jar in the fridge. Use it instead of butter or oil to fry eggs or roast potatoes.",
-    "If you have fruit that is getting too soft to eat, chop it up and freeze it immediately. It's perfect for smoothies.",
-    "Leftover wine that's been open too long? Freeze it in ice cube trays to drop into stews and pasta sauces.",
-    "Before juicing a lemon, use a grater to take off the yellow zest. Freeze the zest in a small bag to add flavor to baking and sauces later.",
-    "Don't dump pickle juice when the pickles are gone. Use it to marinate chicken—it makes it incredibly tender and flavorful.",
-    "Leftover mashed potatoes? Mix in an egg and some flour, and fry them in a pan for amazing potato pancakes.",
-    "Broccoli stems are just as good as the florets. Peel the tough outer skin with a potato peeler and chop the soft inside for stir-fries.",
-    "Got a tiny bit of jam left in the jar? Pour in some olive oil and vinegar, put the lid on, and shake it for a quick, sweet salad dressing.",
-    "Roast your pumpkin or butternut seeds with a little salt and oil instead of throwing them in the bin.",
-    "Turn leftover cooked rice into fried rice the next day. Day-old, slightly dried-out rice actually fries much better than fresh rice.",
-    "Don't toss the leafy green tops of carrots! They make a fantastic, peppery pesto when blended with garlic and oil.",
-    "If your coffee goes cold, don't pour it down the sink. Freeze it into coffee ice cubes for iced coffee that doesn't get watered down.",
-    "Used coffee grounds are great for your garden. Sprinkle them around plants to add nitrogen to the soil and keep pests away.",
-    "Got herbs that are about to go bad? Chop them up, put them in an ice cube tray, fill with olive oil, and freeze.",
-    "Never pour pasta water down the drain! It's full of starch. Use a splash of it to thicken your pasta sauces.",
-    "Use a regular spoon to peel ginger. It scrapes the skin off easily and gets into all the weird bumps without wasting the ginger.",
-    "Grate freezing cold butter directly into your flour when making pastry or biscuits. It mixes easier and makes them super flaky.",
-    "To peel a whole bulb of garlic fast, smash it with the heel of your hand, put the cloves in a hard container with a lid, and shake vigorously.",
-    "Cut a dozen cherry tomatoes at once by sandwiching them between two plastic tub lids and running a long knife horizontally through the middle.",
-    "If you accidentally made a soup or stew too salty, drop in a peeled, raw potato and simmer for 15 minutes. It will absorb a lot of the salt.",
-    "To get the most juice out of a lemon or lime, roll it hard on the counter under your palm before cutting it.",
-    "Soak raw onions in a bowl of ice water for 10 minutes before adding them to salads. It keeps them crunchy but removes the harsh onion 'bite'.",
-    "Trying to cut meat into super thin strips for a stir-fry? Put it in the freezer for 20 minutes first so it firms up.",
-    "Always let cooked meat rest on a board for 5 to 10 minutes before cutting into it. If you cut it immediately, all the juices will run out.",
-    "Use a wire egg slicer to perfectly and quickly slice strawberries or button mushrooms.",
-    "Cook bacon on a sheet pan in the oven at 200°C instead of frying it. No flipping, no grease splatters, and it cooks perfectly flat.",
-    "Put a damp paper towel or kitchen cloth under your cutting board. It stops the board from dangerously slipping around while you chop.",
-    "Always toast your dry spices in a warm pan for 30 seconds before adding liquids. It wakes up the oils and doubles their flavor.",
-    "Shred cooked chicken breast in 10 seconds by throwing it in a bowl and using a hand mixer on low speed.",
-    "To easily remove the seed from an avocado, whack it gently with the blade of a heavy knife, twist, and pull.",
-    "If a recipe calls for buttermilk and you don't have it, add 1 tablespoon of lemon juice or vinegar to a cup of normal milk and wait 5 minutes.",
-    "Out of eggs for baking? You can often substitute one egg with 1/4 cup of unsweetened applesauce or half a mashed banana.",
-    "Make your own DIY self-raising flour: mix 1 cup of plain all-purpose flour with 1.5 teaspoons of baking powder and a pinch of salt.",
-    "Use plain yogurt as a cheaper, healthier, 1-to-1 substitute for sour cream on baked potatoes and in recipes.",
-    "Stretch expensive ground beef by mixing in an equal amount of finely chopped mushrooms or cooked brown lentils.",
-    "Always put a lid on your pot when boiling water or cooking stews. It traps the heat and uses up to 30% less electricity.",
-    "Boil water in your electric kettle first, then pour it into your pot on the stove. Kettles are far more energy-efficient.",
-    "Match the size of your pot to the size of the stove plate. Putting a small pot on a large burner wastes a massive amount of heat.",
-    "Turn off your electric stove or oven 5 to 10 minutes before your food is completely done. The residual heat will finish the cooking for free.",
-    "Never open the oven door just to 'check' on your baking. You lose about 20% of the heat every time you open it, costing you money to reheat.",
-    "If you are using the oven, try to cook multiple things at once. Roast veggies on the bottom rack while baking chicken on the top.",
-    "Keep your freezer as full as possible. A full freezer uses less energy to stay cold than an empty one. (If it's empty, fill it with bottles of water).",
-    "Thaw your frozen meat by leaving it in the fridge overnight instead of using the microwave. The frozen block actually helps cool the fridge!",
-    "Cut your root vegetables (like potatoes and carrots) into smaller, uniform pieces. They will cook significantly faster, saving gas/electricity.",
-    "Air dry your dishes instead of using the heated dry setting on your dishwasher.",
-    "Descale your kettle regularly with a mix of water and vinegar. A kettle with limescale buildup takes much longer to boil and wastes electricity.",
-    "Use a microwave for reheating or cooking small portions. It uses about 80% less energy than firing up a whole conventional oven.",
-    "Keep the coils at the back of your fridge clean and dust-free. If they get clogged, the motor has to work overtime, spiking your electric bill.",
-    "Invest in a slow cooker (Crockpot). They cook tough, cheap cuts of meat beautifully while using less electricity than a standard lightbulb.",
-    "Use cold water from the tap to wash your vegetables. There is no need to run the hot water heater just to rinse a tomato."
-];
-
-function updateHack() {
-    const element = document.getElementById("hack-text");
-    if (element) {
-        const randomIndex = Math.floor(Math.random() * masterKitchenHacks.length);
-        element.innerText = masterKitchenHacks[randomIndex];
-    }
-}
-updateHack();
-setInterval(updateHack, 30000);
