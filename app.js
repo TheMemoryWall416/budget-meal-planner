@@ -65,11 +65,6 @@ async function fetchStats() {
             <div style="color: #008080;">👀 <strong>${totalVisitors.toLocaleString()}</strong> Total Visits</div>
         `;
     }
-
-    const homeCounter = document.getElementById('home-visitor-counter');
-    if (homeCounter) {
-        homeCounter.innerHTML = `👀 ${totalVisitors.toLocaleString()} Total Visits to Website`;
-    }
 }
 
 function confirmCountry() {
@@ -255,10 +250,7 @@ function showPage(page) {
         view.innerHTML = `
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
                 <h1 style="margin-top:0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
-                <p style="margin: 0; font-size: 1.2rem; margin-bottom: 8px;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
-                <div id="home-visitor-counter" style="display: inline-block; background: #f0f0f0; border: 1px solid var(--border); padding: 5px 15px; font-weight: bold; color: #000; font-size: 1.1rem; box-shadow: 2px 2px 0px var(--border); margin-top: 10px;">
-                    👀 ${totalVisitors.toLocaleString()} Total Visits to Website
-                </div>
+                <p style="margin: 0; font-size: 1.2rem; margin-bottom: 0;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
             </div>
 
             <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
@@ -308,9 +300,7 @@ function showPage(page) {
                         <p style="line-height: 1.6;">Thank you so much for visiting our website. We truly hope it's been useful, exceeded your expectations, and maybe even helped you discover your next favourite meal.</p>
                         <p style="line-height: 1.6;">Our mission is simple: to build one of the friendliest, most useful, and completely free recipe communities on the internet — one recipe at a time.</p>
                         
-                        <div style="background: #fff; border-left: 4px solid var(--nav-color); padding: 15px; margin: 25px 0; font-style: italic; color: #555;">
-                            <p style="margin: 0; line-height: 1.6;">One last thing... if something breaks, don't worry — Anton was probably just "optimising" his code. Jenny will gently remind him that it was working perfectly before he started "improving" it.</p>
-                        </div>
+                        <p style="line-height: 1.6; font-style: italic;">One last thing... if something breaks, don't worry — Anton was probably just "optimising" his code. Jenny will gently remind him that it was working perfectly before he started "improving" it.</p>
                         
                         <p style="line-height: 1.6;">We look forward to seeing the recipes, ideas, and conversations that this community will create.</p>
                         <p style="line-height: 1.6; font-size: 1.2rem; margin-top: 20px;">Happy cooking,<br><strong>Anton & Jenny</strong></p>
