@@ -1,23 +1,62 @@
+/* ================================================================================
+   THE MASTER ARCHITECT'S MANUAL: app.js (v2.0 - MICRO & MACRO DETAILED)
+   --------------------------------------------------------------------------------
+   STUDY GUIDE LEGEND:
+   - PURPOSE: The business logic or user experience goal.
+   - LOGIC FLOW: Step-by-step mechanical execution.
+   - LIVE WIRE: High-risk zones (Database column names, HTML IDs, external APIs).
+   - [SYNTAX NOTE]: Line-by-line translation of what the JavaScript is physically doing.
+================================================================================ */
+
+/* ==========================================================
+   SECTION 1: INITIALIZATION & GLOBAL MEMORY
+   PURPOSE: Connects to the database and creates the short-term 
+            memory for the user's active session.
+========================================================== */
+
+// [SYNTAX NOTE]: 'const' means this variable can NEVER be changed while the app is running.
 const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
+
+// [SYNTAX NOTE]: This creates the 'myDatabase' object that we will use to talk to Supabase.
 const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+// --- GLOBAL VARIABLES (The App's short-term memory) ---
+// [SYNTAX NOTE]: 'let' means these variables can be updated/changed as the user clicks around.
 let selectedCountry = "";
 let selectedSubcategory = "";
 let selectedParentCategory = ""; 
 let totalApprovedRecipes = 0; 
 let totalVisitors = 10000;
+
+// [SYNTAX NOTE]: 'localStorage.getItem' checks the browser's hard drive for a saved photo.
+// The '||' means "OR". So if there is no saved photo, use the placeholder link instead.
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
 let dynamicBudgetTips = []; 
 
-// --- AUTHENTICATION & ADMIN STATE ---
+// --- STATE VARIABLES (Who is currently logged in?) ---
 let currentUser = null;
 let isLoginMode = false;
 let isAdmin = false;
 
+/* ==========================================================
+   SECTION 2: AUTHENTICATION & SECURITY (THE BOUNCER)
+========================================================== */
+
+/**
+ * FUNCTION: initAuth()
+ * PURPOSE: Runs on page load to see if a user is already logged in.
+ */
+// [SYNTAX NOTE]: 'async' tells the browser this function takes time (fetching from the internet).
 async function initAuth() {
+    // [SYNTAX NOTE]: 'await' tells the code to PAUSE and wait for the database to reply before moving to the next line.
+    // The '{ data: { session } }' is called "destructuring". It digs directly into the Supabase response to grab the session data.
     const { data: { session } } = await myDatabase.auth.getSession();
+    
+    // [SYNTAX NOTE]: This is a Ternary Operator (a 1-line if/then statement). 
+    // It says: "Is there a session? IF YES (?), set currentUser to session.user. IF NO (:), set it to null."
     currentUser = session ? session.user : null;
+    
     if (currentUser) {
         await checkAdminStatus(currentUser.email);
     } else {
@@ -25,37 +64,54 @@ async function initAuth() {
     }
 }
 
+/**
+ * FUNCTION: checkAdminStatus(email)
+ * PURPOSE: Cross-references the logged-in email against the VIP whitelist.
+ */
 async function checkAdminStatus(email) {
+    // [SYNTAX NOTE]: .eq() means "equals". .single() forces it to return exactly ONE row, not an array.
     const { data, error } = await myDatabase.from('admin_whitelist').select('*').eq('email', email).single();
+    
+    // [SYNTAX NOTE]: The '!!' is a JavaScript trick. It forces any data into a strict True or False boolean.
+    // If 'data' has content, isAdmin becomes True. If 'data' is empty, isAdmin becomes False.
     isAdmin = !!data; 
+    
     updateAuthUI();
 }
 
+/**
+ * FUNCTION: updateAuthUI()
+ * PURPOSE: The visual switchboard for the navigation bar. 
+ */
 async function updateAuthUI() {
+    // [SYNTAX NOTE]: document.getElementById searches your index.html file for the exact ID to manipulate it.
     const authBtn = document.getElementById('nav-auth-btn');
     const existingAdminBtn = document.getElementById('nav-admin-btn');
+    
+    // [SYNTAX NOTE]: .remove() deletes the HTML element completely from the page.
     if (existingAdminBtn) existingAdminBtn.remove();
 
     if (authBtn) {
-        // Strip out the custom pink background so it acts like a standard grey menu button
         authBtn.style.background = ''; 
 
         if (currentUser) {
+            // [SYNTAX NOTE]: .innerHTML changes the actual text/HTML inside the button.
             authBtn.innerHTML = '👤 My Profile';
+            // [SYNTAX NOTE]: '() =>' is an Arrow Function. It says "When clicked, run the showPage function".
             authBtn.onclick = () => showPage('profile');
             
-            // Check for unread messages for the badge
             await checkUnreadMessages();
 
-            // Inject the Command Center button if on the whitelist
             if (isAdmin) {
+                // [SYNTAX NOTE]: document.createElement actually generates a brand new <a> (link) tag out of thin air.
                 const adminBtn = document.createElement('a');
                 adminBtn.id = 'nav-admin-btn';
                 adminBtn.href = 'javascript:void(0)';
                 adminBtn.onclick = () => showPage('admin');
-                // Standard spacing, no custom colors, so it matches perfectly
                 adminBtn.style.cssText = 'margin-top: 8px;';
                 adminBtn.innerHTML = '⚙️ Command Center';
+                
+                // [SYNTAX NOTE]: insertBefore places our new admin button exactly next to the Auth button in the HTML.
                 authBtn.parentNode.insertBefore(adminBtn, authBtn.nextSibling);
             }
         } else {
@@ -67,6 +123,8 @@ async function updateAuthUI() {
 
 async function checkUnreadMessages() {
     if (!currentUser) return;
+    
+    // [SYNTAX NOTE]: { count: 'exact', head: true } tells Supabase to ONLY send back the number of rows, not the actual data. It's much faster.
     const { count, error } = await myDatabase.from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('recipient_email', currentUser.email)
@@ -74,19 +132,17 @@ async function checkUnreadMessages() {
     
     const authBtn = document.getElementById('nav-auth-btn');
     if (authBtn && count > 0) {
+        // [SYNTAX NOTE]: The backticks ` ` allow us to inject variables directly into a string using ${}.
         authBtn.innerHTML = `👤 My Profile (${count} New)`;
     }
 }
 
-function openAuthModal() {
-    document.getElementById('auth-modal').style.display = 'flex';
-}
-
-function closeAuthModal() {
-    document.getElementById('auth-modal').style.display = 'none';
-}
+// [SYNTAX NOTE]: .style.display = 'flex' makes a hidden CSS box visible. 'none' hides it.
+function openAuthModal() { document.getElementById('auth-modal').style.display = 'flex'; }
+function closeAuthModal() { document.getElementById('auth-modal').style.display = 'none'; }
 
 function toggleAuthMode() {
+    // [SYNTAX NOTE]: The '!' means NOT. So if isLoginMode is true, it flips to false. If false, it flips to true.
     isLoginMode = !isLoginMode;
     const title = document.getElementById('auth-modal-title');
     const desc = document.getElementById('auth-modal-desc');
@@ -109,7 +165,12 @@ function toggleAuthMode() {
     }
 }
 
+/**
+ * FUNCTION: handleAuthSubmit()
+ * PURPOSE: Connects the user's typed email/password to the Supabase security vault.
+ */
 async function handleAuthSubmit() {
+    // [SYNTAX NOTE]: .trim() cuts off any accidental spaces a user typed before or after their email.
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
     
@@ -118,6 +179,8 @@ async function handleAuthSubmit() {
 
     const btn = document.getElementById('auth-primary-btn');
     const originalText = btn.innerText;
+    
+    // [SYNTAX NOTE]: .disabled = true locks the button so the user can't click it 5 times while the internet is loading.
     btn.innerText = 'Processing...';
     btn.disabled = true;
 
@@ -137,6 +200,7 @@ async function handleAuthSubmit() {
     if (error) {
         alert("Error: " + error.message);
     } else {
+        // [SYNTAX NOTE]: The '?.' is Optional Chaining. It says "Check if data.user exists before checking data.session. If it doesn't, don't crash."
         if (!isLoginMode && data?.user && data?.session === null) {
             alert("Registration successful! Check your email to confirm your account.");
         } else {
@@ -162,20 +226,26 @@ async function handleForgotPassword() {
 }
 
 async function logoutUser() {
+    // [SYNTAX NOTE]: .signOut() tells Supabase to destroy the active security token.
     await myDatabase.auth.signOut();
     currentUser = null;
     isAdmin = false;
     updateAuthUI();
     showPage('home');
 }
-// --- END AUTH LOGIC ---
+
+/* ==========================================================
+   SECTION 3: BACKGROUND PROCESSES & SITE CONFIG
+========================================================== */
 
 async function handleVisitorSession() {
+    // [SYNTAX NOTE]: Date.now() gets the exact current time in milliseconds.
     const now = Date.now();
     const lastVisit = localStorage.getItem('last_visit_time');
     const cooldown = 30 * 60 * 1000; 
 
     if (!lastVisit || (now - parseInt(lastVisit)) > cooldown) {
+        // [SYNTAX NOTE]: .rpc() runs a custom Postgres SQL function stored directly in Supabase.
         await myDatabase.rpc('increment_visitor_count');
         localStorage.setItem('last_visit_time', now.toString());
     }
@@ -218,6 +288,7 @@ async function fetchStats() {
 
     const navCounter = document.getElementById('nav-counter');
     if (navCounter) {
+        // [SYNTAX NOTE]: .toLocaleString() takes a number like 10000 and formats it with commas: "10,000".
         navCounter.innerHTML = `
             <div style="margin-bottom: 8px;">🌍 <strong>${totalApprovedRecipes}</strong> Live Recipes</div>
             <div style="margin-bottom: 8px;">📤 <strong>${totalShared}</strong> Total Shared</div>
@@ -232,10 +303,12 @@ function confirmCountry() {
     if (!s) return alert("Select a country!");
     selectedCountry = s;
     
+    // [SYNTAX NOTE]: .setItem saves data to the user's hard drive so it remembers them tomorrow.
     localStorage.setItem('saved_country', s);
     
     document.getElementById('country-modal').style.display = 'none';
     
+    // [SYNTAX NOTE]: URLSearchParams reads the exact web address (e.g. ?recipe=12) so we can deep-link into the app.
     const params = new URLSearchParams(window.location.search);
     if (params.get('recipe')) {
         viewRecipe(params.get('recipe'));
@@ -249,6 +322,7 @@ function confirmCountry() {
 async function fetchBudgetTips() {
     const { data, error } = await myDatabase.from('budget_tips').select('tip_text');
     if (!error && data && data.length > 0) {
+        // [SYNTAX NOTE]: .map() loops over the database rows and extracts ONLY the 'tip_text' into a clean array.
         dynamicBudgetTips = data.map(item => item.tip_text);
         updateHack(); 
     } else {
@@ -259,20 +333,24 @@ async function fetchBudgetTips() {
 function updateHack() {
     const element = document.getElementById("hack-text");
     if (element && dynamicBudgetTips.length > 0) {
+        // [SYNTAX NOTE]: Math.random() picks a random decimal. Math.floor() rounds it down to a solid array index number.
         const randomIndex = Math.floor(Math.random() * dynamicBudgetTips.length);
         element.innerText = dynamicBudgetTips[randomIndex];
     }
 }
 
+// [SYNTAX NOTE]: window.onload fires automatically the millisecond the HTML finishes painting to the screen.
 window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     if (s2) {
+        // [SYNTAX NOTE]: .forEach() loops over the 'countries' array from your config.js to build the dropdown options.
         countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     }
     
     initAuth();
     handleVisitorSession();
     fetchBudgetTips(); 
+    // [SYNTAX NOTE]: setInterval tells the browser to run 'updateHack' every 30000 milliseconds (30 seconds).
     setInterval(updateHack, 30000); 
 
     const savedCountry = localStorage.getItem('saved_country');
@@ -283,128 +361,23 @@ window.onload = function() {
         if (modal) modal.style.display = 'none';
         
         const params = new URLSearchParams(window.location.search);
-        if (params.get('recipe')) {
-            viewRecipe(params.get('recipe'));
-        } else if (params.get('budget')) {
-            viewBudgetMeal(params.get('budget'));
-        } else {
-            showPage('home');
-        }
+        if (params.get('recipe')) { viewRecipe(params.get('recipe')); } 
+        else if (params.get('budget')) { viewBudgetMeal(params.get('budget')); } 
+        else { showPage('home'); }
     } else {
         const modal = document.getElementById('country-modal');
         if (modal) modal.style.display = 'flex';
     }
 };
 
-async function executeSearch() {
-    const term = document.getElementById('search-input').value.trim();
-    if (!term) return;
-    const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box"><h1>Searching for "${term}"...</h1></div>`;
-
-    const { data, error } = await myDatabase.from('meals')
-        .select('id, title, category, parent_category, author, created_at, meal_type')
-        .or(`title.ilike.%${term}%,recipe.ilike.%${term}%`)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        view.innerHTML = `<button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button><div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`;
-        return;
-    }
-
-    let html = `
-        <button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <h1 style="margin: 0; font-size: 1.8rem;">Search Results</h1>
-        </div>
-    `;
-
-    if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 600px;"><p>No recipes found matching "${term}". Try a different ingredient or meal name.</p></div>`;
-    } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px; width: 100%;">`;
-        data.forEach(meal => {
-            const author = meal.author || "Community";
-            const isBudget = meal.category === 'budget';
-            const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
-            const badge = isBudget ? ` - BUDGET` : '';
-
-            html += `<div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0;">
-                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
-                        <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
-                     </div>`;
-        });
-        html += `</div>`;
-    }
-    view.innerHTML = html;
-}
-
-function renderFindHub() {
-    const view = document.getElementById('main-view');
-    view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">FIND RECIPES</h1>
-            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">What are you looking for today?</p>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
-            <div class="window-box" onclick="renderCategoryList('find')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipes</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Search our open library of everyday recipes shared by cooks worldwide.</p>
-            </div>
-            <div class="window-box" onclick="showPage('find-budget-meals')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meals</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Find cost-calculated meals and clever takeaway hacks for your specific country.</p>
-            </div>
-            <div class="window-box" onclick="showPage('find-specials')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Specials</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Discover great grocery deals or bulk specials shared locally before they expire.</p>
-            </div>
-            <div class="window-box" onclick="showPage('find-meal-plans')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plans</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Browse full weeks of planned, budget-friendly eating to keep you on track.</p>
-            </div>
-            <div class="window-box" onclick="showPage('find-pet-food')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Find homemade, cost-effective nutrition and treat recipes for furry friends.</p>
-            </div>
-        </div>
-    `;
-}
-
-function renderCreatorHub() {
-    const view = document.getElementById('main-view');
-    view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">ADD YOUR OWN</h1>
-            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">What would you like to share with the community today?</p>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
-            <div class="window-box" onclick="addRecipeMenu()" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipe</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Share a classic family favorite, quick dinner, or an everyday recipe with the world.</p>
-            </div>
-            <div class="window-box" onclick="showPage('add-budget-meal')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meal</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Post a cost-calculated meal or a clever takeaway hack for your specific country.</p>
-            </div>
-            <div class="window-box" onclick="showPage('add-special')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Special</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Spotted a great grocery deal or bulk special? Share it locally before it expires.</p>
-            </div>
-            <div class="window-box" onclick="showPage('add-meal-plan')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plan</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Help others by sharing a full week of planned, budget-friendly eating.</p>
-            </div>
-            <div class="window-box" onclick="renderSubcategoryList('Pet Food & Treats', 'add')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Homemade, cost-effective nutrition and treat recipes for our furry friends.</p>
-            </div>
-        </div>
-    `;
-}
+/* ==========================================================
+   SECTION 4: SINGLE PAGE APPLICATION (SPA) ROUTER
+   PURPOSE: The Core Router. Injects HTML into #main-view.
+========================================================== */
 
 function showPage(page) {
     const view = document.getElementById('main-view');
+    // [SYNTAX NOTE]: pushState changes the URL in the browser bar WITHOUT reloading the page. Crucial for SPA logic.
     window.history.pushState({}, document.title, window.location.pathname);
 
     if (page === 'home') {
@@ -487,7 +460,7 @@ function showPage(page) {
                 </div>
             </div>
         `;
-        loadMemberMessages();
+        loadMemberMessages(); 
     } else if (page === 'admin') {
         if (!isAdmin) { showPage('home'); return; }
         
@@ -579,39 +552,106 @@ function showPage(page) {
     }
 }
 
-// ==========================================
-// --- MEMBER INBOX LOGIC ---
-// ==========================================
+function renderFindHub() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">FIND RECIPES</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">What are you looking for today?</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
+            <div class="window-box" onclick="renderCategoryList('find')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipes</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Search our open library of everyday recipes shared by cooks worldwide.</p>
+            </div>
+            <div class="window-box" onclick="showPage('find-budget-meals')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meals</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Find cost-calculated meals and clever takeaway hacks for your specific country.</p>
+            </div>
+            <div class="window-box" onclick="showPage('find-specials')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Specials</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Discover great grocery deals or bulk specials shared locally before they expire.</p>
+            </div>
+            <div class="window-box" onclick="showPage('find-meal-plans')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plans</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Browse full weeks of planned, budget-friendly eating to keep you on track.</p>
+            </div>
+            <div class="window-box" onclick="showPage('find-pet-food')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Find homemade, cost-effective nutrition and treat recipes for furry friends.</p>
+            </div>
+        </div>
+    `;
+}
+
+function renderCreatorHub() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">ADD YOUR OWN</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">What would you like to share with the community today?</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">
+            <div class="window-box" onclick="addRecipeMenu()" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🍲 Global Recipe</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Share a classic family favorite, quick dinner, or an everyday recipe with the world.</p>
+            </div>
+            <div class="window-box" onclick="showPage('add-budget-meal')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">💰 Budget Meal</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Post a cost-calculated meal or a clever takeaway hack for your specific country.</p>
+            </div>
+            <div class="window-box" onclick="showPage('add-special')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🏷️ Local Special</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Spotted a great grocery deal or bulk special? Share it locally before it expires.</p>
+            </div>
+            <div class="window-box" onclick="showPage('add-meal-plan')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">📅 7-Day Meal Plan</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Help others by sharing a full week of planned, budget-friendly eating.</p>
+            </div>
+            <div class="window-box" onclick="renderSubcategoryList('Pet Food & Treats', 'add')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                <h3 style="margin-top: 0; font-size: 1.4rem;">🐾 Pet Food & Treats</h3>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 0;">Homemade, cost-effective nutrition and treat recipes for our furry friends.</p>
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================
+   SECTION 5: PRIVATE MESSAGING HUB
+========================================================== */
 
 async function loadMemberMessages() {
     if (!currentUser) return;
     const container = document.getElementById('member-messages');
     
-    // Auto-mark any messages sent to this user as 'read'
+    // [SYNTAX NOTE]: .update() edits existing rows. We are finding rows where recipient is currentUser AND is_read is false, then setting them to true.
     await myDatabase.from('messages')
         .update({ is_read: true })
         .eq('recipient_email', currentUser.email)
         .eq('is_read', false);
     
-    // Clear the notification badge instantly
     const authBtn = document.getElementById('nav-auth-btn');
     if (authBtn) authBtn.innerHTML = '👤 My Profile';
 
-    // Fetch the threaded conversation
+    // [SYNTAX NOTE]: .or() is a special Supabase filter. It fetches rows where the email is the user OR the recipient is the user (getting both sides of the chat).
     const { data, error } = await myDatabase.from('messages')
         .select('*')
         .or(`email.eq.${currentUser.email},recipient_email.eq.${currentUser.email}`)
-        .order('created_at', { ascending: true }); // Oldest first for a natural chat flow
+        .order('created_at', { ascending: true }); 
 
     if (error) { container.innerHTML = 'Error loading messages.'; return; }
     if (data.length === 0) { container.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No messages yet. Send us a message below!</p>'; return; }
 
     let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+    
+    // [SYNTAX NOTE]: .forEach() loops through the data array. 'msg' is the current row we are looking at.
     data.forEach(msg => {
+        // [SYNTAX NOTE]: '===' strictly checks if the email matches. It returns true or false.
         const isMine = msg.email === currentUser.email;
         const bg = isMine ? '#ffffff' : 'var(--nav-color)';
         const align = isMine ? 'align-self: flex-end; text-align: right;' : 'align-self: flex-start; text-align: left;';
         const sender = isMine ? 'You' : 'Anton & Jenny';
+        
         html += `
             <div style="background: ${bg}; border: 2px solid var(--border); padding: 10px; border-radius: 4px; max-width: 80%; ${align}">
                 <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; color: #333;">${sender} - ${new Date(msg.created_at).toLocaleString()}</div>
@@ -621,7 +661,9 @@ async function loadMemberMessages() {
     });
     html += '</div>';
     container.innerHTML = html;
-    container.scrollTop = container.scrollHeight; // Auto-scroll to the newest message
+    
+    // [SYNTAX NOTE]: scrollTop forces the chat window to automatically scroll to the absolute bottom (the newest message).
+    container.scrollTop = container.scrollHeight; 
 }
 
 async function sendMessageToAdmin() {
@@ -631,6 +673,7 @@ async function sendMessageToAdmin() {
     
     input.disabled = true;
     
+    // [SYNTAX NOTE]: .insert() adds a brand new row to the table. Notice the data is wrapped in an array [{}].
     const { error } = await myDatabase.from('messages').insert([{
         name: 'Member Message',
         email: currentUser.email,
@@ -648,6 +691,54 @@ async function sendMessageToAdmin() {
     }
 }
 
+/* ==========================================================
+   SECTION 6: CATEGORY & DATA RENDERING (THE KITCHEN)
+========================================================== */
+
+async function executeSearch() {
+    const term = document.getElementById('search-input').value.trim();
+    if (!term) return;
+    const view = document.getElementById('main-view');
+    view.innerHTML = `<div class="window-box"><h1>Searching for "${term}"...</h1></div>`;
+
+    // [SYNTAX NOTE]: .ilike is a case-insensitive search. %term% means "find this word anywhere inside the string".
+    const { data, error } = await myDatabase.from('meals')
+        .select('id, title, category, parent_category, author, created_at, meal_type')
+        .or(`title.ilike.%${term}%,recipe.ilike.%${term}%`)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        view.innerHTML = `<button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button><div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`;
+        return;
+    }
+
+    let html = `
+        <button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button>
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin: 0; font-size: 1.8rem;">Search Results</h1>
+        </div>
+    `;
+
+    if (data.length === 0) {
+        html += `<div class="window-box" style="width: 100%; max-width: 600px;"><p>No recipes found matching "${term}". Try a different ingredient or meal name.</p></div>`;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px; width: 100%;">`;
+        data.forEach(meal => {
+            // [SYNTAX NOTE]: The '||' acts as a default fallback. If meal.author is empty, use "Community".
+            const author = meal.author || "Community";
+            const isBudget = meal.category === 'budget';
+            const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
+            const badge = isBudget ? ` - BUDGET` : '';
+
+            html += `<div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0;">
+                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
+                        <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
+                     </div>`;
+        });
+        html += `</div>`;
+    }
+    view.innerHTML = html;
+}
 
 function renderCategoryList(context) {
     const view = document.getElementById('main-view');
@@ -675,6 +766,7 @@ function renderCategoryList(context) {
         
     html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">`;
 
+    // [SYNTAX NOTE]: Object.keys() takes a dictionary (like your categories in config.js) and grabs only the titles, putting them in an array to loop over.
     Object.keys(categories).forEach(cat => {
         if (cat === 'Specialized Plans' || cat === 'Pet Food & Treats') return;
 
@@ -722,11 +814,16 @@ function renderSubcategoryList(mainCategory, context) {
 }
 
 function getParentCategory(subcategoryName) {
+    // [SYNTAX NOTE]: Object.entries() breaks a dictionary into pairs: [Key, Value]. We loop through to find the parent.
     for (const [mainCat, subCats] of Object.entries(categories)) {
         if (subCats.includes(subcategoryName)) { return mainCat; }
     }
     return null;
 }
+
+/* ==========================================================
+   SECTION 7: DATA ENTRY (ADDING MEALS, PLANS, & SPECIALS)
+========================================================== */
 
 function renderAddMealPlanForm() {
     const view = document.getElementById('main-view');
@@ -734,6 +831,7 @@ function renderAddMealPlanForm() {
     let daysHTML = '';
     
     days.forEach(day => {
+        // [SYNTAX NOTE]: .toLowerCase() makes 'Monday' into 'monday' so it matches HTML ID rules securely.
         daysHTML += `
             <label style="font-weight: bold; margin-top: 15px; display: block; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 5px;">${day}</label>
             <textarea id="plan-${day.toLowerCase()}" rows="4" placeholder="Breakfast: ...\nLunch: ...\nDinner: ..." style="width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 5px;"></textarea>
@@ -770,6 +868,7 @@ async function saveMealPlan() {
         const text = document.getElementById(`plan-${day.toLowerCase()}`).value.trim();
         if (text) {
             hasContent = true;
+            // [SYNTAX NOTE]: \n forces a line break in text files/databases, acting like the 'Enter' key.
             finalRecipe += `**${day}**\n${text}\n\n`;
         }
     });
@@ -795,6 +894,7 @@ async function loadSpecials() {
     if (!selectedCountry) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>Please select a country first.</p></div>`; return; }
 
     const now = new Date().toISOString();
+    // [SYNTAX NOTE]: .gt means "Greater Than". We only want rows where 'expiry_date' is later than 'now'.
     const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
 
     if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
@@ -864,6 +964,7 @@ function renderAddSpecialForm() {
 
 async function saveSpecial() {
     const title = document.getElementById('special-title').value.trim();
+    // [SYNTAX NOTE]: parseFloat converts a text string like "15.99" into a real math decimal.
     const cost = parseFloat(document.getElementById('special-cost').value);
     const duration = document.getElementById('special-duration').value;
     const details = document.getElementById('special-details').value.trim();
@@ -871,10 +972,12 @@ async function saveSpecial() {
     if (!title || !cost || !duration || !details) return alert("Please fill in all the details.");
 
     let expiryDate = new Date();
+    // [SYNTAX NOTE]: Date math. .setDate() edits the date object. We add 3 or 7 days to 'today'.
     if (duration === "3") { expiryDate.setDate(expiryDate.getDate() + 3); } 
     else if (duration === "7") { expiryDate.setDate(expiryDate.getDate() + 7); } 
     else if (duration === "month") { expiryDate = new Date(expiryDate.getFullYear(), expiryDate.getMonth() + 1, 0, 23, 59, 59); }
     
+    // [SYNTAX NOTE]: .toISOString() standardizes the date into a computer-readable format for Supabase (e.g. 2026-06-25T12:00:00Z).
     const expiryISO = expiryDate.toISOString();
 
     const { error } = await myDatabase.from('meals').insert([{ 
@@ -925,8 +1028,12 @@ async function loadBudgetMeals(filter = 'all') {
         html += `<div class="window-box" style="width: 100%; max-width: 600px;"><p>No budget meals posted for ${selectedCountry} under this filter.</p></div>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
-        data.sort((a, b) => (a.cost / a.servings) - (b.cost / b.servings));
+        
+        // [SYNTAX NOTE]: .sort() mathematically orders an array. 'a' and 'b' represent two meals comparing themselves based on Cost-Per-Person.
+        data.sort((a, b) => (a.cost / a.servings) - (b.cost / b.servings)); 
+        
         data.forEach(meal => {
+            // [SYNTAX NOTE]: .toFixed(2) forces a number to have exactly 2 decimal places (e.g. 5 becomes 5.00).
             const costPerPerson = (meal.cost / meal.servings).toFixed(2);
             const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
             
@@ -947,28 +1054,6 @@ async function loadBudgetMeals(filter = 'all') {
     view.innerHTML = html;
 }
 
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert("Link copied to clipboard!");
-    }).catch(err => {
-        alert("Failed to copy link. You can manually copy the URL in your browser.");
-    });
-}
-
-async function likeMeal(id, btnElement) {
-    const countSpan = btnElement.querySelector('.like-count');
-    let currentLikes = parseInt(countSpan.innerText) || 0;
-    currentLikes++;
-    countSpan.innerText = currentLikes;
-    btnElement.disabled = true; 
-    btnElement.style.opacity = '0.6';
-    btnElement.innerHTML = `❤️ Liked (${currentLikes})`;
-
-    const { data } = await myDatabase.from('meals').select('likes').eq('id', id).single();
-    const dbLikes = (data && data.likes ? data.likes : 0) + 1;
-    await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
-}
-
 async function viewBudgetMeal(id) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Loading...</h1></div>`;
@@ -980,6 +1065,7 @@ async function viewBudgetMeal(id) {
 
     if (data.meal_type === 'home') {
         let ingredientsHTML = `<ul style="margin: 0; padding-left: 20px;">`;
+        // [SYNTAX NOTE]: Array.isArray() is a safety check. It ensures 'data.ingredients' is actually a list before we try to loop through it.
         if (data.ingredients && Array.isArray(data.ingredients)) {
             data.ingredients.forEach(ing => {
                 let qty = ing.qty ? ing.qty : '';
@@ -1007,7 +1093,11 @@ async function viewBudgetMeal(id) {
     }
 
     const costPer = (data.cost / data.servings).toFixed(2);
+    
+    // [SYNTAX NOTE]: window.location.origin grabs "https://yourwebsite.com". .pathname grabs "/". We stitch them together to make a clean shareable link.
     const currentUrl = window.location.origin + window.location.pathname + '?budget=' + data.id;
+    
+    // [SYNTAX NOTE]: encodeURIComponent turns spaces into %20 so the text can be safely sent via a WhatsApp link.
     const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
     view.innerHTML = `
@@ -1028,6 +1118,54 @@ async function viewBudgetMeal(id) {
             <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})">⚠️ Report Recipe</button>
         </div>
     `;
+}
+
+/* ==========================================================
+   SECTION 8: GLOBAL RECIPE READING & SHARING
+========================================================== */
+
+function copyToClipboard(text) {
+    // [SYNTAX NOTE]: navigator.clipboard is a built-in browser tool to copy text. .then() runs if it succeeds, .catch() runs if it fails.
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Link copied to clipboard!");
+    }).catch(err => {
+        alert("Failed to copy link. You can manually copy the URL in your browser.");
+    });
+}
+
+async function likeMeal(id, btnElement) {
+    const countSpan = btnElement.querySelector('.like-count');
+    // [SYNTAX NOTE]: parseInt turns "5" (string) into 5 (math number). || 0 prevents errors if the box is empty.
+    let currentLikes = parseInt(countSpan.innerText) || 0;
+    currentLikes++;
+    countSpan.innerText = currentLikes;
+    
+    // [SYNTAX NOTE]: Temporarily disables the button so users can't click 'Like' 100 times in 1 second.
+    btnElement.disabled = true; 
+    btnElement.style.opacity = '0.6';
+    btnElement.innerHTML = `❤️ Liked (${currentLikes})`;
+
+    const { data } = await myDatabase.from('meals').select('likes').eq('id', id).single();
+    const dbLikes = (data && data.likes ? data.likes : 0) + 1;
+    await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
+}
+
+async function reportRecipe(title, id) {
+    // [SYNTAX NOTE]: prompt() is a built-in browser popup that asks the user to type text.
+    const reason = prompt("Why are you reporting this?");
+    if (!reason) return;
+
+    const reporterEmail = currentUser ? currentUser.email : 'Guest';
+
+    const { error } = await myDatabase.from('messages').insert([{ 
+        name: "REPORTED: " + title, 
+        email: reporterEmail + " (System ID: " + id + ")", 
+        recipient_email: 'admin',
+        message: "REASON: " + reason,
+        is_read: false
+    }]);
+    if (error) alert("Error sending report: " + error.message);
+    else alert("Report submitted successfully. Thank you!");
 }
 
 async function loadSubcategory(subcategory, parentCategory) {
@@ -1146,6 +1284,8 @@ function updateConverter() {
     const toSelect = document.getElementById('conv-to');
     toSelect.innerHTML = '';
     let family = [];
+    
+    // [SYNTAX NOTE]: .includes() checks if the chosen unit ('fromUnit') exists inside the predefined array families in your config.js.
     if (convFamilies.weight.includes(fromUnit)) family = convFamilies.weight;
     else if (convFamilies.volume.includes(fromUnit)) family = convFamilies.volume;
     else if (convFamilies.temp.includes(fromUnit)) family = convFamilies.temp;
@@ -1155,6 +1295,7 @@ function updateConverter() {
             let opt = document.createElement('option');
             opt.value = unit;
             opt.innerHTML = unit;
+            // [SYNTAX NOTE]: appendChild pushes the newly created <option> tag directly into the 'toSelect' dropdown.
             toSelect.appendChild(opt);
         }
     });
@@ -1167,6 +1308,7 @@ function calculateConversion() {
     const to = document.getElementById('conv-to').value;
     const resDiv = document.getElementById('conv-result');
 
+    // [SYNTAX NOTE]: isNaN() checks "Is Not A Number". If the user typed letters or left it blank, abort.
     if (isNaN(amt) || !from || !to) { resDiv.innerHTML = ''; return; }
     let result = 0;
     if (convFamilies.temp.includes(from)) {
@@ -1176,6 +1318,7 @@ function calculateConversion() {
         const baseAmt = amt * convRates[from];
         result = baseAmt / convRates[to];
     }
+    // [SYNTAX NOTE]: The strange Math formula here `+(Math.round(result + "e+2")  + "e-2")` perfectly rounds the answer to exactly 2 decimal places to avoid massive floats like 2.99999999.
     resDiv.innerHTML = `Result: ${+(Math.round(result + "e+2")  + "e-2")} ${to}`;
 }
 
@@ -1210,6 +1353,7 @@ function showForm(subcategory, parentCategory) {
 function addIngredientRow() {
     const list = document.getElementById('ingredients-list');
     const row = document.createElement('div');
+    // [SYNTAX NOTE]: .className applies a CSS class to our new row so we can grab it later when saving.
     row.className = 'ingredient-row';
     row.style.display = 'flex';
     row.style.gap = '5px';
@@ -1237,6 +1381,7 @@ function addIngredientRow() {
         </select>
         <button onclick="this.parentElement.remove()">X</button>
     `;
+    // [SYNTAX NOTE]: We append this row to the HTML list inside the form.
     list.appendChild(row);
 }
 
@@ -1245,13 +1390,16 @@ async function saveRecipe() {
     const author = document.getElementById('author-name').value.trim() || "Home Cook";
     const instructions = document.getElementById('recipe-instructions').value.trim();
     
+    // [SYNTAX NOTE]: document.querySelectorAll grabs ALL elements with the class '.ingredient-row' and puts them in an array we can loop through.
     const ingredientRows = document.querySelectorAll('.ingredient-row');
     let structuredIngredients = [];
     
     ingredientRows.forEach(row => {
+        // [SYNTAX NOTE]: row.querySelector searches INSIDE the specific row, not the whole page.
         const name = row.querySelector('.ing-name').value.trim();
         const qty = row.querySelector('.ing-qty').value;
         const unit = row.querySelector('.ing-unit').value;
+        // [SYNTAX NOTE]: .push() takes our JSON object {item, qty, unit} and shoves it into our array to be saved.
         if (name !== "") structuredIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: unit });
     });
 
@@ -1265,28 +1413,12 @@ async function saveRecipe() {
     else { alert("Recipe posted successfully!"); loadSubcategory(selectedSubcategory, selectedParentCategory); }
 }
 
-async function reportRecipe(title, id) {
-    const reason = prompt("Why are you reporting this?");
-    if (!reason) return;
-
-    const reporterEmail = currentUser ? currentUser.email : 'Guest';
-
-    const { error } = await myDatabase.from('messages').insert([{ 
-        name: "REPORTED: " + title, 
-        email: reporterEmail + " (System ID: " + id + ")", 
-        recipient_email: 'admin',
-        message: "REASON: " + reason,
-        is_read: false
-    }]);
-    if (error) alert("Error sending report: " + error.message);
-    else alert("Report submitted successfully. Thank you!");
-}
-
-// ==========================================
-// --- ADMIN COMMAND CENTER LOGIC & VIEWS ---
-// ==========================================
+/* ==========================================================
+   SECTION 9: ADMIN COMMAND CENTER LOGIC & VIEWS
+========================================================== */
 
 function switchAdminTab(tab) {
+    // [SYNTAX NOTE]: Array.forEach() runs through each tab ID. It sets background to white if active, or grey if not.
     ['inbox', 'review', 'library', 'settings'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
@@ -1415,6 +1547,7 @@ function updateTier3(context) {
 }
 
 function buildAdminQuery(context, status) {
+    // [SYNTAX NOTE]: Notice the 'let' here. We start the query, but we don't 'await' it yet. This lets us build the SQL query in steps before firing it to Supabase.
     let query = myDatabase.from('meals').select('id, title, category, country, meal_type, created_at').eq('status', status).order('created_at', { ascending: false });
     
     const t1 = document.getElementById(`${context}-tier1`).value;
@@ -1426,18 +1559,20 @@ function buildAdminQuery(context, status) {
         if (term !== '') { query = query.or(`title.ilike.%${term}%,recipe.ilike.%${term}%`); } 
         else { query = query.limit(50); }
     } else {
-        query = query.limit(100);
+        query = query.limit(100); // Admin Review queue limit
     }
 
     if (t1 === 'global') {
         if (t3 !== 'all') {
             query = query.eq('category', t3);
         } else if (t2 !== 'all') {
+            // [SYNTAX NOTE]: .in() lets Supabase check if the row's category matches ANY of the categories inside the array we feed it.
             query = query.in('category', categories[t2]);
         } else {
             let allGlobalSubcats = [];
             Object.keys(categories).forEach(c => {
                 if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
+                    // [SYNTAX NOTE]: .concat() merges two arrays together.
                     allGlobalSubcats = allGlobalSubcats.concat(categories[c]);
                 }
             });
@@ -1456,6 +1591,8 @@ function buildAdminQuery(context, status) {
         if (t2 !== 'all') { query = query.eq('category', t2); } 
         else { query = query.in('category', categories['Pet Food & Treats']); }
     }
+    
+    // [SYNTAX NOTE]: Now we return the fully built 'query' object back to the function that asked for it, so it can be 'await'ed.
     return query;
 }
 
@@ -1526,18 +1663,21 @@ async function loadMessages() {
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
     if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
     
-    // Auto-mark incoming messages to admin as read
+    // [SYNTAX NOTE]: .filter() creates a new array of ONLY messages sent to 'admin' that are unread. .map() extracts just their IDs.
     const unreadAdminIds = data.filter(m => m.recipient_email === 'admin' && m.is_read === false).map(m => m.id);
     if (unreadAdminIds.length > 0) {
+        // [SYNTAX NOTE]: .in('id', array) allows us to bulk-update multiple rows at once.
         myDatabase.from('messages').update({ is_read: true }).in('id', unreadAdminIds).then();
     }
     
     let html = '<div style="display:flex; flex-direction:column; gap: 15px;">';
     data.forEach(msg => {
+        // [SYNTAX NOTE]: .startsWith() checks the first word in a string to detect system reports.
         const isReport = msg.name.startsWith("REPORTED");
         const isAdminReply = (msg.email === currentUser.email) || (msg.recipient_email !== 'admin');
         const unreadBadge = (!isAdminReply && !msg.is_read) ? '<span class="admin-badge badge-pending">UNREAD</span>' : '';
         
+        // [SYNTAX NOTE]: .replace(/[^a-zA-Z0-9]/g, '') is a REGEX (Regular Expression). It strips out the '@' and '.' from emails to create clean HTML IDs.
         const safeEmailId = (msg.email || '').replace(/[^a-zA-Z0-9]/g, '');
 
         html += `
@@ -1590,6 +1730,7 @@ async function sendAdminReply(recipientEmail, safeId) {
 }
 
 async function deleteRecord(table, id) {
+    // [SYNTAX NOTE]: confirm() triggers the browser's built-in "Are you sure?" popup prompt.
     if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
     const { error } = await myDatabase.from(table).delete().eq('id', id);
     if (error) alert("Error deleting: " + error.message);
@@ -1599,7 +1740,10 @@ async function deleteRecord(table, id) {
     }
 }
 
-// --- ADMIN EDIT LOGIC ---
+/* ==========================================================
+   SECTION 10: ADMIN CMS (CONTENT MANAGEMENT SYSTEM)
+========================================================== */
+
 async function openEdit(id) {
     const area = document.getElementById('admin-content-area');
     area.innerHTML = `<div class="window-box"><p>Loading record...</p></div>`;
@@ -1710,15 +1854,25 @@ async function saveEdit() {
     else { alert("Updated successfully!"); switchAdminTab('library'); }
 }
 
+/* ==========================================================
+   SECTION 11: FILE UPLOAD CONFIGURATIONS
+========================================================== */
+
 async function uploadTeamPhoto(event) {
+    // [SYNTAX NOTE]: .files[0] digs into the HTML input to grab the raw binary data of the image file.
     const file = document.getElementById('team-photo-upload').files[0];
     if (!file) return alert("Select an image.");
+    
+    // [SYNTAX NOTE]: event.target points to the exact button you clicked, allowing us to rename "Upload" to "Uploading..."
     const btn = event.target; btn.innerText = "Uploading..."; btn.disabled = true;
+    
+    // [SYNTAX NOTE]: Creating a unique filename using the exact current time (Date.now()) so files don't overwrite each other.
     const name = `team-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
     
     const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
     if (err1) { btn.innerText = "Upload & Save Image"; btn.disabled = false; return alert("Failed: " + err1.message); }
 
+    // [SYNTAX NOTE]: After uploading, we must ask Supabase for the 'Public URL' so we can save it in the database and display it on the site.
     const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
     const { error: err2 } = await myDatabase.from('site_config').update({ team_photo_url: url }).eq('id', 1);
     
