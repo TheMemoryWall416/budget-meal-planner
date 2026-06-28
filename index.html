@@ -53,6 +53,21 @@
     </div>
 </div>
 
+<div id="auth-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center;">
+    <div class="window-box" style="background: var(--nav-color); padding: 30px; text-align: center; border-width: 3px; max-width: 400px; width: 100%;">
+        <h2 id="auth-title" style="color: var(--text); margin-top: 0;">Join the Community</h2>
+        <p id="auth-subtitle" style="font-size: 0.95rem; margin-top: 0; margin-bottom: 20px;">To share recipes, save favorites, and join the conversation.</p>
+        <input type="email" id="auth-email" placeholder="Email Address" style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 12px;">
+        <input type="password" id="auth-password" placeholder="Password" style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 12px;">
+        <button id="auth-submit-btn" onclick="handleAuthAction()" style="width: 100%; padding: 12px; font-size: 1.1rem; margin: 0 0 10px 0;">Sign Up</button>
+        <button onclick="closeAuthModal()" style="width: 100%; padding: 10px; font-size: 0.9rem; margin: 0 0 15px 0; background: var(--btn-grey);">Cancel</button>
+        <div style="font-size: 0.8rem; border-top: 1px dashed rgba(0,0,0,0.3); padding-top: 10px; margin-bottom: 15px; color: #222; line-height: 1.4;">
+            <em>We hate spam as much as you do. We only use your email to log you in. No selling data, ever.</em>
+        </div>
+        <a href="#" id="auth-toggle-link" onclick="toggleAuthMode()" style="font-size: 0.85rem; font-weight: bold; color: #000; text-decoration: underline;">Already a member? Sign In here.</a>
+    </div>
+</div>
+
 <nav>
     <div class="window-box" style="background: var(--nav-color);">
         <h2 style="margin-top: 0; font-size: 1.1rem; margin-bottom: 15px; border-bottom: 2px dashed rgba(0,0,0,0.2); padding-bottom: 8px; text-align: center;">Community Stats</h2>
@@ -66,6 +81,7 @@
         <a href="#" onclick="showPage('home')">Home</a>
         <a href="#" onclick="showPage('find-recipes')">Find Recipes</a>
         <a href="#" onclick="showPage('creator-hub')">Add Your Own</a>
+        <a id="nav-auth-btn" href="#" onclick="openAuthModal()" style="background: var(--nav-color); margin-top: 15px;">🚪 Join / Sign In</a>
         <a href="contact.html">Contact</a>
     </div>
     
@@ -105,4 +121,4 @@
             document.getElementById('cookie-banner').style.display = 'flex';
         }
     });
-    function acceptCookies() {
+    function acceptCookies
