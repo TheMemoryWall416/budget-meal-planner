@@ -2,123 +2,206 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Budget Meal Planner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Recipe & Meal Planner</title>
+    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
-        
-        body { font-family: sans-serif; display: flex; margin: 0; background-color: #eaddcf; height: 100vh; overflow: hidden; color: var(--text); }
-        
-        nav { width: 220px; padding: 15px; padding-bottom: 120px; flex-shrink: 0; border-right: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
-        .content { flex-grow: 1; padding: 30px; padding-bottom: 120px; height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
-        aside { width: 280px; padding: 15px; padding-bottom: 120px; flex-shrink: 0; border-left: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
-
-        .window-box { 
-            background: #f0f0f0; 
-            border: 2px solid var(--border); 
-            padding: 20px; 
-            margin-bottom: 20px; 
-            box-shadow: 4px 4px 10px rgba(0,0,0,0.15); 
-            border-radius: 4px; 
+        :root {
+            --bg: #f4f4f4;
+            --text: #333;
+            --nav-color: #fff0f5; /* Wifey's Pastel Pink */
+            --border: #7f8c8d;    /* Premium Grey */
+            --btn-grey: #e0e0e0;
         }
-
-        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 8px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; }
-        nav a:hover { filter: brightness(90%); }
-        
-        .ad-placeholder { display: flex; align-items: center; justify-content: center; height: 250px; background: #f0f0f0; border: 2px dashed #999; color: #666; font-weight: bold; text-align: center; padding: 10px; }
-        
-        button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; }
-        button:hover { filter: brightness(90%); transform: translate(-1px, -1px); box-shadow: 2px 2px 0px var(--border); }
-        button:active { transform: translate(1px, 1px); box-shadow: none; }
-        
-        textarea, input, select { width: 100%; max-width: 450px; border: 2px solid var(--border); padding: 8px; margin-bottom: 15px; background: #ffffff; font-family: sans-serif; box-sizing: border-box; font-size: 0.9rem; }
-        #main-view { display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
-        .ingredient-row input, .ingredient-row select { margin-bottom: 0; }
-
-        .farmhouse-scroll { position: relative; margin: 30px 0; width: 100%; max-width: 650px; background-color: #fdf6e3; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E"); box-shadow: inset 0 0 40px rgba(139, 69, 19, 0.15), inset 0 0 10px rgba(139, 69, 19, 0.1), 0 15px 25px rgba(0,0,0,0.1); border-radius: 3px; padding: 50px 40px; box-sizing: border-box; color: #3e2723; font-family: 'Georgia', 'Times New Roman', serif; font-size: 1.15rem; line-height: 1.8; }
-        .farmhouse-scroll::before, .farmhouse-scroll::after { content: ''; position: absolute; left: -15px; right: -15px; height: 30px; background: linear-gradient(to bottom, #5c3a21, #2b1a10, #5c3a21); border-radius: 15px; box-shadow: 0 8px 15px rgba(0,0,0,0.4), inset 0 3px 6px rgba(255,255,255,0.1); z-index: 2; }
-        .farmhouse-scroll::before { top: -15px; }
-        .farmhouse-scroll::after { bottom: -15px; }
-        .farmhouse-scroll h2 { border-bottom: 2px dashed rgba(139, 69, 19, 0.3); padding-bottom: 10px; margin-top: 0; color: #2b1a10; font-weight: normal; font-family: 'Georgia', 'Times New Roman', serif; font-size: 1.8rem; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+        /* Left Sidebar Panel */
+        .sidebar {
+            width: 260px;
+            background-color: var(--nav-color);
+            border-right: 3px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-sizing: border-box;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            margin-top: 0;
+            font-size: 1.3rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+        }
+        .nav-btn {
+            background: #fff;
+            border: 2px solid var(--border);
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: var(--btn-grey);
+        }
+        /* Main View Container */
+        .content-container {
+            margin-left: 260px;
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            box-sizing: border-box;
+            padding-bottom: 110px; /* Ghost buffer space protecting lower layouts */
+        }
+        .window-box {
+            background: #fff;
+            border: 3px solid var(--border);
+            padding: 25px;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+            box-shadow: 4px 4px 0px var(--border);
+        }
+        /* Layout Jump (CLS) Protection for Dynamic Hack Banner */
+        #hack-box {
+            min-height: 62px; 
+            background: #fffde6;
+            border: 2px dashed var(--border);
+            padding: 12px;
+            font-size: 0.95rem;
+            text-align: center;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+        /* Premium Sanctuary Modals Layout */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-box {
+            background: #fff;
+            border: 4px solid var(--border);
+            padding: 30px;
+            width: 95%;
+            max-width: 440px;
+            box-shadow: 6px 6px 0px var(--border);
+            box-sizing: border-box;
+        }
+        .modal-box h2 { margin-top: 0; font-size: 1.6rem; }
+        .modal-box input, .modal-box select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 2px solid var(--border);
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        .modal-box button {
+            padding: 10px 20px;
+            border: 2px solid var(--border);
+            background: var(--nav-color);
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-box button.secondary {
+            background: #fff;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
 
-<div id="country-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center;">
-    <div id="modal-content" class="window-box" style="background: var(--nav-color); padding: 40px; text-align: center; border-width: 3px;">
-        <h2 style="color: var(--text); margin-top: 0;">Select Your Country</h2>
-        <p style="font-size: 0.9rem; margin-top: 0; margin-bottom: 20px;">To accurately calculate your budget meals.</p>
-        <select id="modal-country-select" style="padding: 10px; width: 250px; border: 2px solid var(--border); margin-bottom: 20px;"></select><br>
-        <button onclick="confirmCountry()" style="padding: 12px 24px; margin: 0; font-size: 1rem;">Enter Kitchen</button>
-    </div>
-</div>
-
-<div id="auth-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center;">
-    <div class="window-box" style="background: var(--nav-color); padding: 30px; text-align: center; border-width: 3px; max-width: 400px; width: 100%;">
-        <h2 id="auth-title" style="color: var(--text); margin-top: 0;">Join the Community</h2>
-        <p id="auth-subtitle" style="font-size: 0.95rem; margin-top: 0; margin-bottom: 20px;">To share recipes, save favorites, and join the conversation.</p>
-        <input type="email" id="auth-email" placeholder="Email Address" style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 12px;">
-        <input type="password" id="auth-password" placeholder="Password" style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 12px;">
-        <button id="auth-submit-btn" onclick="handleAuthAction()" style="width: 100%; padding: 12px; font-size: 1.1rem; margin: 0 0 10px 0;">Sign Up</button>
-        <button onclick="closeAuthModal()" style="width: 100%; padding: 10px; font-size: 0.9rem; margin: 0 0 15px 0; background: var(--btn-grey);">Cancel</button>
-        <div style="font-size: 0.8rem; border-top: 1px dashed rgba(0,0,0,0.3); padding-top: 10px; margin-bottom: 15px; color: #222; line-height: 1.4;">
-            <em>We hate spam as much as you do. We only use your email to log you in. No selling data, ever.</em>
+    <!-- Left Sidebar Navigation Panel -->
+    <div class="sidebar">
+        <h2>🏡 Farmhouse Kitchen</h2>
+        <button class="nav-btn" onclick="showPage('home')">🏠 Home</button>
+        <button class="nav-btn" onclick="showPage('find-recipes')">🍲 Find Recipes</button>
+        <button class="nav-btn" onclick="showPage('creator-hub')">📤 Add Your Own</button>
+        
+        <!-- Live Live Community Stats Window -->
+        <div id="nav-counter" style="background: #fff; border: 2px solid var(--border); padding: 12px; font-size: 0.9rem; margin-top: 10px;">
+            <!-- Rendered live via app.js -->
         </div>
-        <a href="#" id="auth-toggle-link" onclick="toggleAuthMode()" style="font-size: 0.85rem; font-weight: bold; color: #000; text-decoration: underline;">Already a member? Sign In here.</a>
-    </div>
-</div>
 
-<nav>
-    <div class="window-box" style="background: var(--nav-color);">
-        <h2 style="margin-top: 0; font-size: 1.1rem; margin-bottom: 15px; border-bottom: 2px dashed rgba(0,0,0,0.2); padding-bottom: 8px; text-align: center;">Community Stats</h2>
-        <div id="nav-counter" style="font-size: 0.85rem; line-height: 1.6; color: #333;">
-            🌍 Loading live stats...
+        <!-- Permanent Access Window Button (Auth Gateway) -->
+        <button id="nav-auth-btn" class="nav-btn" onclick="openAuthModal()" style="margin-top: auto; background: var(--nav-color);">🚪 Join / Sign In</button>
+    </div>
+
+    <!-- Main Workspace Area -->
+    <div class="content-container">
+        
+        <!-- Dynamic Anti-Jumping Budget Hacks Header -->
+        <div id="hack-box">
+            💡 <strong>Dynamic Saving Hack:</strong> <span id="hack-text">Loading clever kitchen adjustments...</span>
+        </div>
+
+        <!-- Core Modular Frame View Window -->
+        <div id="main-view" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+            <!-- Handled dynamically by showPage() inside app.js -->
+        </div>
+
+    </div>
+
+    <!-- Country Selection Onboarding Gateway Overlay -->
+    <div id="country-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-box">
+            <h2>Welcome to the Kitchen!</h2>
+            <p>Please select your country to see cost-calculated meals and grocery deals tailored for you:</p>
+            <select id="modal-country-select">
+                <option value="">-- Select Your Country --</option>
+            </select>
+            <button onclick="confirmCountry()">Let's Cook</button>
         </div>
     </div>
-    
-    <div class="window-box" style="padding: 15px;">
-        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Menu</h2>
-        <a href="#" onclick="showPage('home')">Home</a>
-        <a href="#" onclick="showPage('find-recipes')">Find Recipes</a>
-        <a href="#" onclick="showPage('creator-hub')">Add Your Own</a>
-        <a id="nav-auth-btn" href="#" onclick="openAuthModal()" style="background: var(--nav-color); margin-top: 15px;">🚪 Join / Sign In</a>
-        <a href="contact.html">Contact</a>
-    </div>
-    
-    <div class="window-box" style="padding: 15px; text-align: center;">
-        <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Privacy Policy</a>
-        <a href="terms.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px; margin-bottom: 0;">Terms of Service</a>
-    </div>
-</nav>
 
-<div class="content">
-    <div id="main-view"></div>
-</div>
+    <!-- The Gatekeeper Auth Popup Window Overlay -->
+    <div id="auth-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-box">
+            <h2 id="auth-modal-title">Join the Community</h2>
+            <p id="auth-modal-desc" style="line-height: 1.5; color: #555; margin-bottom: 20px;">Create a free member account to save recipes, participate in community discussions, and track your kitchen contributions!</p>
+            
+            <input type="email" id="auth-email" placeholder="Your Email Address" required>
+            <input type="password" id="auth-password" placeholder="Choose a Password (minimum 6 characters)" required>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="auth-primary-btn" onclick="handleAuthSubmit()" style="flex: 1; margin: 0;">Join for Free</button>
+                <button class="secondary" onclick="closeAuthModal()" style="margin: 0;">Cancel</button>
+            </div>
 
-<aside>
-    <div class="window-box" style="background: var(--nav-color);">
-        <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text);">💡 Budget Tip</h3>
-        <p id="hack-text" style="font-size: 0.9rem; line-height: 1.5; color: var(--text); margin-bottom: 0; min-height: 120px; display: flex; align-items: center;">Loading tip...</p>
+            <div style="text-align: center; font-size: 0.95rem; border-top: 1px dashed var(--border); padding-top: 15px;">
+                <span id="auth-toggle-text">Already a member?</span> 
+                <a href="javascript:void(0)" id="auth-toggle-link" onclick="toggleAuthMode()" style="color: #008080; font-weight: bold; text-decoration: none; margin-left: 5px;">Sign In</a>
+            </div>
+
+            <p style="font-size: 0.75rem; color: #666; text-align: center; line-height: 1.4; margin-top: 20px; margin-bottom: 0;">
+                🔒 <strong>Our Privacy Promise:</strong> We hate spam as much as you do. We only use your email to secure your login identifier. No selling data or unwanted newsletter spam, ever.
+            </p>
+        </div>
     </div>
-    <div class="window-box" style="padding: 10px;">
-        <div class="ad-placeholder">Future AdSense Space<br>(300 x 250)</div>
-    </div>
-</aside>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
-
-<div id="cookie-banner" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 3px solid #000; padding: 15px 20px; z-index: 9999; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-    <div style="flex: 1; min-width: 250px; font-size: 0.95rem; color: #333; line-height: 1.5;">
-        🍪 <strong>We use cookies.</strong> This website uses cookies to improve your experience, analyze site traffic, and serve personalized ads. By clicking "Accept", you consent to our use of cookies as described in our Privacy Policy.
-    </div>
-    <button onclick="acceptCookies()" style="background: #000; color: #fff; border: 2px solid #000; padding: 10px 20px; font-weight: bold; cursor: pointer; white-space: nowrap;">Accept Cookies</button>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        if (!localStorage.getItem('cookies_accepted')) {
-            document.getElementById('cookie-banner').style.display = 'flex';
-        }
-    });
-    function acceptCookies
+    <!-- Application Architecture Execution Scripts -->
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
