@@ -103,6 +103,19 @@ async function handleAuthSubmit() {
     }
 }
 
+async function handleForgotPassword() {
+    const email = document.getElementById('auth-email').value.trim();
+    if (!email) return alert("Please type your email address into the box first, then click 'Forgot Password?'.");
+
+    const { error } = await myDatabase.auth.resetPasswordForEmail(email);
+    if (error) {
+        alert("Error: " + error.message);
+    } else {
+        alert("Password reset email sent! Please check your inbox.");
+        closeAuthModal();
+    }
+}
+
 async function logoutUser() {
     await myDatabase.auth.signOut();
     currentUser = null;
