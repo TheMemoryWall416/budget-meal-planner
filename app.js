@@ -282,10 +282,9 @@ function showPage(page) {
     } else if (page === 'add-budget-meal') {
         view.innerHTML = `
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-                <h1 style="margin-top: 0; font-size: 1.8rem;">ADD BUDGET MEAL</h1>
-                <p style="margin: 0;">Posting for: <strong>${selectedCountry}</strong></p>
+                <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">ADD BUDGET MEAL</h1>
+                <p style="margin: 0; font-size: 1.1rem; color: #555; margin-top: 5px;">Posting for: <strong>${selectedCountry}</strong></p>
             </div>
-            
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
                 <select id="meal-type" onchange="toggleMealType()" style="width: 100%; max-width: 450px; padding: 8px; margin-bottom: 15px; border: 2px solid var(--border); box-sizing: border-box;">
                     <option value="home">Home-Cooked (Ingredients)</option>
