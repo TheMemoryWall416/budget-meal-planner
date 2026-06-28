@@ -31,7 +31,7 @@ async function checkAdminStatus(email) {
     updateAuthUI();
 }
 
-function updateAuthUI() {
+async function updateAuthUI() {
     const authBtn = document.getElementById('nav-auth-btn');
     const existingAdminBtn = document.getElementById('nav-admin-btn');
     if (existingAdminBtn) existingAdminBtn.remove();
@@ -40,6 +40,9 @@ function updateAuthUI() {
         if (currentUser) {
             authBtn.innerHTML = '👤 My Profile';
             authBtn.onclick = () => showPage('profile');
+            
+            // Check for unread messages for the badge
+            await checkUnreadMessages();
 
             // Inject the Command Center button if on the whitelist
             if (isAdmin) {
@@ -55,6 +58,19 @@ function updateAuthUI() {
             authBtn.innerHTML = '🚪 Join / Sign In';
             authBtn.onclick = openAuthModal;
         }
+    }
+}
+
+async function checkUnreadMessages() {
+    if (!currentUser) return;
+    const { count, error } = await myDatabase.from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_email', currentUser.email)
+        .eq('is_read', false);
+    
+    const authBtn = document.getElementById('nav-auth-btn');
+    if (authBtn && count > 0) {
+        authBtn.innerHTML = `👤 My Profile (${count} New)`;
     }
 }
 
@@ -451,17 +467,24 @@ function showPage(page) {
     } else if (page === 'profile') {
         view.innerHTML = `
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-                <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">MY PROFILE</h1>
+                <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">MY PROFILE & INBOX</h1>
             </div>
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; text-align: center;">
                 <h2 style="margin-top:0;">Welcome!</h2>
                 <p>You are signed in as: <strong style="font-size:1.1rem; display:block; margin-top: 5px;">${currentUser ? currentUser.email : 'Unknown'}</strong></p>
-                <div style="background: #fdf6e3; border: 2px dashed #ccc; padding: 20px; margin: 20px 0;">
-                    <p style="color: #666; margin: 0; font-style: italic;">(More profile features like your saved recipes and personal submissions are coming soon!)</p>
+                <button onclick="logoutUser()" style="margin-bottom: 10px;">🚪 Sign Out</button>
+            </div>
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
+                <h2 style="margin-top:0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Private Inbox</h2>
+                <p style="font-size: 0.9rem; color: #555; margin-top: 0;">Have a suggestion, question, or issue? Chat directly with Anton & Jenny here.</p>
+                <div id="member-messages" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px; padding: 15px; border: 2px solid var(--border); background: #fdf6e3;">Loading messages...</div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="new-message-text" placeholder="Type your message..." style="flex: 1; margin: 0;">
+                    <button onclick="sendMessageToAdmin()" style="margin: 0;">Send</button>
                 </div>
-                <button onclick="logoutUser()">🚪 Sign Out</button>
             </div>
         `;
+        loadMemberMessages();
     } else if (page === 'admin') {
         if (!isAdmin) { showPage('home'); return; }
         
@@ -552,6 +575,76 @@ function showPage(page) {
         view.innerHTML = `<div class="window-box"><h1>${page.replace(/-/g, ' ').toUpperCase()}</h1></div>`;
     }
 }
+
+// ==========================================
+// --- MEMBER INBOX LOGIC ---
+// ==========================================
+
+async function loadMemberMessages() {
+    if (!currentUser) return;
+    const container = document.getElementById('member-messages');
+    
+    // Auto-mark any messages sent to this user as 'read'
+    await myDatabase.from('messages')
+        .update({ is_read: true })
+        .eq('recipient_email', currentUser.email)
+        .eq('is_read', false);
+    
+    // Clear the notification badge instantly
+    const authBtn = document.getElementById('nav-auth-btn');
+    if (authBtn) authBtn.innerHTML = '👤 My Profile';
+
+    // Fetch the threaded conversation
+    const { data, error } = await myDatabase.from('messages')
+        .select('*')
+        .or(`email.eq.${currentUser.email},recipient_email.eq.${currentUser.email}`)
+        .order('created_at', { ascending: true }); // Oldest first for a natural chat flow
+
+    if (error) { container.innerHTML = 'Error loading messages.'; return; }
+    if (data.length === 0) { container.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No messages yet. Send us a message below!</p>'; return; }
+
+    let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+    data.forEach(msg => {
+        const isMine = msg.email === currentUser.email;
+        const bg = isMine ? '#ffffff' : 'var(--nav-color)';
+        const align = isMine ? 'align-self: flex-end; text-align: right;' : 'align-self: flex-start; text-align: left;';
+        const sender = isMine ? 'You' : 'Anton & Jenny';
+        html += `
+            <div style="background: ${bg}; border: 2px solid var(--border); padding: 10px; border-radius: 4px; max-width: 80%; ${align}">
+                <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; color: #333;">${sender} - ${new Date(msg.created_at).toLocaleString()}</div>
+                <div style="font-size: 0.95rem; white-space: pre-wrap;">${msg.message}</div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+    container.scrollTop = container.scrollHeight; // Auto-scroll to the newest message
+}
+
+async function sendMessageToAdmin() {
+    const input = document.getElementById('new-message-text');
+    const text = input.value.trim();
+    if (!text || !currentUser) return;
+    
+    input.disabled = true;
+    
+    const { error } = await myDatabase.from('messages').insert([{
+        name: 'Member Message',
+        email: currentUser.email,
+        recipient_email: 'admin',
+        message: text,
+        is_read: false
+    }]);
+    
+    input.disabled = false;
+    
+    if (error) alert("Error: " + error.message);
+    else {
+        input.value = '';
+        loadMemberMessages();
+    }
+}
+
 
 function renderCategoryList(context) {
     const view = document.getElementById('main-view');
@@ -1173,7 +1266,15 @@ async function reportRecipe(title, id) {
     const reason = prompt("Why are you reporting this?");
     if (!reason) return;
 
-    const { error } = await myDatabase.from('messages').insert([{ name: "REPORTED: " + title, email: "System ID: " + id, message: "REASON: " + reason }]);
+    const reporterEmail = currentUser ? currentUser.email : 'Guest';
+
+    const { error } = await myDatabase.from('messages').insert([{ 
+        name: "REPORTED: " + title, 
+        email: reporterEmail + " (System ID: " + id + ")", 
+        recipient_email: 'admin',
+        message: "REASON: " + reason,
+        is_read: false
+    }]);
     if (error) alert("Error sending report: " + error.message);
     else alert("Report submitted successfully. Thank you!");
 }
@@ -1183,7 +1284,6 @@ async function reportRecipe(title, id) {
 // ==========================================
 
 function switchAdminTab(tab) {
-    // Reset tab colors
     ['inbox', 'review', 'library', 'settings'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
@@ -1413,31 +1513,77 @@ function renderAdminItems(data, container, contextPrefix) {
 async function approveRecipe(id) {
     const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
     if (error) alert("Error approving: " + error.message); 
-    else loadReviewQueue(); // Refresh the list
+    else loadReviewQueue(); 
 }
 
 async function loadMessages() {
     const list = document.getElementById('messages-list');
     const { data, error } = await myDatabase.from('messages').select('*').order('created_at', { ascending: false });
+    
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
     if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
+    
+    // Auto-mark incoming messages to admin as read
+    const unreadAdminIds = data.filter(m => m.recipient_email === 'admin' && m.is_read === false).map(m => m.id);
+    if (unreadAdminIds.length > 0) {
+        myDatabase.from('messages').update({ is_read: true }).in('id', unreadAdminIds).then();
+    }
     
     let html = '<div style="display:flex; flex-direction:column; gap: 15px;">';
     data.forEach(msg => {
         const isReport = msg.name.startsWith("REPORTED");
+        const isAdminReply = (msg.email === currentUser.email) || (msg.recipient_email !== 'admin');
+        const unreadBadge = (!isAdminReply && !msg.is_read) ? '<span class="admin-badge badge-pending">UNREAD</span>' : '';
+        
+        const safeEmailId = (msg.email || '').replace(/[^a-zA-Z0-9]/g, '');
+
         html += `
-        <div class="admin-card" style="background: ${isReport ? '#fff0f0' : '#ffffff'}; border: ${isReport ? '2px solid #dc3545' : '2px solid var(--border)'}; flex-direction: column; align-items: flex-start;">
+        <div class="admin-card" style="background: ${isReport ? '#fff0f0' : (isAdminReply ? '#f9f9f9' : '#ffffff')}; border: ${isReport ? '2px solid #dc3545' : '2px solid var(--border)'}; flex-direction: column; align-items: flex-start;">
             <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
                 <div>
-                    <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${msg.name} <span style="font-size: 0.85rem; color: #666;">(${msg.email})</span></p>
+                    <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">
+                        ${isAdminReply ? 'Admin Reply To:' : msg.name} <span style="font-size: 0.85rem; color: #666;">(${isAdminReply ? msg.recipient_email : msg.email})</span> ${unreadBadge}
+                    </p>
                     <p style="font-size: 0.85rem; color: #666; margin: 0;">${new Date(msg.created_at).toLocaleString()}</p>
                 </div>
-                <button style="background: #f8d7da;" onclick="deleteRecord('messages', ${msg.id})">Delete</button>
+                <div style="display: flex; gap: 10px;">
+                    ${!isAdminReply && !isReport ? `<button style="background: #d4edda;" onclick="openAdminReply('${safeEmailId}')">Reply</button>` : ''}
+                    <button style="background: #f8d7da;" onclick="deleteRecord('messages', ${msg.id})">Delete</button>
+                </div>
             </div>
             <p style="white-space: pre-wrap; margin: 0;">${msg.message}</p>
+            
+            <div id="reply-box-${safeEmailId}" style="display:none; width: 100%; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
+                <textarea id="reply-text-${safeEmailId}" rows="3" placeholder="Type your reply to ${msg.email}..." style="width: 100%; margin-bottom: 10px;"></textarea>
+                <button style="background: #d4edda;" onclick="sendAdminReply('${msg.email}', '${safeEmailId}')">Send Reply</button>
+            </div>
         </div>`;
     });
     list.innerHTML = html + '</div>';
+}
+
+function openAdminReply(safeId) {
+    const box = document.getElementById('reply-box-' + safeId);
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function sendAdminReply(recipientEmail, safeId) {
+    const text = document.getElementById('reply-text-' + safeId).value.trim();
+    if (!text) return;
+    
+    const { error } = await myDatabase.from('messages').insert([{
+        name: 'Admin Support',
+        email: currentUser.email,
+        recipient_email: recipientEmail,
+        message: text,
+        is_read: false
+    }]);
+    
+    if (error) alert("Error sending reply: " + error.message);
+    else {
+        alert("Reply sent successfully!");
+        loadMessages();
+    }
 }
 
 async function deleteRecord(table, id) {
