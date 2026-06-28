@@ -3,29 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <title>Contact Us - Budget Meal Planner</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
+        /* ==========================================================
+           SECTION 1: THE CSSOM (CSS Object Model) PAINT ENGINE
+           [MACRO]: Defines the visual geometry and aesthetic rules.
+        ========================================================== */
+
+        /* [ATOMIC]: :root targets the highest level of the DOM tree (the <html> tag). 
+           Variables declared with '--' allocate dynamic memory directly in the CSS engine. */
         :root { --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
-        /* The foundation: Let the page breathe naturally */
         body { 
             font-family: sans-serif; 
             margin: 0; 
+            /* [ATOMIC]: Viewport Height (vh). 5vh forces exactly 5% of the user's physical screen height as padding, making the UI naturally responsive. */
             padding: 5vh 20px; 
             background-color: #eaddcf; 
             min-height: 100vh; 
+            /* [ATOMIC]: box-sizing: border-box alters the browser's physics engine. Padding and borders are calculated *inside* the element's width, preventing horizontal scrollbars. */
             box-sizing: border-box; 
+            /* [ATOMIC]: var() executes a live lookup of the CSS variable stored in :root. */
             color: var(--text); 
         }
         
-        /* Auto-margins center the window perfectly on the screen */
+        /* [ATOMIC]: margin: 0 auto calculates the remaining negative space on the left and right of the 700px box and divides it equally, forcing perfect horizontal centering. */
         .content { width: 100%; max-width: 700px; margin: 0 auto; }
         
-        /* The distinctly light-grey window */
         .window-box { 
             background: #f0f0f0; 
             border: 2px solid var(--border); 
             padding: 40px; 
+            /* [ATOMIC]: 4px X-offset, 4px Y-offset, 15px Blur-radius, rgba (Red, Green, Blue, Alpha transparency at 20%). Computes a hardware-accelerated drop shadow. */
             box-shadow: 4px 4px 15px rgba(0,0,0,0.2); 
             border-radius: 4px; 
         }
@@ -35,17 +46,21 @@
             color: var(--text); 
             padding: 8px 16px; 
             font-size: 0.9rem; 
+            /* [ATOMIC]: text-decoration: none strips the browser's default hyperlink underline. */
             text-decoration: none; 
+            /* [ATOMIC]: inline-block allows the element to sit inline with text, but still respects strict width/height/padding physics. */
             display: inline-block; 
             border: 2px solid var(--border); 
             font-weight: bold; 
             margin-bottom: 20px; 
             cursor: pointer; 
+            /* [ATOMIC]: Solid shadow with 0px blur. Creates the retro/brutalist "pop-out" 3D button effect. */
             box-shadow: 2px 2px 0px var(--border);
         }
+        /* [ATOMIC]: :hover is a CSS pseudo-class. The engine listens for the mouse pointer coordinates to intersect the node's geometry. 
+           filter: brightness(90%) executes a mathematical darkening algorithm across all pixels inside the node. */
         .back-btn:hover { filter: brightness(90%); }
 
-        /* Form Styling: Inputs remain white to pop against the grey window */
         input, textarea { 
             width: 100%; 
             border: 2px solid var(--border); 
@@ -57,7 +72,6 @@
             font-size: 1rem; 
         }
         
-        /* THE FIX: Button is now grey with black text to match the aesthetic */
         button { 
             cursor: pointer; 
             background: var(--btn-grey); 
@@ -87,6 +101,7 @@
                 <input type="text" id="contact-name" placeholder="Your Name" required>
                 <input type="email" id="contact-email" placeholder="Your Email Address" required>
                 <textarea id="contact-message" rows="6" placeholder="How can we help you?" required></textarea>
+                
                 <button onclick="submitMessage()">Send Message</button>
             </div>
 
@@ -102,13 +117,26 @@
 </div>
 
 <script>
+    /* ==========================================================
+       SECTION 3: ENGINE INITIALIZATION & DYNAMIC UI HYDRATION
+       [MACRO]: Connects to Supabase and pulls in the dynamic Night Sky/Sanctuary background.
+    ========================================================== */
+
+    // [ATOMIC]: Pointer allocation mapping HTTP address arrays natively globally logically.
     const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
+    
+    // [ATOMIC]: Instantiates isolated HTTP client tunneling parameters mapped into the browser's global memory.
     const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+    // [ATOMIC]: Event Listener execution sequence. Fires exactly when the OS signals the DOM parser has finished building the visual nodes.
     window.onload = async function() {
+        // [ATOMIC]: Destructures `{ data }` from HTTP Promise resolution. .select('main_background_url') aggressively restricts the payload bandwidth to only one column instead of pulling the whole row.
         const { data } = await myDatabase.from('site_config').select('main_background_url').eq('id', 1).single();
+        
+        // [ATOMIC]: Deep evaluation logic gate. Checks if `data` is a valid Object AND if the string property `main_background_url` contains truthy character bytes.
         if (data && data.main_background_url) {
+            // [ATOMIC]: Directly executes CSS Object Model (CSSOM) mutation natively.
             document.body.style.backgroundImage = `url('${data.main_background_url}')`;
             document.body.style.backgroundSize = 'cover';
             document.body.style.backgroundPosition = 'center center';
@@ -117,25 +145,36 @@
         }
     };
 
+    /* ==========================================================
+       SECTION 4: DATA MUTATION & HTTP PAYLOADS
+       [MACRO]: Captures user input, validates it, and executes a database insertion.
+    ========================================================== */
+
     async function submitMessage() {
+        // [ATOMIC]: .value reads the dynamic user-mutated String from the Node. .trim() executes a standard regex strip of whitespace character codes (\x20).
         const name = document.getElementById('contact-name').value.trim();
         const email = document.getElementById('contact-email').value.trim();
         const message = document.getElementById('contact-message').value.trim();
 
+        // [ATOMIC]: Logical NOT (!) casts empty strings to 'true'. Logical OR (||) halts the execution thread entirely ('return') if any single node is empty.
         if (!name || !email || !message) {
             alert("Please fill out all fields before sending.");
             return;
         }
 
+        // [ATOMIC]: Constructs an Array of Objects `[{}]` payload, natively compliant with PostgREST HTTP transmission protocols.
+        // [LIVE WIRE]: 'messages' table must exist. Columns 'name', 'email', and 'message' must exactly match the schema syntax.
         const { error } = await myDatabase.from('messages').insert([{ 
             name: name, 
             email: email, 
             message: message 
         }]);
 
+        // [ATOMIC]: Error boundary. If HTTP 400/500 code returns, extracts the nested error.message string dynamically mapping to a browser alert.
         if (error) {
             alert("Something went wrong: " + error.message);
         } else {
+            // [ATOMIC]: DOM Reflow Trigger. Modifying .style.display forces the browser engine to physically recalculate geometry and repaint the screen.
             document.getElementById('form-container').style.display = 'none';
             document.getElementById('success-message').style.display = 'block';
         }
