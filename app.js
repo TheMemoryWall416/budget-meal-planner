@@ -22,12 +22,14 @@ async function initAuth() {
 
 function updateAuthUI() {
     const authBtn = document.getElementById('nav-auth-btn');
-    if (currentUser) {
-        authBtn.innerHTML = '👤 My Profile';
-        authBtn.onclick = () => showPage('profile');
-    } else {
-        authBtn.innerHTML = '🚪 Join / Sign In';
-        authBtn.onclick = openAuthModal;
+    if (authBtn) {
+        if (currentUser) {
+            authBtn.innerHTML = '👤 My Profile';
+            authBtn.onclick = () => showPage('profile');
+        } else {
+            authBtn.innerHTML = '🚪 Join / Sign In';
+            authBtn.onclick = openAuthModal;
+        }
     }
 }
 
@@ -90,7 +92,6 @@ async function handleAuthSubmit() {
     if (error) {
         alert("Error: " + error.message);
     } else {
-        // Supabase sometimes requires email confirmation depending on settings
         if (!isLoginMode && data?.user && data?.session === null) {
             alert("Registration successful! Check your email to confirm your account.");
         } else {
@@ -210,7 +211,7 @@ window.onload = function() {
         countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     }
     
-    initAuth(); // <-- Initializes Session on Load
+    initAuth(); // Initialize authentication state on load
     handleVisitorSession();
     fetchBudgetTips(); 
     setInterval(updateHack, 30000); 
@@ -842,7 +843,13 @@ async function viewBudgetMeal(id) {
 
     view.innerHTML = `
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="showPage('find-budget-meals')" style="margin-bottom: 15px;">← Back</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <button onclick="showPage('find-budget-meals')" style="margin:0;">← Back</button>
+                <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+                <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
+                <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
+            </div>
+            
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
@@ -851,11 +858,8 @@ async function viewBudgetMeal(id) {
         
         ${contentHTML}
         
-        <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; width: 100%; max-width: 650px;">
-            <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
-            <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
-            <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
-            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 8px 16px; font-size: 0.85rem; margin: 0;">⚠️ Report Recipe</button>
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.8rem; margin: 0;">⚠️ Report Recipe</button>
         </div>
     `;
 }
@@ -926,7 +930,13 @@ async function viewRecipe(id) {
 
     view.innerHTML = `
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin:0;">← Back</button>
+                <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+                <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
+                <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
+            </div>
+
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date}</p>
         </div>
