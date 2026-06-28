@@ -10,22 +10,47 @@ let totalVisitors = 10000;
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
 let dynamicBudgetTips = []; 
 
-// --- AUTHENTICATION STATE & LOGIC ---
+// --- AUTHENTICATION & ADMIN STATE ---
 let currentUser = null;
 let isLoginMode = false;
+let isAdmin = false;
 
 async function initAuth() {
     const { data: { session } } = await myDatabase.auth.getSession();
     currentUser = session ? session.user : null;
+    if (currentUser) {
+        await checkAdminStatus(currentUser.email);
+    } else {
+        updateAuthUI();
+    }
+}
+
+async function checkAdminStatus(email) {
+    const { data, error } = await myDatabase.from('admin_whitelist').select('*').eq('email', email).single();
+    isAdmin = !!data; 
     updateAuthUI();
 }
 
 function updateAuthUI() {
     const authBtn = document.getElementById('nav-auth-btn');
+    const existingAdminBtn = document.getElementById('nav-admin-btn');
+    if (existingAdminBtn) existingAdminBtn.remove();
+
     if (authBtn) {
         if (currentUser) {
             authBtn.innerHTML = '👤 My Profile';
             authBtn.onclick = () => showPage('profile');
+
+            // Inject the Command Center button if on the whitelist
+            if (isAdmin) {
+                const adminBtn = document.createElement('a');
+                adminBtn.id = 'nav-admin-btn';
+                adminBtn.href = 'javascript:void(0)';
+                adminBtn.onclick = () => showPage('admin');
+                adminBtn.style.cssText = 'background: #f8d7da; border-color: #dc3545; margin-top: 8px; color: #900;';
+                adminBtn.innerHTML = '⚙️ Command Center';
+                authBtn.parentNode.insertBefore(adminBtn, authBtn.nextSibling);
+            }
         } else {
             authBtn.innerHTML = '🚪 Join / Sign In';
             authBtn.onclick = openAuthModal;
@@ -96,7 +121,7 @@ async function handleAuthSubmit() {
             alert("Registration successful! Check your email to confirm your account.");
         } else {
             currentUser = data.user;
-            updateAuthUI();
+            await checkAdminStatus(currentUser.email);
             closeAuthModal();
             alert(isLoginMode ? "Welcome back to the kitchen!" : "Account created successfully! Welcome to the community.");
         }
@@ -119,6 +144,7 @@ async function handleForgotPassword() {
 async function logoutUser() {
     await myDatabase.auth.signOut();
     currentUser = null;
+    isAdmin = false;
     updateAuthUI();
     showPage('home');
 }
@@ -375,6 +401,48 @@ function showPage(page) {
                         <h2 style="font-size: 1.5rem; margin-top: 0; margin-bottom: 15px;">About Us</h2>
                         <h3 style="font-size: 1.2rem; margin-top: 0; margin-bottom: 5px;">Meet the Team</h3>
                         <p style="line-height: 1.6; margin-top: 0;">Hi! We're Anton and Jenny from South Africa, and we're the team behind this platform.</p>
+                        
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Who We Are</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">This website is my very first live project. I'm a self-taught developer who wanted to build something genuinely useful for everyday people. Jenny balances her full-time job as an online teacher while also serving as our lead administrator, manually reviewing community recipes and comments to help keep the platform friendly, helpful, and welcoming.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Why We Built This</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">We created this platform because we couldn't find a recipe website that truly focused on affordable, realistic meals while allowing the community to actively participate. Too many recipe sites are filled with clickbait, AI-generated content, endless ads, or recipes that require expensive or difficult-to-find ingredients.</p>
+                        <p style="line-height: 1.6;">As a family living on a budget ourselves, we wanted to create one central place where people from all over the world can discover, share, and discuss recipes and budget-friendly meals.</p>
+                        <p style="line-height: 1.6;">We believe good food shouldn't be expensive, and great recipes should be shared — not hidden behind paywalls, flooded with advertisements, or buried beneath endless clickbait.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Our Approach</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">Our goal has always been to build a platform that puts people first. While technology helps us run the website, we believe the heart of this community should always be real people sharing real recipes, honest experiences, and practical advice.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Keeping It Free</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">The platform is completely free to use. To help cover the running costs, we've included a small number of carefully placed advertisements. We've worked hard to make sure they're as unobtrusive as possible and don't get in the way of your experience.</p>
+                        <p style="line-height: 1.6;">As the platform continues to grow, our goal is to improve this even further — whether that means reducing or removing ads in the future, or making sure any advertisements that remain are more relevant, valuable, and genuinely useful to our community.</p>
+                        <p style="line-height: 1.6;">We believe that if ads are part of the platform, they should add value rather than simply take up space.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Join the Community</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">You do not need an account to use this platform. You can browse recipes, discover budget-friendly meals, share recipes, read comments, and explore the community completely free.</p>
+                        <p style="line-height: 1.6;">Creating a free account simply allows you to become a more active part of the community. Members can join discussions, leave comments, save favourite recipes, keep track of their contributions, and help shape the platform through their ideas and feedback.</p>
+                        <p style="line-height: 1.6;">We only ask for your email address as your login ID, and you choose your own password.</p>
+                        <p style="line-height: 1.6;">Creating an account does not mean you will receive unwanted emails, and we will never sell or share your email address.</p>
+                        <p style="line-height: 1.6;">The only emails you may receive from us are:</p>
+                        <ul style="line-height: 1.6; margin-top: 0; padding-left: 20px;">
+                            <li>Replies or feedback related to something you have contacted us about, such as a suggestion, question, or report.</li>
+                            <li>Newsletter emails, but only if you specifically choose to sign up for our newsletter.</li>
+                        </ul>
+                        <p style="line-height: 1.6;">We believe your inbox belongs to you. We don't want to send emails to people who don't want them, which is why newsletters are only sent to people who actively choose to receive them.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Helping Us Improve</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">Because there are only two of us running the platform, there may occasionally be something we miss. If you notice anything unusual, inappropriate, or simply not working as it should, please use the Report button or contact us directly.</p>
+                        <p style="line-height: 1.6;">Every report, suggestion, recipe, and comment helps make the platform better, and we'll always do our best to respond as quickly as we can.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">The Journey Ahead</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">We're only just getting started. We have lots of ideas and exciting features planned for the future, and many of them will come directly from suggestions made by our community.</p>
+                        <p style="line-height: 1.6;">We'll always listen, keep improving, and build this platform together with the people who use it.</p>
+                        <p style="line-height: 1.6;">Thank you so much for visiting our website. We truly hope it's been useful, exceeded your expectations, and maybe even helped you discover your next favourite meal.</p>
+                        <p style="line-height: 1.6;">Our mission is simple: to build one of the friendliest, most useful, and completely free recipe communities on the internet — one recipe at a time.</p>
+                        
+                        <p style="line-height: 1.6; font-style: italic;">One last thing... if something breaks, don't worry — Anton was probably just "optimising" his code. Jenny will gently remind him that it was working perfectly before he started "improving" it.</p>
+                        
+                        <p style="line-height: 1.6;">We look forward to seeing the recipes, ideas, and conversations that this community will create.</p>
                         <p style="line-height: 1.6; font-size: 1.2rem; margin-top: 20px;">Happy cooking,<br><strong>Anton & Jenny</strong></p>
                     </div>
                 </div>
@@ -394,6 +462,41 @@ function showPage(page) {
                 <button onclick="logoutUser()">🚪 Sign Out</button>
             </div>
         `;
+    } else if (page === 'admin') {
+        if (!isAdmin) { showPage('home'); return; }
+        
+        view.innerHTML = `
+            <style>
+                .admin-card { border: 2px solid var(--border); padding: 20px; margin-bottom: 15px; background: #ffffff; display: flex; justify-content: space-between; align-items: center; }
+                .admin-card-content { flex-grow: 1; }
+                .admin-card-actions { display: flex; gap: 10px; margin-left: 15px; flex-wrap: wrap; justify-content: flex-end;}
+                .admin-badge { padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: 2px solid var(--border); margin-left: 10px; background: #fff; display: inline-block; margin-bottom: 5px;}
+                .badge-special { background: #fff3cd; }
+                .badge-plan { background: #cce5ff; }
+                .badge-pet { background: #e2d9f3; }
+                .badge-pending { background: #ffeeba; }
+                .badge-approved { background: #d4edda; }
+                .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #ffffff; padding: 20px; border: 2px solid var(--border); }
+            </style>
+            
+            <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="margin: 0; font-size: 1.8rem;">Command Center</h1>
+                    <p style="margin: 0; font-size: 1rem; color: #555;">Authorized personnel only.</p>
+                </div>
+            </div>
+            
+            <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
+                <button id="tab-inbox" onclick="switchAdminTab('inbox')" style="margin:0;">📥 Inbox & Reports</button>
+                <button id="tab-review" onclick="switchAdminTab('review')" style="margin:0;">⏳ New Recipe Queue</button>
+                <button id="tab-library" onclick="switchAdminTab('library')" style="margin:0;">📚 Manage Library</button>
+                <button id="tab-settings" onclick="switchAdminTab('settings')" style="margin:0;">⚙️ Site Settings</button>
+            </div>
+            
+            <div id="admin-content-area" style="width: 100%; max-width: 900px;"></div>
+        `;
+        switchAdminTab('inbox');
+        
     } else if (page === 'find-recipes') {
         renderFindHub();
     } else if (page === 'find-budget-meals') {
@@ -1073,4 +1176,430 @@ async function reportRecipe(title, id) {
     const { error } = await myDatabase.from('messages').insert([{ name: "REPORTED: " + title, email: "System ID: " + id, message: "REASON: " + reason }]);
     if (error) alert("Error sending report: " + error.message);
     else alert("Report submitted successfully. Thank you!");
+}
+
+// ==========================================
+// --- ADMIN COMMAND CENTER LOGIC & VIEWS ---
+// ==========================================
+
+function switchAdminTab(tab) {
+    // Reset tab colors
+    ['inbox', 'review', 'library', 'settings'].forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
+    });
+
+    const area = document.getElementById('admin-content-area');
+    
+    if (tab === 'inbox') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">User Messages & Reports</h2>
+                <div id="messages-list">Loading...</div>
+            </div>`;
+        loadMessages();
+    } 
+    else if (tab === 'review') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">Needs Approval</h2>
+                <div class="search-box">
+                    <select id="review-tier1" onchange="updateTier2('review')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
+                    <select id="review-tier2" onchange="updateTier3('review')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
+                    <select id="review-tier3" onchange="loadReviewQueue()" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
+                </div>
+                <div id="review-list" style="margin-top: 20px;">Loading...</div>
+            </div>`;
+        setupAdminFilters('review');
+    } 
+    else if (tab === 'library') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">Approved Content</h2>
+                <div class="search-box">
+                    <input type="text" id="library-search" placeholder="Search title or ingredient..." style="flex-basis: 100%; margin-bottom: 10px;" onkeyup="if(event.key === 'Enter') loadLibrary()">
+                    <select id="library-tier1" onchange="updateTier2('library')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
+                    <select id="library-tier2" onchange="updateTier3('library')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
+                    <select id="library-tier3" onchange="loadLibrary()" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
+                    <button onclick="loadLibrary()" style="flex-basis: 100%; margin-top: 10px;">🔍 Search / Apply Filters</button>
+                </div>
+                <div id="library-list" style="margin-top: 20px;">Loading...</div>
+            </div>`;
+        setupAdminFilters('library');
+    } 
+    else if (tab === 'settings') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">Site Settings</h2>
+                <div class="admin-card" style="flex-direction: column; align-items: flex-start;">
+                    <h3 style="margin-top: 0;">📸 Update Team Photo</h3>
+                    <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
+                    <button style="background: #d4edda;" onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
+                </div>
+                <div class="admin-card" style="flex-direction: column; align-items: flex-start; margin-top: 20px;">
+                    <h3 style="margin-top: 0;">🖼️ Update Website Background</h3>
+                    <input type="file" id="bg-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
+                    <button style="background: #d4edda;" onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
+                </div>
+            </div>`;
+    }
+}
+
+function setupAdminFilters(ctx) {
+    const types = [
+        { id: "all", label: "-- All Content Types --" },
+        { id: "global", label: "🍲 Global Recipes" },
+        { id: "budget", label: "💰 Budget Meals" },
+        { id: "special", label: "🏷️ Local Specials" },
+        { id: "plan", label: "📅 7-Day Meal Plans" },
+        { id: "pet", label: "🐾 Pet Food & Treats" }
+    ];
+    const t1 = document.getElementById(`${ctx}-tier1`);
+    if(t1) {
+        types.forEach(t => {
+            let opt = document.createElement('option');
+            opt.value = t.id; opt.innerHTML = t.label;
+            t1.appendChild(opt);
+        });
+    }
+    if (ctx === 'review') loadReviewQueue(); else loadLibrary();
+}
+
+function updateTier2(context) {
+    const t1 = document.getElementById(`${context}-tier1`).value;
+    const t2 = document.getElementById(`${context}-tier2`);
+    const t3 = document.getElementById(`${context}-tier3`);
+    
+    t2.innerHTML = ''; t3.innerHTML = '';
+    t2.style.display = 'none'; t3.style.display = 'none';
+
+    if (t1 === 'global') {
+        t2.style.display = 'block';
+        t2.innerHTML = '<option value="all">-- All Main Categories --</option>';
+        Object.keys(categories).forEach(cat => {
+            if (cat !== 'Pet Food & Treats' && cat !== 'Specialized Plans') {
+                t2.innerHTML += `<option value="${cat}">${cat}</option>`;
+            }
+        });
+    } else if (t1 === 'budget' || t1 === 'special') {
+        t2.style.display = 'block';
+        t2.innerHTML = '<option value="all">-- All Countries --</option>';
+        countries.forEach(c => t2.innerHTML += `<option value="${c}">${c}</option>`);
+    } else if (t1 === 'pet') {
+        t2.style.display = 'block';
+        t2.innerHTML = '<option value="all">-- All Pets --</option>';
+        categories['Pet Food & Treats'].forEach(sub => t2.innerHTML += `<option value="${sub}">${sub}</option>`);
+    }
+    if (context === 'review') loadReviewQueue(); else loadLibrary();
+}
+
+function updateTier3(context) {
+    const t1 = document.getElementById(`${context}-tier1`).value;
+    const t2 = document.getElementById(`${context}-tier2`).value;
+    const t3 = document.getElementById(`${context}-tier3`);
+
+    t3.innerHTML = ''; t3.style.display = 'none';
+
+    if (t1 === 'global' && t2 !== 'all') {
+        t3.style.display = 'block';
+        t3.innerHTML = '<option value="all">-- All Subcategories --</option>';
+        categories[t2].forEach(sub => t3.innerHTML += `<option value="${sub}">${sub}</option>`);
+    } else if (t1 === 'budget') {
+        t3.style.display = 'block';
+        t3.innerHTML = `<option value="all">-- All Meal Types --</option><option value="home">Home-Cooked</option><option value="takeaway">Takeaway</option>`;
+    }
+    if (context === 'review') loadReviewQueue(); else loadLibrary();
+}
+
+function buildAdminQuery(context, status) {
+    let query = myDatabase.from('meals').select('id, title, category, country, meal_type, created_at').eq('status', status).order('created_at', { ascending: false });
+    
+    const t1 = document.getElementById(`${context}-tier1`).value;
+    const t2 = document.getElementById(`${context}-tier2`) ? document.getElementById(`${context}-tier2`).value : 'all';
+    const t3 = document.getElementById(`${context}-tier3`) ? document.getElementById(`${context}-tier3`).value : 'all';
+
+    if (context === 'library') {
+        const term = document.getElementById('library-search').value.trim();
+        if (term !== '') { query = query.or(`title.ilike.%${term}%,recipe.ilike.%${term}%`); } 
+        else { query = query.limit(50); }
+    } else {
+        query = query.limit(100);
+    }
+
+    if (t1 === 'global') {
+        if (t3 !== 'all') {
+            query = query.eq('category', t3);
+        } else if (t2 !== 'all') {
+            query = query.in('category', categories[t2]);
+        } else {
+            let allGlobalSubcats = [];
+            Object.keys(categories).forEach(c => {
+                if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
+                    allGlobalSubcats = allGlobalSubcats.concat(categories[c]);
+                }
+            });
+            query = query.in('category', allGlobalSubcats);
+        }
+    } else if (t1 === 'budget') {
+        query = query.eq('category', 'budget');
+        if (t2 !== 'all') query = query.eq('country', t2);
+        if (t3 !== 'all') query = query.eq('meal_type', t3);
+    } else if (t1 === 'special') {
+        query = query.eq('category', 'special');
+        if (t2 !== 'all') query = query.eq('country', t2);
+    } else if (t1 === 'plan') {
+        query = query.eq('category', '7-Day Meal Plans');
+    } else if (t1 === 'pet') {
+        if (t2 !== 'all') { query = query.eq('category', t2); } 
+        else { query = query.in('category', categories['Pet Food & Treats']); }
+    }
+    return query;
+}
+
+async function loadReviewQueue() {
+    const list = document.getElementById('review-list');
+    list.innerHTML = "Checking for new submissions...";
+    const { data, error } = await buildAdminQuery('review', 'pending');
+    if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<p>Queue is empty for this filter! You are all caught up.</p>`; return; }
+    renderAdminItems(data, list, 'review');
+}
+
+async function loadLibrary() {
+    const list = document.getElementById('library-list');
+    list.innerHTML = "Loading library...";
+    const { data, error } = await buildAdminQuery('library', 'approved');
+    if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<p>No approved content found matching this filter.</p>`; return; }
+    renderAdminItems(data, list, 'library');
+}
+
+function renderAdminItems(data, container, contextPrefix) {
+    let html = '';
+    data.forEach(meal => {
+        let badgeStyle = '';
+        let statusBadge = contextPrefix === 'review' 
+            ? `<span class="admin-badge badge-pending">PENDING</span>` 
+            : `<span class="admin-badge badge-approved">APPROVED</span>`;
+        
+        let typeInfo = `Global Recipe (${meal.category})`;
+        
+        if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country}) - ${meal.meal_type || 'Unknown'}`; } 
+        else if (meal.category === 'special') { badgeStyle = 'badge-special'; typeInfo = `Local Special (${meal.country})`; } 
+        else if (meal.category === '7-Day Meal Plans') { badgeStyle = 'badge-plan'; typeInfo = `Meal Plan (Global)`; } 
+        else if (categories['Pet Food & Treats'].includes(meal.category)) { badgeStyle = 'badge-pet'; typeInfo = `Pet Food (${meal.category})`; }
+
+        html += `
+        <div class="admin-card" id="${contextPrefix}-${meal.id}">
+            <div class="admin-card-content">
+                <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${meal.title} ${statusBadge}</p>
+                <p style="font-size: 0.85rem; color: #666; margin: 0;">Type: ${typeInfo} | ID: ${meal.id} | Date: ${new Date(meal.created_at).toLocaleDateString()}</p>
+            </div>
+            <div class="admin-card-actions">`;
+        
+        if (contextPrefix === 'review') {
+            html += `<button style="background: #d4edda;" onclick="approveRecipe(${meal.id})">Approve</button>`;
+        }
+        
+        html += `
+                <button style="background: #fff3cd;" onclick="openEdit(${meal.id})">Edit</button>
+                <button style="background: #f8d7da;" onclick="deleteRecord('meals', ${meal.id})">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+async function approveRecipe(id) {
+    const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
+    if (error) alert("Error approving: " + error.message); 
+    else loadReviewQueue(); // Refresh the list
+}
+
+async function loadMessages() {
+    const list = document.getElementById('messages-list');
+    const { data, error } = await myDatabase.from('messages').select('*').order('created_at', { ascending: false });
+    if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
+    
+    let html = '<div style="display:flex; flex-direction:column; gap: 15px;">';
+    data.forEach(msg => {
+        const isReport = msg.name.startsWith("REPORTED");
+        html += `
+        <div class="admin-card" style="background: ${isReport ? '#fff0f0' : '#ffffff'}; border: ${isReport ? '2px solid #dc3545' : '2px solid var(--border)'}; flex-direction: column; align-items: flex-start;">
+            <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                <div>
+                    <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${msg.name} <span style="font-size: 0.85rem; color: #666;">(${msg.email})</span></p>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">${new Date(msg.created_at).toLocaleString()}</p>
+                </div>
+                <button style="background: #f8d7da;" onclick="deleteRecord('messages', ${msg.id})">Delete</button>
+            </div>
+            <p style="white-space: pre-wrap; margin: 0;">${msg.message}</p>
+        </div>`;
+    });
+    list.innerHTML = html + '</div>';
+}
+
+async function deleteRecord(table, id) {
+    if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
+    const { error } = await myDatabase.from(table).delete().eq('id', id);
+    if (error) alert("Error deleting: " + error.message);
+    else {
+        if (table === 'messages') loadMessages();
+        else { loadReviewQueue(); loadLibrary(); }
+    }
+}
+
+// --- ADMIN EDIT LOGIC ---
+async function openEdit(id) {
+    const area = document.getElementById('admin-content-area');
+    area.innerHTML = `<div class="window-box"><p>Loading record...</p></div>`;
+    
+    const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
+    if (error) { alert("Error: " + error.message); switchAdminTab('library'); return; }
+
+    area.innerHTML = `
+        <div class="window-box" style="width: 100%; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">Edit Record</h2>
+                <button onclick="switchAdminTab('library')">Cancel & Return</button>
+            </div>
+            
+            <input type="hidden" id="edit-id" value="${data.id}">
+            <label style="font-weight: bold; font-size: 0.9rem;">Recipe Title</label>
+            <input type="text" id="edit-title" placeholder="Recipe Title" value="${(data.title || '').replace(/"/g, '&quot;')}">
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;"><label style="font-weight: bold; font-size: 0.9rem;">Category</label><input type="text" id="edit-category" oninput="toggleAdminFields()" placeholder="e.g. budget, Breakfast" value="${(data.category || '').replace(/"/g, '&quot;')}"></div>
+                <div style="flex: 1;"><label style="font-weight: bold; font-size: 0.9rem;">Country</label><input type="text" id="edit-country" placeholder="e.g. South Africa" value="${(data.country || '').replace(/"/g, '&quot;')}"></div>
+            </div>
+            
+            <label style="font-weight: bold; font-size: 0.9rem;">Meal Type (Crucial for Budget Meals)</label>
+            <select id="edit-meal-type" onchange="toggleAdminFields()">
+                <option value="" ${!data.meal_type ? 'selected' : ''}>Global Recipe (No specific type)</option>
+                <option value="home" ${data.meal_type === 'home' ? 'selected' : ''}>Home-Cooked (Uses Ingredients)</option>
+                <option value="takeaway" ${data.meal_type === 'takeaway' ? 'selected' : ''}>Takeaway (No Ingredients)</option>
+            </select>
+            
+            <div id="edit-budget-fields" style="display:none; gap: 10px; margin-bottom: 15px;">
+                <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Total Cost</label><input type="number" id="edit-cost" placeholder="Cost" step="any" value="${data.cost || ''}"></div>
+                <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Servings</label><input type="number" id="edit-servings" placeholder="Servings" value="${data.servings || ''}"></div>
+            </div>
+            
+            <div id="edit-ingredients-container" style="background: #ffffff; border: 2px solid var(--border); padding: 20px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">Ingredients</h3>
+                <div id="edit-ingredients-list"></div>
+                <button onclick="adminAddIngredientRow()" style="margin-top: 15px;">+ Add Ingredient Row</button>
+            </div>
+            
+            <label style="font-weight: bold; font-size: 0.9rem;">Instructions / What is Included</label>
+            <textarea id="edit-instructions" rows="8" placeholder="Instructions...">${(data.recipe || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+            
+            <button style="background: #d4edda; width: 100%; font-size: 1.1rem; padding: 15px;" onclick="saveEdit()">💾 Save Changes to Database</button>
+        </div>
+    `;
+
+    toggleAdminFields();
+
+    const ingList = document.getElementById('edit-ingredients-list');
+    ingList.innerHTML = ''; 
+    if (data.ingredients && Array.isArray(data.ingredients)) {
+        data.ingredients.forEach(ing => adminAddIngredientRow(ing.item, ing.qty, ing.unit));
+    }
+    adminAddIngredientRow(); 
+}
+
+function toggleAdminFields() {
+    const cat = document.getElementById('edit-category').value.toLowerCase();
+    const mType = document.getElementById('edit-meal-type').value;
+    document.getElementById('edit-budget-fields').style.display = cat === 'budget' ? 'flex' : 'none';
+    document.getElementById('edit-ingredients-container').style.display = mType === 'takeaway' ? 'none' : 'block';
+}
+
+function adminAddIngredientRow(name = '', qty = '', unit = '') {
+    const list = document.getElementById('edit-ingredients-list');
+    const row = document.createElement('div');
+    row.className = 'ingredient-row';
+    row.style.display = 'flex'; row.style.gap = '10px'; row.style.marginBottom = '10px';
+    const safeQty = (qty !== null && qty !== undefined) ? qty : '';
+    row.innerHTML = `
+        <input type="text" class="ing-name" placeholder="Item Name" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0;">
+        <input type="number" step="any" class="ing-qty" placeholder="Qty" value="${safeQty}" style="flex: 1; margin: 0;">
+        <input type="text" class="ing-unit" placeholder="Unit" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0;">
+        <button style="background: #f8d7da; margin: 0; padding: 0 15px;" onclick="this.parentElement.remove()">X</button>
+    `;
+    list.appendChild(row);
+}
+
+async function saveEdit() {
+    const id = document.getElementById('edit-id').value;
+    const cat = document.getElementById('edit-category').value.trim();
+    const mType = document.getElementById('edit-meal-type').value;
+    
+    let structuredIngredients = null;
+    if (mType !== 'takeaway') {
+        structuredIngredients = [];
+        document.querySelectorAll('#edit-ingredients-list .ingredient-row').forEach(row => {
+            const name = row.querySelector('.ing-name').value.trim();
+            const qty = row.querySelector('.ing-qty').value;
+            if (name !== "") structuredIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: row.querySelector('.ing-unit').value.trim() });
+        });
+    }
+
+    let payload = {
+        title: document.getElementById('edit-title').value.trim(), category: cat, country: document.getElementById('edit-country').value.trim(),
+        meal_type: mType === "" ? null : mType, recipe: document.getElementById('edit-instructions').value.trim(), ingredients: structuredIngredients
+    };
+
+    if (cat.toLowerCase() === 'budget') {
+        payload.cost = parseFloat(document.getElementById('edit-cost').value);
+        payload.servings = parseInt(document.getElementById('edit-servings').value);
+    } else { payload.cost = null; payload.servings = null; }
+
+    const { error } = await myDatabase.from('meals').update(payload).eq('id', id);
+    if (error) alert("Error saving: " + error.message);
+    else { alert("Updated successfully!"); switchAdminTab('library'); }
+}
+
+async function uploadTeamPhoto(event) {
+    const file = document.getElementById('team-photo-upload').files[0];
+    if (!file) return alert("Select an image.");
+    const btn = event.target; btn.innerText = "Uploading..."; btn.disabled = true;
+    const name = `team-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    
+    const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
+    if (err1) { btn.innerText = "Upload & Save Image"; btn.disabled = false; return alert("Failed: " + err1.message); }
+
+    const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
+    const { error: err2 } = await myDatabase.from('site_config').update({ team_photo_url: url }).eq('id', 1);
+    
+    btn.innerText = "Upload & Save Image"; btn.disabled = false;
+    if (err2) alert("Failed: " + err2.message); else alert("Updated! Refresh main site.");
+}
+
+async function uploadBackgroundPhoto(event) {
+    const file = document.getElementById('bg-photo-upload').files[0];
+    if (!file) return alert("Select an image.");
+    
+    const btn = event.target; 
+    btn.innerText = "Uploading..."; 
+    btn.disabled = true;
+    
+    const name = `bg-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    
+    const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
+    if (err1) { 
+        btn.innerText = "Upload & Save Background"; 
+        btn.disabled = false; 
+        return alert("Upload Failed: " + err1.message); 
+    }
+
+    const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
+    const { error: err2 } = await myDatabase.from('site_config').update({ main_background_url: url }).eq('id', 1);
+    
+    btn.innerText = "Upload & Save Background"; 
+    btn.disabled = false;
+    
+    if (err2) alert("Database Update Failed: " + err2.message); 
+    else alert("Background Updated! Refresh the main site to see the changes.");
 }
