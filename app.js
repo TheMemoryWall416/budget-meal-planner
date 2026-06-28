@@ -162,8 +162,8 @@ async function fetchStats() {
         navCounter.innerHTML = `
             <div style="margin-bottom: 8px;">🌍 <strong>${totalApprovedRecipes}</strong> Live Recipes</div>
             <div style="margin-bottom: 8px;">📤 <strong>${totalShared}</strong> Total Shared</div>
-            <div style="margin-bottom: 8px; color: #d00;">❤️ <strong>${totalLikes}</strong> Total Likes</div>
-            <div style="color: #008080;">👀 <strong>${totalVisitors.toLocaleString()}</strong> Total Visits</div>
+            <div style="margin-bottom: 8px;">❤️ <strong>${totalLikes}</strong> Total Likes</div>
+            <div>👀 <strong>${totalVisitors.toLocaleString()}</strong> Total Visits</div>
         `;
     }
 }
@@ -211,7 +211,7 @@ window.onload = function() {
         countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     }
     
-    initAuth(); // Initialize authentication state on load
+    initAuth();
     handleVisitorSession();
     fetchBudgetTips(); 
     setInterval(updateHack, 30000); 
@@ -249,13 +249,13 @@ async function executeSearch() {
         .order('created_at', { ascending: false });
 
     if (error) {
-        view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p><button onclick="renderCategoryList('find')">← Back</button></div>`;
+        view.innerHTML = `<button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button><div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`;
         return;
     }
 
     let html = `
-        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="renderCategoryList('find')" style="margin:0;">← Back</button>
+        <button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button>
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
             <h1 style="margin: 0; font-size: 1.8rem;">Search Results</h1>
         </div>
     `;
@@ -268,10 +268,10 @@ async function executeSearch() {
             const author = meal.author || "Community";
             const isBudget = meal.category === 'budget';
             const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
-            const badge = isBudget ? `<span style="background: #ffcc00; padding: 2px 6px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); margin-left: 10px;">BUDGET</span>` : '';
+            const badge = isBudget ? ` - BUDGET` : '';
 
             html += `<div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0;">
-                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title} ${badge}</div>
+                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
                         <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
                      </div>`;
         });
@@ -351,7 +351,8 @@ function showPage(page) {
     if (page === 'home') {
         view.innerHTML = `
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-                <h1 style="margin: 0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
+                <h1 style="margin-top:0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
+                <p style="margin: 0; font-size: 1.2rem; margin-bottom: 0;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
             </div>
 
             <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
@@ -359,51 +360,8 @@ function showPage(page) {
                     <img id="home-team-photo" src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid var(--border); object-fit: cover;">
                     <div style="flex: 1; min-width: 300px;">
                         <h2 style="font-size: 1.5rem; margin-top: 0; margin-bottom: 15px;">About Us</h2>
-                        
                         <h3 style="font-size: 1.2rem; margin-top: 0; margin-bottom: 5px;">Meet the Team</h3>
                         <p style="line-height: 1.6; margin-top: 0;">Hi! We're Anton and Jenny from South Africa, and we're the team behind this platform.</p>
-                        
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Who We Are</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">This website is my very first live project. I'm a self-taught developer who wanted to build something genuinely useful for everyday people. Jenny balances her full-time job as an online teacher while also serving as our lead administrator, manually reviewing community recipes and comments to help keep the platform friendly, helpful, and welcoming.</p>
-
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Why We Built This</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">We created this platform because we couldn't find a recipe website that truly focused on affordable, realistic meals while allowing the community to actively participate. Too many recipe sites are filled with clickbait, AI-generated content, endless ads, or recipes that require expensive or difficult-to-find ingredients.</p>
-                        <p style="line-height: 1.6;">As a family living on a budget ourselves, we wanted to create one central place where people from all over the world can discover, share, and discuss recipes and budget-friendly meals.</p>
-                        <p style="line-height: 1.6;">We believe good food shouldn't be expensive, and great recipes should be shared — not hidden behind paywalls, flooded with advertisements, or buried beneath endless clickbait.</p>
-
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Our Approach</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">Our goal has always been to build a platform that puts people first. While technology helps us run the website, we believe the heart of this community should always be real people sharing real recipes, honest experiences, and practical advice.</p>
-
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Keeping It Free</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">The platform is completely free to use. To help cover the running costs, we've included a small number of carefully placed advertisements. We've worked hard to make sure they're as unobtrusive as possible and don't get in the way of your experience.</p>
-                        <p style="line-height: 1.6;">As the platform continues to grow, our goal is to improve this even further — whether that means reducing or removing ads in the future, or making sure any advertisements that remain are more relevant, valuable, and genuinely useful to our community.</p>
-                        <p style="line-height: 1.6;">We believe that if ads are part of the platform, they should add value rather than simply take up space.</p>
-
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Join the Community</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">You do not need an account to use this platform. You can browse recipes, discover budget-friendly meals, share recipes, read comments, and explore the community completely free.</p>
-                        <p style="line-height: 1.6;">Creating a free account simply allows you to become a more active part of the community. Members can join discussions, leave comments, save favourite recipes, keep track of their contributions, and help shape the platform through their ideas and feedback.</p>
-                        <p style="line-height: 1.6;">We only ask for your email address as your login ID, and you choose your own password.</p>
-                        <p style="line-height: 1.6;">Creating an account does not mean you will receive unwanted emails, and we will never sell or share your email address.</p>
-                        <p style="line-height: 1.6;">The only emails you may receive from us are:</p>
-                        <ul style="line-height: 1.6; margin-top: 0; padding-left: 20px;">
-                            <li>Replies or feedback related to something you have contacted us about, such as a suggestion, question, or report.</li>
-                            <li>Newsletter emails, but only if you specifically choose to sign up for our newsletter.</li>
-                        </ul>
-                        <p style="line-height: 1.6;">We believe your inbox belongs to you. We don't want to send emails to people who don't want them, which is why newsletters are only sent to people who actively choose to receive them.</p>
-
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Helping Us Improve</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">Because there are only two of us running the platform, there may occasionally be something we miss. If you notice anything unusual, inappropriate, or simply not working as it should, please use the Report button or contact us directly.</p>
-                        <p style="line-height: 1.6;">Every report, suggestion, recipe, and comment helps make the platform better, and we'll always do our best to respond as quickly as we can.</p>
-
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">The Journey Ahead</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">We're only just getting started. We have lots of ideas and exciting features planned for the future, and many of them will come directly from suggestions made by our community.</p>
-                        <p style="line-height: 1.6;">We'll always listen, keep improving, and build this platform together with the people who use it.</p>
-                        <p style="line-height: 1.6;">Thank you so much for visiting our website. We truly hope it's been useful, exceeded your expectations, and maybe even helped you discover your next favourite meal.</p>
-                        <p style="line-height: 1.6;">Our mission is simple: to build one of the friendliest, most useful, and completely free recipe communities on the internet — one recipe at a time.</p>
-                        
-                        <p style="line-height: 1.6; font-style: italic;">One last thing... if something breaks, don't worry — Anton was probably just "optimising" his code. Jenny will gently remind him that it was working perfectly before he started "improving" it.</p>
-                        
-                        <p style="line-height: 1.6;">We look forward to seeing the recipes, ideas, and conversations that this community will create.</p>
                         <p style="line-height: 1.6; font-size: 1.2rem; margin-top: 20px;">Happy cooking,<br><strong>Anton & Jenny</strong></p>
                     </div>
                 </div>
@@ -420,7 +378,7 @@ function showPage(page) {
                 <div style="background: #fdf6e3; border: 2px dashed #ccc; padding: 20px; margin: 20px 0;">
                     <p style="color: #666; margin: 0; font-style: italic;">(More profile features like your saved recipes and personal submissions are coming soon!)</p>
                 </div>
-                <button onclick="logoutUser()" style="background: #ffcccc; color: #900; border: 2px solid #900; font-size: 1rem; padding: 8px 16px;">🚪 Sign Out</button>
+                <button onclick="logoutUser()">🚪 Sign Out</button>
             </div>
         `;
     } else if (page === 'find-recipes') {
@@ -429,35 +387,36 @@ function showPage(page) {
         loadBudgetMeals(); 
     } else if (page === 'add-budget-meal') {
         view.innerHTML = `
+            <button onclick="showPage('creator-hub')" style="margin-bottom: 15px;">← Back</button>
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
                 <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">ADD BUDGET MEAL</h1>
                 <p style="margin: 0; font-size: 1.1rem; color: #555; margin-top: 5px;">Posting for: <strong>${selectedCountry}</strong></p>
             </div>
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-                <select id="meal-type" onchange="toggleMealType()" style="width: 100%; max-width: 450px; padding: 8px; margin-bottom: 15px; border: 2px solid var(--border); box-sizing: border-box;">
+                <select id="meal-type" onchange="toggleMealType()">
                     <option value="home">Home-Cooked (Ingredients)</option>
                     <option value="takeaway">Takeaway / Fast Food</option>
                 </select>
-                <input type="text" id="budget-title" placeholder="Meal Name (e.g. Steers Phanda)" style="width: 100%; max-width: 450px; box-sizing: border-box;">
+                <input type="text" id="budget-title" placeholder="Meal Name (e.g. Steers Phanda)">
                 <div style="display:flex; gap: 10px; max-width: 450px; margin-bottom: 15px;">
                     <div style="display:flex; flex:1;">
-                        <span style="padding:8px; background:var(--btn-grey); border: 2px solid var(--border); border-right: none; font-weight:bold; box-sizing: border-box;">${currencyMap[selectedCountry]}</span>
-                        <input type="number" id="budget-cost" step="any" placeholder="Total Cost" style="margin-bottom: 0; flex: 1; box-sizing: border-box;">
+                        <span style="padding:8px; background:var(--btn-grey); border: 2px solid var(--border); border-right: none; font-weight:bold; box-sizing: border-box;">${currencyMap[selectedCountry] || '$'}</span>
+                        <input type="number" id="budget-cost" step="any" placeholder="Total Cost" style="flex: 1;">
                     </div>
-                    <input type="number" id="budget-servings" placeholder="Servings (e.g. 4)" style="margin-bottom: 0; flex: 1; box-sizing: border-box;">
+                    <input type="number" id="budget-servings" placeholder="Servings (e.g. 4)" style="flex: 1;">
                 </div>
                 <div id="home-cooked-section" style="width: 100%; max-width: 450px;">
                     <div style="background: #f0f0f0; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
                         <h3 style="margin-top: 0;">Ingredients</h3>
                         <div id="ingredients-list"></div>
-                        <button onclick="addIngredientRow()" style="margin: 10px 0 0 0; background: #e0e0e0; font-size: 0.75rem; border: 2px solid var(--border); padding: 6px 12px; cursor: pointer;">+ Add Another Ingredient</button>
+                        <button onclick="addIngredientRow()">+ Add Another Ingredient</button>
                     </div>
-                    <textarea id="recipe-instructions" rows="6" placeholder="Cooking Instructions..." style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
+                    <textarea id="recipe-instructions" rows="6" placeholder="Cooking Instructions..."></textarea>
                 </div>
                 <div id="takeaway-section" style="display: none; width: 100%; max-width: 450px;">
-                    <textarea id="takeaway-included" rows="4" placeholder="What is included? (e.g. 4 Burgers, 2 Large Chips, 2L Coke)" style="width: 100%; box-sizing: border-box;"></textarea>
+                    <textarea id="takeaway-included" rows="4" placeholder="What is included?"></textarea>
                 </div>
-                <button onclick="saveBudgetMeal()" style="margin-top: 10px;">Post Meal Live</button>
+                <button onclick="saveBudgetMeal()">Post Meal Live</button>
             </div>
         `;
         addIngredientRow(); 
@@ -486,8 +445,8 @@ function renderCategoryList(context) {
         : `Select a primary category to post your recipe into.`;
 
     let html = `
+        <button onclick="${context === 'find' ? "showPage('find-recipes')" : "showPage('creator-hub')"}" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="${context === 'find' ? "showPage('find-recipes')" : "showPage('creator-hub')"}" style="margin-bottom: 15px;">← Back</button>
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">${title}</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 5px;">${subtitle}</p>
         </div>
@@ -525,8 +484,8 @@ function renderSubcategoryList(mainCategory, context) {
     const view = document.getElementById('main-view');
     
     let html = `
+        <button onclick="renderCategoryList('${context}')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="renderCategoryList('${context}')" style="margin-bottom: 15px;">← Back</button>
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">${mainCategory}</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Select a specific subcategory.</p>
         </div>
@@ -570,18 +529,18 @@ function renderAddMealPlanForm() {
     });
 
     view.innerHTML = `
+        <button onclick="showPage('creator-hub')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
             <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">ADD 7-DAY MEAL PLAN</h1>
         </div>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
-            <input type="text" id="plan-title" placeholder="Meal Plan Title (e.g., R500 Student Survival Week)" style="width: 100%; box-sizing: border-box; font-weight: bold; font-size: 1.1rem;">
+            <input type="text" id="plan-title" placeholder="Meal Plan Title (e.g., R500 Student Survival Week)" style="font-weight: bold; font-size: 1.1rem;">
             <div style="background: #f0f0f0; border: 2px solid var(--border); padding: 20px; box-sizing: border-box; margin-top: 10px;">
                 <p style="margin-top: 0; font-size: 0.95rem; color: #555;">Fill out the meals for each day. If you plan to eat leftovers or skip a meal, just leave that day blank!</p>
                 ${daysHTML}
             </div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button onclick="saveMealPlan()" style="margin: 0;">Post Plan Live</button>
-                <button onclick="showPage('creator-hub')" style="margin: 0; background: var(--bg); color: var(--text);">Cancel</button>
+                <button onclick="saveMealPlan()">Post Plan Live</button>
             </div>
         </div>
     `;
@@ -629,8 +588,8 @@ async function loadSpecials() {
     if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
 
     let html = `
-        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="showPage('find-recipes')" style="margin:0;">← Back</button>
+        <button onclick="showPage('find-recipes')" style="margin-bottom: 15px;">← Back</button>
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
             <h1 style="margin: 0; font-size: 1.8rem;">Local Specials in ${selectedCountry}</h1>
         </div>
     `;
@@ -644,15 +603,15 @@ async function loadSpecials() {
             html += `
             <div class="window-box" style="margin-bottom: 0;">
                 <div style="margin-bottom: 8px;">
-                    <span style="background: #ffcc00; padding: 3px 8px; font-size: 0.75rem; font-weight: bold; border: 1px solid var(--border); display: inline-block;">EXPIRES: ${expiryStr}</span>
+                    <span style="font-size: 0.75rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">EXPIRES: ${expiryStr}</span>
                 </div>
                 <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
-                <div style="font-size: 1.2rem; margin-bottom: 10px; color: #008080; font-weight: bold;">
+                <div style="font-size: 1.2rem; margin-bottom: 10px; font-weight: bold;">
                     ${currencyMap[selectedCountry] || ''}${meal.cost}
                 </div>
                 <div style="font-size: 1rem; line-height: 1.5; white-space: pre-wrap;">${meal.recipe}</div>
                 <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;">
-                    <button onclick="reportRecipe('${meal.title.replace(/'/g, "\\'")}', ${meal.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.7rem; margin: 0;">⚠️ Report Fake/Expired Deal</button>
+                    <button onclick="reportRecipe('${meal.title.replace(/'/g, "\\'")}', ${meal.id})">⚠️ Report Fake/Expired Deal</button>
                 </div>
             </div>`;
         });
@@ -664,29 +623,29 @@ async function loadSpecials() {
 function renderAddSpecialForm() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
+        <button onclick="showPage('creator-hub')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
             <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">SHARE A LOCAL SPECIAL</h1>
         </div>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
             <p>Posting deal for: <strong>${selectedCountry}</strong></p>
-            <input type="text" id="special-title" placeholder="Deal Name & Store (e.g. Checkers 5kg Braai Pack)" style="width: 100%; max-width: 450px; box-sizing: border-box;">
+            <input type="text" id="special-title" placeholder="Deal Name & Store (e.g. Checkers 5kg Braai Pack)">
             
             <div style="display:flex; flex:1; max-width: 450px; margin-bottom: 15px;">
                 <span style="padding:8px; background:var(--btn-grey); border: 2px solid var(--border); border-right: none; font-weight:bold; box-sizing: border-box;">${currencyMap[selectedCountry] || '$'}</span>
-                <input type="number" id="special-cost" step="any" placeholder="Special Price" style="margin-bottom: 0; flex: 1; box-sizing: border-box;">
+                <input type="number" id="special-cost" step="any" placeholder="Special Price" style="margin-bottom: 0; flex: 1;">
             </div>
 
-            <select id="special-duration" style="width: 100%; max-width: 450px; padding: 8px; margin-bottom: 15px; border: 2px solid var(--border); box-sizing: border-box;">
+            <select id="special-duration">
                 <option value="">-- When does this special end? --</option>
                 <option value="3">Just this weekend (3 days)</option>
                 <option value="7">One week (7 days)</option>
                 <option value="month">Until the end of the month</option>
             </select>
 
-            <textarea id="special-details" rows="4" placeholder="What is included in the deal? Any specific conditions?" style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
+            <textarea id="special-details" rows="4" placeholder="What is included in the deal? Any specific conditions?"></textarea>
             <br>
-            <button onclick="saveSpecial()" style="margin-top: 10px;">Post Deal Live</button>
-            <button onclick="showPage('creator-hub')" style="margin-top: 10px; background: var(--bg); color: var(--text);">Cancel</button>
+            <button onclick="saveSpecial()">Post Deal Live</button>
         </div>
     `;
 }
@@ -736,17 +695,17 @@ async function loadBudgetMeals(filter = 'all') {
     if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
 
     let html = `
-        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="showPage('find-recipes')" style="margin:0;">← Back</button>
+        <button onclick="showPage('find-recipes')" style="margin-bottom: 15px;">← Back</button>
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
             <h1 style="margin: 0; font-size: 1.8rem;">Budget Meals in ${selectedCountry}</h1>
         </div>
     `;
     
     html += `
         <div class="window-box" style="margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="loadBudgetMeals('all')" style="${filter === 'all' ? 'background: var(--nav-color); border-color: var(--border);' : 'margin-right: 10px;'}">All</button>
-            <button onclick="loadBudgetMeals('takeaway')" style="${filter === 'takeaway' ? 'background: var(--nav-color); border-color: var(--border);' : 'margin-right: 10px;'}">Takeaway Only</button>
-            <button onclick="loadBudgetMeals('home')" style="${filter === 'home' ? 'background: var(--nav-color); border-color: var(--border);' : ''}">Home-Cooked Only</button>
+            <button onclick="loadBudgetMeals('all')">All</button>
+            <button onclick="loadBudgetMeals('takeaway')">Takeaway Only</button>
+            <button onclick="loadBudgetMeals('home')">Home-Cooked Only</button>
         </div>
     `;
     
@@ -757,13 +716,12 @@ async function loadBudgetMeals(filter = 'all') {
         data.sort((a, b) => (a.cost / a.servings) - (b.cost / b.servings));
         data.forEach(meal => {
             const costPerPerson = (meal.cost / meal.servings).toFixed(2);
-            const badgeColor = meal.meal_type === 'takeaway' ? '#ffcc00' : '#4caf50';
             const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
             
             html += `
             <div class="window-box" onclick="viewBudgetMeal(${meal.id})" style="cursor: pointer; margin-bottom: 0;">
                 <div style="margin-bottom: 8px;">
-                    <span style="background: ${badgeColor}; padding: 3px 8px; font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block;">${badgeText}</span>
+                    <span style="font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">${badgeText}</span>
                 </div>
                 <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
                 <div style="font-size: 1.1rem;">
@@ -837,19 +795,12 @@ async function viewBudgetMeal(id) {
     }
 
     const costPer = (data.cost / data.servings).toFixed(2);
-    
     const currentUrl = window.location.origin + window.location.pathname + '?budget=' + data.id;
     const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
     view.innerHTML = `
+        <button onclick="showPage('find-budget-meals')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                <button onclick="showPage('find-budget-meals')" style="margin:0;">← Back</button>
-                <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
-                <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
-                <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
-            </div>
-            
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
@@ -858,8 +809,11 @@ async function viewBudgetMeal(id) {
         
         ${contentHTML}
         
-        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
-            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 5px 10px; font-size: 0.8rem; margin: 0;">⚠️ Report Recipe</button>
+        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
+            <button onclick="likeMeal(${data.id}, this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+            <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
+            <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})">⚠️ Report Recipe</button>
         </div>
     `;
 }
@@ -875,13 +829,13 @@ async function loadSubcategory(subcategory, parentCategory) {
         .order('created_at', { ascending: false });
 
     if (error) { 
-        view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p><button onclick="renderSubcategoryList('${parentCategory}', 'find')">← Back</button></div>`; 
+        view.innerHTML = `<button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin-bottom: 15px;">← Back</button><div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; 
         return; 
     }
 
     let html = `
-        <div class="window-box" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin:0;">← Back</button>
+        <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin-bottom: 15px;">← Back</button>
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
             <h1 style="margin: 0; font-size: 1.8rem;">${subcategory}</h1>
         </div>
     `;
@@ -929,14 +883,8 @@ async function viewRecipe(id) {
     const parentCat = data.parent_category || getParentCategory(data.category);
 
     view.innerHTML = `
+        <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin:0;">← Back</button>
-                <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
-                <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
-                <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
-            </div>
-
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date}</p>
         </div>
@@ -945,7 +893,7 @@ async function viewRecipe(id) {
             <h3 style="margin-top: 0; font-size: 1.1rem;">Smart Converter</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="number" step="any" id="conv-amount" oninput="calculateConversion()" placeholder="Qty" style="flex: 1; margin: 0; min-width: 60px;">
-                <select id="conv-from" onchange="updateConverter()" style="flex: 1.5; margin: 0; padding: 8px; border: 2px solid var(--border); background: #fff;">
+                <select id="conv-from" onchange="updateConverter()">
                     <optgroup label="Weight">
                         <option value="g">Gram (g)</option><option value="kg">Kilogram (kg)</option><option value="oz">Ounce (oz)</option><option value="lb">Pound (lb)</option>
                     </optgroup>
@@ -958,7 +906,7 @@ async function viewRecipe(id) {
                     </optgroup>
                 </select>
                 <span style="font-weight: bold; padding: 0 5px;">to</span>
-                <select id="conv-to" onchange="calculateConversion()" style="flex: 1.5; margin: 0; padding: 8px; border: 2px solid var(--border); background: #fff;"></select>
+                <select id="conv-to" onchange="calculateConversion()"></select>
             </div>
             <div id="conv-result" style="margin-top: 10px; font-weight: bold; font-size: 1.2rem; min-height: 25px; color: #333;"></div>
         </div>
@@ -971,11 +919,11 @@ async function viewRecipe(id) {
             <div style="white-space: pre-wrap;">${data.recipe}</div>
         </div>
         
-        <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; width: 100%; max-width: 650px;">
-            <button onclick="likeMeal(${data.id}, this)" style="margin:0; background:#fff0f5; border:2px solid var(--border); color:#d00;">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
-            <button onclick="copyToClipboard('${currentUrl}')" style="margin:0; background:#fff;">🔗 Copy Link</button>
-            <a href="https://wa.me/?text=${whatsappText}" target="_blank" style="display:inline-block; padding: 8px 16px; background:#25D366; color:#fff; font-weight:bold; border:2px solid var(--border); text-decoration:none; font-size:0.85rem; box-sizing:border-box;">📱 WhatsApp</a>
-            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})" style="background: #ffcccc; color: #900; border: 1px solid #900; padding: 8px 16px; font-size: 0.85rem; margin: 0;">⚠️ Report Recipe</button>
+        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
+            <button onclick="likeMeal(${data.id}, this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+            <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
+            <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})">⚠️ Report Recipe</button>
         </div>
     `;
     updateConverter();
@@ -1027,21 +975,21 @@ function showForm(subcategory, parentCategory) {
     const view = document.getElementById('main-view');
     
     view.innerHTML = `
+        <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-            <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 15px;">← Back</button>
             <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">Adding to: ${subcategory}</h1>
         </div>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-            <input type="text" id="recipe-name" placeholder="Recipe Title" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 10px;">
-            <input type="text" id="author-name" placeholder="Your Name (Optional)" style="width: 100%; max-width: 450px; box-sizing: border-box; margin-bottom: 15px;">
+            <input type="text" id="recipe-name" placeholder="Recipe Title">
+            <input type="text" id="author-name" placeholder="Your Name (Optional)">
             <div id="ingredients-container" style="width: 100%; max-width: 450px; background: #f0f0f0; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
                 <h3 style="margin-top: 0;">Ingredients</h3>
                 <div id="ingredients-list"></div>
-                <button onclick="addIngredientRow()" style="margin: 10px 0 0 0; background: #e0e0e0; font-size: 0.75rem; border: 2px solid var(--border); padding: 6px 12px; cursor: pointer;">+ Add Another Ingredient</button>
+                <button onclick="addIngredientRow()">+ Add Another Ingredient</button>
             </div>
-            <textarea id="recipe-instructions" rows="8" placeholder="Instructions..." style="width: 100%; max-width: 450px; box-sizing: border-box;"></textarea>
+            <textarea id="recipe-instructions" rows="8" placeholder="Instructions..."></textarea>
             <br>
-            <button onclick="saveRecipe()" style="margin: 0;">Post Recipe Live</button>
+            <button onclick="saveRecipe()">Post Recipe Live</button>
         </div>
     `;
     addIngredientRow();
@@ -1057,9 +1005,9 @@ function addIngredientRow() {
     row.style.alignItems = 'stretch'; 
 
     row.innerHTML = `
-        <input type="text" class="ing-name" placeholder="Item (e.g. Flour)" style="flex: 2; margin-bottom: 0;">
-        <input type="number" step="any" class="ing-qty" placeholder="Qty" style="flex: 1; margin-bottom: 0;">
-        <select class="ing-unit" style="flex: 1; margin-bottom: 0; padding: 8px; border: 2px solid var(--border); background: #fff;">
+        <input type="text" class="ing-name" placeholder="Item (e.g. Flour)" style="flex: 2;">
+        <input type="number" step="any" class="ing-qty" placeholder="Qty" style="flex: 1;">
+        <select class="ing-unit" style="flex: 1;">
             <option value="">-- Unit --</option>
             <option value="tsp">Teaspoon (tsp)</option>
             <option value="tbsp">Tablespoon (tbsp)</option>
@@ -1075,7 +1023,7 @@ function addIngredientRow() {
             <option value="slice">Slice</option>
             <option value="can">Can</option>
         </select>
-        <button onclick="this.parentElement.remove()" style="margin: 0; background: #ffcccc; color: #900; border: 2px solid #900; padding: 0 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; box-sizing: border-box;">X</button>
+        <button onclick="this.parentElement.remove()">X</button>
     `;
     list.appendChild(row);
 }
