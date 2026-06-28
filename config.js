@@ -1,6 +1,44 @@
+/* ================================================================================
+   THE MASTER ARCHITECT'S MANUAL: config.js (ATOMIC PRECISION)
+   --------------------------------------------------------------------------------
+   This file represents the "Static Memory Bank" (Constants & Configuration). 
+   It initializes read-only data structures into the browser's RAM immediately 
+   upon load, acting as a high-speed dictionary for the main engine (app.js).
+   
+   ATOMIC LEGEND:
+   - [MACRO]: The architecture / business logic of the block.
+   - [MICRO]: Step-by-step roadmap of the function's physical execution.
+   - [ATOMIC]: Pinpoint translation of browser engine mechanics, memory allocation, 
+               data types, and strict syntax behaviors.
+   - [LIVE WIRE]: Critical database column names or HTML IDs that will crash the app.
+================================================================================ */
+
+
+/* ==========================================================
+   SECTION 1: GEOLOCATION & CURRENCY HASH MAP
+   [MACRO]: Provides localized currency formatting for the Budget Meal system.
+========================================================== */
+
+// [ATOMIC]: 'const' locks the memory pointer. 'currencyMap' is assigned an Object Literal `{}`. 
+// In memory, this operates as a "Hash Map" providing O(1) time complexity. 
+// This means looking up `currencyMap["Japan"]` happens instantly without searching the whole list.
+// The values contain Unicode string characters (like ৳ or ﷼) which the browser natively renders.
 const currencyMap = { "Afghanistan": "؋", "Albania": "L", "Algeria": "دج", "Andorra": "€", "Angola": "Kz", "Antigua and Barbuda": "$", "Argentina": "$", "Armenia": "֏", "Australia": "A$", "Austria": "€", "Azerbaijan": "₼", "Bahamas": "$", "Bahrain": "BD", "Bangladesh": "৳", "Barbados": "$", "Belarus": "Br", "Belgium": "€", "Belize": "$", "Benin": "CFA", "Bhutan": "Nu", "Bolivia": "Bs", "Bosnia and Herzegovina": "KM", "Botswana": "P", "Brazil": "R$", "Brunei": "$", "Bulgaria": "лв", "Burkina Faso": "CFA", "Burundi": "FBu", "Cabo Verde": "Esc", "Cambodia": "៛", "Cameroon": "CFA", "Canada": "CA$", "Central African Republic": "CFA", "Chad": "CFA", "Chile": "$", "China": "¥", "Colombia": "$", "Comoros": "CF", "Congo": "CFA", "Costa Rica": "₡", "Croatia": "€", "Cuba": "$", "Cyprus": "€", "Czech Republic": "Kč", "Denmark": "kr", "Djibouti": "Fdj", "Dominica": "$", "Dominican Republic": "$", "Ecuador": "$", "Egypt": "£", "El Salvador": "$", "Equatorial Guinea": "CFA", "Eritrea": "Nfa", "Estonia": "€", "Eswatini": "E", "Ethiopia": "Br", "Fiji": "$", "Finland": "€", "France": "€", "Gabon": "CFA", "Gambia": "D", "Georgia": "₾", "Germany": "€", "Ghana": "₵", "Greece": "€", "Grenada": "$", "Guatemala": "Q", "Guinea": "FG", "Guinea-Bissau": "CFA", "Guyana": "$", "Haiti": "G", "Honduras": "L", "Hungary": "Ft", "Iceland": "kr", "India": "₹", "Indonesia": "Rp", "Iran": "﷼", "Iraq": "ع.د", "Ireland": "€", "Israel": "₪", "Italy": "€", "Jamaica": "$", "Japan": "¥", "Jordan": "JD", "Kazakhstan": "₸", "Kenya": "KSh", "Kiribati": "$", "Kuwait": "KD", "Kyrgyzstan": "som", "Laos": "₭", "Latvia": "€", "Lebanon": "£", "Lesotho": "L", "Liberia": "$", "Libya": "LD", "Liechtenstein": "CHF", "Lithuania": "€", "Luxembourg": "€", "Madagascar": "Ar", "Malawi": "MK", "Malaysia": "RM", "Maldives": "Rf", "Mali": "CFA", "Malta": "€", "Marshall Islands": "$", "Mauritania": "UM", "Mauritius": "₨", "Mexico": "$", "Micronesia": "$", "Moldova": "L", "Monaco": "€", "Mongolia": "₮", "Montenegro": "€", "Morocco": "DH", "Mozambique": "MT", "Myanmar": "Ks", "Namibia": "N$", "Nauru": "$", "Nepal": "₨", "Netherlands": "€", "New Zealand": "NZ$", "Nicaragua": "C$", "Niger": "CFA", "Nigeria": "₦", "North Macedonia": "ден", "Norway": "kr", "Oman": "ر.ع.", "Pakistan": "₨", "Palau": "$", "Palestine": "₪", "Panama": "B/.", "Papua New Guinea": "K", "Paraguay": "₲", "Peru": "S/", "Philippines": "₱", "Poland": "zł", "Portugal": "€", "Qatar": "QR", "Romania": "lei", "Russia": "₽", "Rwanda": "FRw", "Saint Kitts and Nevis": "$", "Saint Lucia": "$", "Saint Vincent and the Grenadines": "$", "Samoa": "WS$", "San Marino": "€", "Sao Tome and Principe": "Db", "Saudi Arabia": "﷼", "Senegal": "CFA", "Serbia": "дин", "Seychelles": "₨", "Sierra Leone": "Le", "Singapore": "S$", "Slovakia": "€", "Slovenia": "€", "Solomon Islands": "$", "Somalia": "Sh", "South Africa": "R", "South Sudan": "£", "Spain": "€", "Sri Lanka": "₨", "Sudan": "£", "Suriname": "$", "Sweden": "kr", "Switzerland": "CHF", "Syria": "£", "Taiwan": "NT$", "Tajikistan": "SM", "Tanzania": "TSh", "Thailand": "฿", "Timor-Leste": "$", "Togo": "CFA", "Tonga": "T$", "Trinidad and Tobago": "TT$", "Tunisia": "DT", "Turkey": "₺", "Turkmenistan": "m", "Tuvalu": "$", "Uganda": "USh", "Ukraine": "₴", "United Arab Emirates": "AED", "UK": "£", "USA": "$", "Uruguay": "$", "Uzbekistan": "so'm", "Vanuatu": "VT", "Vatican City": "€", "Venezuela": "Bs", "Vietnam": "₫", "Yemen": "﷼", "Zambia": "ZK", "Zimbabwe": "Z$" };
+
+// [ATOMIC]: Method Chaining Pipeline. 
+// Step 1: Object.keys(currencyMap) reads the RAM block above and extracts ONLY the country names into a 1-dimensional Array `["Afghanistan", "Albania", ...]`.
+// Step 2: .sort() invokes the browser engine's native lexicographical (alphabetical) sorting algorithm. 
+// It mutates the array into absolute A-Z order and assigns that final array strictly to the `countries` constant.
 const countries = Object.keys(currencyMap).sort();
 
+
+/* ==========================================================
+   SECTION 2: TOPOLOGICAL DATABASE (CATEGORIES)
+   [MACRO]: Defines the exact parent-child hierarchy of the entire application.
+========================================================== */
+
+// [LIVE WIRE]: The strings in this object dictate EVERYTHING. If a string here ("Pork dishes") does not EXACTLY match the string saved in Supabase, your filters and search engine will completely break.
+// [ATOMIC]: 2-Dimensional Structural Map. A Dictionary where the Key is a String ("Main Meals"), and the Value is a dynamically allocated Array `[]` containing localized memory blocks (Subcategories).
 const categories = {
     "Breakfast": ["Hot breakfasts", "Cold breakfasts", "Cereals & oats", "Breakfast sandwiches", "Pancakes, waffles & French toast"],
     "Lunch": ["Light meals", "Sandwiches & wraps", "Salads", "Soups"],
@@ -21,6 +59,14 @@ const categories = {
     "Pet Food & Treats": ["Dogs", "Cats", "Birds", "Small Pets", "Other Pets"]
 };
 
+
+/* ==========================================================
+   SECTION 3: METADATA & UI DECORATIONS
+   [MACRO]: Binds visual emojis and descriptive helper text to the raw category strings.
+========================================================== */
+
+// [ATOMIC]: Nested Object Declaration. Maps a Root Key ("Breakfast") to a Child Object containing multiple typed properties (`icon`: String, `desc`: String). 
+// By structuring data this way, your renderCategoryList() in app.js can instantly extract `meta.icon` and `meta.desc` to paint the screen safely.
 const categoryMeta = {
     "Breakfast": { icon: "🍳", desc: "Start your morning right with hot meals, oats, and bakes." },
     "Lunch": { icon: "🥪", desc: "Midday fuel from quick sandwiches to light salads and soups." },
@@ -138,5 +184,33 @@ const subcategoryMeta = {
     "Other Pets": { icon: "🦎", desc: "Specialty food for reptiles, fish, and exotic pals." }
 };
 
-const convFamilies = { weight: ['g', 'kg', 'oz', 'lb'], volume: ['ml', 'l', 'tsp', 'tbsp', 'cup', 'fl oz'], temp: ['c', 'f'] };
-const convRates = { 'g': 1, 'kg': 1000, 'oz': 28.3495, 'lb': 453.592, 'ml': 1, 'l': 1000, 'tsp': 4.9289, 'tbsp': 14.7868, 'cup': 250, 'fl oz': 29.5735 };
+
+/* ==========================================================
+   SECTION 4: SMART CONVERTER MATHEMATICAL PARAMETERS
+   [MACRO]: The rules engine ensuring measurements are calculated accurately.
+========================================================== */
+
+// [ATOMIC]: Lexical structural grouping Array. This provides safety isolation preventing logical boundary breaches.
+// Example: It forces the app.js updateConverter() function to ONLY allow "weight" items to be converted to other "weight" items.
+const convFamilies = { 
+    weight: ['g', 'kg', 'oz', 'lb'], 
+    volume: ['ml', 'l', 'tsp', 'tbsp', 'cup', 'fl oz'], 
+    temp: ['c', 'f'] 
+};
+
+// [ATOMIC]: Absolute Mathematical Index Map. 
+// Uses floating-point numeric constants (like 28.3495) structured to a strict 'Base-1' logic algorithm.
+// For weight, Grams ('g') is Base 1. For volume, Milliliters ('ml') is Base 1. 
+// The app.js engine multiplies user input by the Origin rate to standardize it to Base-1, then divides by the Destination rate to get the final output.
+const convRates = { 
+    'g': 1, 
+    'kg': 1000, 
+    'oz': 28.3495, 
+    'lb': 453.592, 
+    'ml': 1, 
+    'l': 1000, 
+    'tsp': 4.9289, 
+    'tbsp': 14.7868, 
+    'cup': 250, 
+    'fl oz': 29.5735 
+};
