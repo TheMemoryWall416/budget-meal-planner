@@ -10,6 +10,106 @@ let totalVisitors = 10000;
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
 let dynamicBudgetTips = []; 
 
+// --- AUTHENTICATION STATE & LOGIC ---
+let currentUser = null;
+let isLoginMode = false;
+
+async function initAuth() {
+    const { data: { session } } = await myDatabase.auth.getSession();
+    currentUser = session ? session.user : null;
+    updateAuthUI();
+}
+
+function updateAuthUI() {
+    const authBtn = document.getElementById('nav-auth-btn');
+    if (currentUser) {
+        authBtn.innerHTML = '👤 My Profile';
+        authBtn.onclick = () => showPage('profile');
+    } else {
+        authBtn.innerHTML = '🚪 Join / Sign In';
+        authBtn.onclick = openAuthModal;
+    }
+}
+
+function openAuthModal() {
+    document.getElementById('auth-modal').style.display = 'flex';
+}
+
+function closeAuthModal() {
+    document.getElementById('auth-modal').style.display = 'none';
+}
+
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    const title = document.getElementById('auth-modal-title');
+    const desc = document.getElementById('auth-modal-desc');
+    const btn = document.getElementById('auth-primary-btn');
+    const toggleText = document.getElementById('auth-toggle-text');
+    const toggleLink = document.getElementById('auth-toggle-link');
+
+    if (isLoginMode) {
+        title.innerText = 'Welcome Back';
+        desc.innerText = 'Sign in to access your saved recipes and community features.';
+        btn.innerText = 'Sign In';
+        toggleText.innerText = 'Need an account?';
+        toggleLink.innerText = 'Join for Free';
+    } else {
+        title.innerText = 'Join the Community';
+        desc.innerText = 'Create a free member account to save recipes, participate in community discussions, and track your kitchen contributions!';
+        btn.innerText = 'Join for Free';
+        toggleText.innerText = 'Already a member?';
+        toggleLink.innerText = 'Sign In';
+    }
+}
+
+async function handleAuthSubmit() {
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    
+    if (!email || !password) return alert("Please enter both email and password.");
+    if (password.length < 6) return alert("Password must be at least 6 characters.");
+
+    const btn = document.getElementById('auth-primary-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Processing...';
+    btn.disabled = true;
+
+    let error, data;
+
+    if (isLoginMode) {
+        const res = await myDatabase.auth.signInWithPassword({ email, password });
+        error = res.error; data = res.data;
+    } else {
+        const res = await myDatabase.auth.signUp({ email, password });
+        error = res.error; data = res.data;
+    }
+
+    btn.innerText = originalText;
+    btn.disabled = false;
+
+    if (error) {
+        alert("Error: " + error.message);
+    } else {
+        // Supabase sometimes requires email confirmation depending on settings
+        if (!isLoginMode && data?.user && data?.session === null) {
+            alert("Registration successful! Check your email to confirm your account.");
+        } else {
+            currentUser = data.user;
+            updateAuthUI();
+            closeAuthModal();
+            alert(isLoginMode ? "Welcome back to the kitchen!" : "Account created successfully! Welcome to the community.");
+        }
+    }
+}
+
+async function logoutUser() {
+    await myDatabase.auth.signOut();
+    currentUser = null;
+    updateAuthUI();
+    showPage('home');
+}
+// --- END AUTH LOGIC ---
+
 async function handleVisitorSession() {
     const now = Date.now();
     const lastVisit = localStorage.getItem('last_visit_time');
@@ -65,11 +165,6 @@ async function fetchStats() {
             <div style="color: #008080;">👀 <strong>${totalVisitors.toLocaleString()}</strong> Total Visits</div>
         `;
     }
-
-    const homeCounter = document.getElementById('home-visitor-counter');
-    if (homeCounter) {
-        homeCounter.innerHTML = `👀 ${totalVisitors.toLocaleString()} Total Visits to Website`;
-    }
 }
 
 function confirmCountry() {
@@ -115,6 +210,7 @@ window.onload = function() {
         countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     }
     
+    initAuth(); // <-- Initializes Session on Load
     handleVisitorSession();
     fetchBudgetTips(); 
     setInterval(updateHack, 30000); 
@@ -310,6 +406,20 @@ function showPage(page) {
                         <p style="line-height: 1.6; font-size: 1.2rem; margin-top: 20px;">Happy cooking,<br><strong>Anton & Jenny</strong></p>
                     </div>
                 </div>
+            </div>
+        `;
+    } else if (page === 'profile') {
+        view.innerHTML = `
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+                <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">MY PROFILE</h1>
+            </div>
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; text-align: center;">
+                <h2 style="margin-top:0;">Welcome!</h2>
+                <p>You are signed in as: <strong style="font-size:1.1rem; display:block; margin-top: 5px;">${currentUser ? currentUser.email : 'Unknown'}</strong></p>
+                <div style="background: #fdf6e3; border: 2px dashed #ccc; padding: 20px; margin: 20px 0;">
+                    <p style="color: #666; margin: 0; font-style: italic;">(More profile features like your saved recipes and personal submissions are coming soon!)</p>
+                </div>
+                <button onclick="logoutUser()" style="background: #ffcccc; color: #900; border: 2px solid #900; font-size: 1rem; padding: 8px 16px;">🚪 Sign Out</button>
             </div>
         `;
     } else if (page === 'find-recipes') {
