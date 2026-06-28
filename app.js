@@ -37,6 +37,9 @@ async function updateAuthUI() {
     if (existingAdminBtn) existingAdminBtn.remove();
 
     if (authBtn) {
+        // Strip out the custom pink background so it acts like a standard grey menu button
+        authBtn.style.background = ''; 
+
         if (currentUser) {
             authBtn.innerHTML = '👤 My Profile';
             authBtn.onclick = () => showPage('profile');
@@ -50,7 +53,8 @@ async function updateAuthUI() {
                 adminBtn.id = 'nav-admin-btn';
                 adminBtn.href = 'javascript:void(0)';
                 adminBtn.onclick = () => showPage('admin');
-                adminBtn.style.cssText = 'background: #f8d7da; border-color: #dc3545; margin-top: 8px; color: #900;';
+                // Standard spacing, no custom colors, so it matches perfectly
+                adminBtn.style.cssText = 'margin-top: 8px;';
                 adminBtn.innerHTML = '⚙️ Command Center';
                 authBtn.parentNode.insertBefore(adminBtn, authBtn.nextSibling);
             }
@@ -406,8 +410,7 @@ function showPage(page) {
     if (page === 'home') {
         view.innerHTML = `
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-                <h1 style="margin-top:0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
-                <p style="margin: 0; font-size: 1.2rem; margin-bottom: 0;">From authentic global cuisines to cost-tracked weeknight dinners shared by cooks worldwide.</p>
+                <h1 style="margin: 0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
             </div>
 
             <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
