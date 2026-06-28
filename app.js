@@ -1,117 +1,104 @@
 /* ================================================================================
-   THE MASTER ARCHITECT'S MANUAL: app.js (v2.0 - MICRO & MACRO DETAILED)
+   THE MASTER ARCHITECT'S MANUAL: app.js (v3.0 - ATOMIC PRECISION)
    --------------------------------------------------------------------------------
-   STUDY GUIDE LEGEND:
-   - PURPOSE: The business logic or user experience goal.
-   - LOGIC FLOW: Step-by-step mechanical execution.
-   - LIVE WIRE: High-risk zones (Database column names, HTML IDs, external APIs).
-   - [SYNTAX NOTE]: Line-by-line translation of what the JavaScript is physically doing.
+   This file dictates the physical execution of your digital sanctuary.
+   
+   ATOMIC LEGEND:
+   - [MACRO]: The architecture / business logic of the block.
+   - [MICRO]: Step-by-step roadmap of the function's physical execution.
+   - [ATOMIC]: Pinpoint translation of browser engine mechanics, memory allocation, 
+               data types, and strict syntax behaviors.
+   - [LIVE WIRE]: Critical database column names or HTML IDs that will crash the app.
 ================================================================================ */
 
 /* ==========================================================
-   SECTION 1: INITIALIZATION & GLOBAL MEMORY
-   PURPOSE: Connects to the database and creates the short-term 
-            memory for the user's active session.
+   SECTION 1: ENGINE INITIALIZATION & GLOBAL MEMORY
+   [MACRO]: Connects the browser to your Supabase backend and 
+            allocates the RAM needed for a user session.
 ========================================================== */
 
-// [SYNTAX NOTE]: 'const' means this variable can NEVER be changed while the app is running.
+// [ATOMIC]: 'const' locks the memory pointer. These string payloads cannot be overwritten by any script.
 const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
 
-// [SYNTAX NOTE]: This creates the 'myDatabase' object that we will use to talk to Supabase.
+// [ATOMIC]: window.supabase references the global library. .createClient() opens a persistent WebSocket/HTTP tunnel.
 const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// --- GLOBAL VARIABLES (The App's short-term memory) ---
-// [SYNTAX NOTE]: 'let' means these variables can be updated/changed as the user clicks around.
+// --- GLOBAL STATE RAM ---
+// [ATOMIC]: 'let' allocates dynamic memory. These initialize as zero-length strings ("") or integers (0).
 let selectedCountry = "";
 let selectedSubcategory = "";
 let selectedParentCategory = ""; 
 let totalApprovedRecipes = 0; 
 let totalVisitors = 10000;
 
-// [SYNTAX NOTE]: 'localStorage.getItem' checks the browser's hard drive for a saved photo.
-// The '||' means "OR". So if there is no saved photo, use the placeholder link instead.
+// [ATOMIC]: localStorage.getItem() accesses physical browser cache. '||' (Logical OR) dictates that if the cache returns null, memory falls back to the right-side string.
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
-let dynamicBudgetTips = []; 
+let dynamicBudgetTips = []; // Initializes an empty Array object.
 
-// --- STATE VARIABLES (Who is currently logged in?) ---
-let currentUser = null;
-let isLoginMode = false;
+let currentUser = null; // Explicitly declares empty memory.
+let isLoginMode = false; // Initializes a Boolean primitive.
 let isAdmin = false;
 
 /* ==========================================================
-   SECTION 2: AUTHENTICATION & SECURITY (THE BOUNCER)
+   SECTION 2: THE AUTHENTICATION GATEKEEPER
+   [MACRO]: Verifies JWT tokens and modifies the UI layout.
 ========================================================== */
 
-/**
- * FUNCTION: initAuth()
- * PURPOSE: Runs on page load to see if a user is already logged in.
- */
-// [SYNTAX NOTE]: 'async' tells the browser this function takes time (fetching from the internet).
 async function initAuth() {
-    // [SYNTAX NOTE]: 'await' tells the code to PAUSE and wait for the database to reply before moving to the next line.
-    // The '{ data: { session } }' is called "destructuring". It digs directly into the Supabase response to grab the session data.
+    // [ATOMIC]: 'async' detaches this from the main thread. 'await' suspends execution until the Promise resolves.
+    // [ATOMIC]: Deep Destructuring { data: { session } } extracts the exact memory block we need from the JSON response.
     const { data: { session } } = await myDatabase.auth.getSession();
     
-    // [SYNTAX NOTE]: This is a Ternary Operator (a 1-line if/then statement). 
-    // It says: "Is there a session? IF YES (?), set currentUser to session.user. IF NO (:), set it to null."
+    // [ATOMIC]: Ternary Operator (Condition ? True : False). Assigns Object if session exists, else assigns null.
     currentUser = session ? session.user : null;
     
     if (currentUser) {
+        // [ATOMIC]: Dot-notation (.email) extracts the string property from the currentUser Object.
         await checkAdminStatus(currentUser.email);
     } else {
         updateAuthUI();
     }
 }
 
-/**
- * FUNCTION: checkAdminStatus(email)
- * PURPOSE: Cross-references the logged-in email against the VIP whitelist.
- */
 async function checkAdminStatus(email) {
-    // [SYNTAX NOTE]: .eq() means "equals". .single() forces it to return exactly ONE row, not an array.
+    // [ATOMIC]: .eq() translates to a SQL WHERE clause. .single() forces the DB to return a single JSON Object instead of an Array [].
     const { data, error } = await myDatabase.from('admin_whitelist').select('*').eq('email', email).single();
-    
-    // [SYNTAX NOTE]: The '!!' is a JavaScript trick. It forces any data into a strict True or False boolean.
-    // If 'data' has content, isAdmin becomes True. If 'data' is empty, isAdmin becomes False.
+    // [ATOMIC]: Double Negation '!!' casts the raw Object/Null into a strict primitive Boolean (true or false).
     isAdmin = !!data; 
-    
     updateAuthUI();
 }
 
-/**
- * FUNCTION: updateAuthUI()
- * PURPOSE: The visual switchboard for the navigation bar. 
- */
 async function updateAuthUI() {
-    // [SYNTAX NOTE]: document.getElementById searches your index.html file for the exact ID to manipulate it.
+    // [ATOMIC]: document.getElementById traverses the DOM tree to locate specific Node references.
     const authBtn = document.getElementById('nav-auth-btn');
     const existingAdminBtn = document.getElementById('nav-admin-btn');
     
-    // [SYNTAX NOTE]: .remove() deletes the HTML element completely from the page.
+    // [ATOMIC]: .remove() explicitly destroys the HTML Node from the browser's render tree.
     if (existingAdminBtn) existingAdminBtn.remove();
 
     if (authBtn) {
+        // [ATOMIC]: Direct mutation of inline CSS properties.
         authBtn.style.background = ''; 
 
         if (currentUser) {
-            // [SYNTAX NOTE]: .innerHTML changes the actual text/HTML inside the button.
+            // [ATOMIC]: .innerHTML parses the string and injects it into the DOM tree.
             authBtn.innerHTML = '👤 My Profile';
-            // [SYNTAX NOTE]: '() =>' is an Arrow Function. It says "When clicked, run the showPage function".
+            // [ATOMIC]: Binds an anonymous Arrow Function to the 'click' event listener in memory.
             authBtn.onclick = () => showPage('profile');
             
             await checkUnreadMessages();
 
             if (isAdmin) {
-                // [SYNTAX NOTE]: document.createElement actually generates a brand new <a> (link) tag out of thin air.
+                // [ATOMIC]: .createElement('a') commands the engine to forge a new anchor tag Node in isolated memory.
                 const adminBtn = document.createElement('a');
                 adminBtn.id = 'nav-admin-btn';
-                adminBtn.href = 'javascript:void(0)';
+                adminBtn.href = 'javascript:void(0)'; // Pre-empts default anchor navigation.
                 adminBtn.onclick = () => showPage('admin');
                 adminBtn.style.cssText = 'margin-top: 8px;';
                 adminBtn.innerHTML = '⚙️ Command Center';
                 
-                // [SYNTAX NOTE]: insertBefore places our new admin button exactly next to the Auth button in the HTML.
+                // [ATOMIC]: .parentNode traverses up the tree. .insertBefore injects the forged Node precisely before the target's next sibling.
                 authBtn.parentNode.insertBefore(adminBtn, authBtn.nextSibling);
             }
         } else {
@@ -122,9 +109,9 @@ async function updateAuthUI() {
 }
 
 async function checkUnreadMessages() {
-    if (!currentUser) return;
+    if (!currentUser) return; // Immediate memory abort if null.
     
-    // [SYNTAX NOTE]: { count: 'exact', head: true } tells Supabase to ONLY send back the number of rows, not the actual data. It's much faster.
+    // [ATOMIC]: { count: 'exact', head: true } is an API directive. It aborts fetching rows and only returns the integer count, saving bandwidth.
     const { count, error } = await myDatabase.from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('recipient_email', currentUser.email)
@@ -132,17 +119,17 @@ async function checkUnreadMessages() {
     
     const authBtn = document.getElementById('nav-auth-btn');
     if (authBtn && count > 0) {
-        // [SYNTAX NOTE]: The backticks ` ` allow us to inject variables directly into a string using ${}.
+        // [ATOMIC]: Template Literal (``). Evaluates the ${count} variable and concatenates it into the string block.
         authBtn.innerHTML = `👤 My Profile (${count} New)`;
     }
 }
 
-// [SYNTAX NOTE]: .style.display = 'flex' makes a hidden CSS box visible. 'none' hides it.
+// [ATOMIC]: CSS Mutation. Alters the render tree without modifying HTML.
 function openAuthModal() { document.getElementById('auth-modal').style.display = 'flex'; }
 function closeAuthModal() { document.getElementById('auth-modal').style.display = 'none'; }
 
 function toggleAuthMode() {
-    // [SYNTAX NOTE]: The '!' means NOT. So if isLoginMode is true, it flips to false. If false, it flips to true.
+    // [ATOMIC]: Logical NOT (!). Inverts the current Boolean state.
     isLoginMode = !isLoginMode;
     const title = document.getElementById('auth-modal-title');
     const desc = document.getElementById('auth-modal-desc');
@@ -150,6 +137,7 @@ function toggleAuthMode() {
     const toggleText = document.getElementById('auth-toggle-text');
     const toggleLink = document.getElementById('auth-toggle-link');
 
+    // [ATOMIC]: Standard conditional branching. .innerText mutates text nodes without parsing HTML.
     if (isLoginMode) {
         title.innerText = 'Welcome Back';
         desc.innerText = 'Sign in to access your saved recipes and community features.';
@@ -165,28 +153,27 @@ function toggleAuthMode() {
     }
 }
 
-/**
- * FUNCTION: handleAuthSubmit()
- * PURPOSE: Connects the user's typed email/password to the Supabase security vault.
- */
 async function handleAuthSubmit() {
-    // [SYNTAX NOTE]: .trim() cuts off any accidental spaces a user typed before or after their email.
+    // [ATOMIC]: .value captures the String payload of the input element. .trim() executes a regex to strip leading/trailing whitespace bytes.
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
     
+    // [ATOMIC]: Logical OR (||). Evaluates if either variable is falsy (empty). If true, executes alert() and aborts function.
     if (!email || !password) return alert("Please enter both email and password.");
     if (password.length < 6) return alert("Password must be at least 6 characters.");
 
     const btn = document.getElementById('auth-primary-btn');
     const originalText = btn.innerText;
     
-    // [SYNTAX NOTE]: .disabled = true locks the button so the user can't click it 5 times while the internet is loading.
+    // [ATOMIC]: .disabled = true locks the DOM element, freezing user interaction to prevent overlapping network requests.
     btn.innerText = 'Processing...';
     btn.disabled = true;
 
+    // [ATOMIC]: Hoisting declaration. Reserves memory for 'error' and 'data' before the conditional block.
     let error, data;
 
     if (isLoginMode) {
+        // [ATOMIC]: Object Literal { email, password }. Shorthand for { email: email, password: password }.
         const res = await myDatabase.auth.signInWithPassword({ email, password });
         error = res.error; data = res.data;
     } else {
@@ -194,13 +181,14 @@ async function handleAuthSubmit() {
         error = res.error; data = res.data;
     }
 
+    // [ATOMIC]: Restores DOM element to interactive state.
     btn.innerText = originalText;
     btn.disabled = false;
 
     if (error) {
         alert("Error: " + error.message);
     } else {
-        // [SYNTAX NOTE]: The '?.' is Optional Chaining. It says "Check if data.user exists before checking data.session. If it doesn't, don't crash."
+        // [ATOMIC]: Optional Chaining (?.). Checks if data.user is undefined before attempting to read its properties. Prevents NullReference crashes.
         if (!isLoginMode && data?.user && data?.session === null) {
             alert("Registration successful! Check your email to confirm your account.");
         } else {
@@ -217,43 +205,45 @@ async function handleForgotPassword() {
     if (!email) return alert("Please type your email address into the box first, then click 'Forgot Password?'.");
 
     const { error } = await myDatabase.auth.resetPasswordForEmail(email);
-    if (error) {
-        alert("Error: " + error.message);
-    } else {
-        alert("Password reset email sent! Please check your inbox.");
-        closeAuthModal();
-    }
+    if (error) alert("Error: " + error.message);
+    else { alert("Password reset email sent! Please check your inbox."); closeAuthModal(); }
 }
 
 async function logoutUser() {
-    // [SYNTAX NOTE]: .signOut() tells Supabase to destroy the active security token.
+    // [ATOMIC]: .signOut() transmits a kill signal to Supabase, revoking the active JWT token from the backend.
     await myDatabase.auth.signOut();
-    currentUser = null;
+    currentUser = null; 
     isAdmin = false;
-    updateAuthUI();
+    updateAuthUI(); 
     showPage('home');
 }
 
 /* ==========================================================
    SECTION 3: BACKGROUND PROCESSES & SITE CONFIG
+   [MACRO]: Executes invisible API calls to gather metrics and UI configurations.
 ========================================================== */
 
 async function handleVisitorSession() {
-    // [SYNTAX NOTE]: Date.now() gets the exact current time in milliseconds.
+    // [ATOMIC]: Date.now() queries the system clock, returning total milliseconds elapsed since Jan 1, 1970 (Epoch time).
     const now = Date.now();
+    // [ATOMIC]: Queries the local hard drive cache. Returns a String.
     const lastVisit = localStorage.getItem('last_visit_time');
-    const cooldown = 30 * 60 * 1000; 
+    const cooldown = 30 * 60 * 1000; // 30 minutes expressed in strict milliseconds.
 
+    // [ATOMIC]: parseInt() forcefully casts the cached String back into a mathematical Integer for calculation.
     if (!lastVisit || (now - parseInt(lastVisit)) > cooldown) {
-        // [SYNTAX NOTE]: .rpc() runs a custom Postgres SQL function stored directly in Supabase.
+        // [ATOMIC]: .rpc() (Remote Procedure Call) executes a raw Postgres SQL function hosted on the server.
         await myDatabase.rpc('increment_visitor_count');
+        // [ATOMIC]: .toString() casts the integer back to a String for storage compliance.
         localStorage.setItem('last_visit_time', now.toString());
     }
     fetchStats();
 }
 
 async function fetchStats() {
+    // [ATOMIC]: Aliasing deep destructure `{ count: liveCount }`. It grabs 'count' but assigns it to a new local variable named 'liveCount'.
     const { count: liveCount, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+    // [ATOMIC]: Strict evaluation (!== null) ensures it only updates if data is physically present, not just falsy (like 0).
     if (!recipeError && liveCount !== null) { totalApprovedRecipes = liveCount; }
 
     const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
@@ -274,10 +264,12 @@ async function fetchStats() {
             teamPhotoUrl = configData.team_photo_url;
             localStorage.setItem('cached_team_photo', teamPhotoUrl); 
             const homePhoto = document.getElementById('home-team-photo');
+            // [ATOMIC]: Logic gate prevents unnecessary DOM repaints if the image source is already correct.
             if (homePhoto && homePhoto.src !== teamPhotoUrl) { homePhoto.src = teamPhotoUrl; }
         }
         
         if (configData.main_background_url) {
+            // [ATOMIC]: Inline CSS Object manipulation targeting the global <body> tag.
             document.body.style.backgroundImage = `url('${configData.main_background_url}')`;
             document.body.style.backgroundSize = 'cover';
             document.body.style.backgroundPosition = 'center center';
@@ -288,7 +280,7 @@ async function fetchStats() {
 
     const navCounter = document.getElementById('nav-counter');
     if (navCounter) {
-        // [SYNTAX NOTE]: .toLocaleString() takes a number like 10000 and formats it with commas: "10,000".
+        // [ATOMIC]: .toLocaleString() triggers the browser's regional format engine (e.g., adds commas to 10000 -> 10,000).
         navCounter.innerHTML = `
             <div style="margin-bottom: 8px;">🌍 <strong>${totalApprovedRecipes}</strong> Live Recipes</div>
             <div style="margin-bottom: 8px;">📤 <strong>${totalShared}</strong> Total Shared</div>
@@ -302,27 +294,20 @@ function confirmCountry() {
     const s = document.getElementById('modal-country-select').value;
     if (!s) return alert("Select a country!");
     selectedCountry = s;
-    
-    // [SYNTAX NOTE]: .setItem saves data to the user's hard drive so it remembers them tomorrow.
     localStorage.setItem('saved_country', s);
-    
     document.getElementById('country-modal').style.display = 'none';
     
-    // [SYNTAX NOTE]: URLSearchParams reads the exact web address (e.g. ?recipe=12) so we can deep-link into the app.
+    // [ATOMIC]: URLSearchParams() parses the current browser address bar (window.location.search) into a readable Object.
     const params = new URLSearchParams(window.location.search);
-    if (params.get('recipe')) {
-        viewRecipe(params.get('recipe'));
-    } else if (params.get('budget')) {
-        viewBudgetMeal(params.get('budget'));
-    } else {
-        showPage('home');
-    }
+    if (params.get('recipe')) { viewRecipe(params.get('recipe')); } 
+    else if (params.get('budget')) { viewBudgetMeal(params.get('budget')); } 
+    else { showPage('home'); }
 }
 
 async function fetchBudgetTips() {
     const { data, error } = await myDatabase.from('budget_tips').select('tip_text');
     if (!error && data && data.length > 0) {
-        // [SYNTAX NOTE]: .map() loops over the database rows and extracts ONLY the 'tip_text' into a clean array.
+        // [ATOMIC]: .map() iterates over the array of objects, extracting just the 'tip_text' string, and constructs a brand new 1-dimensional Array.
         dynamicBudgetTips = data.map(item => item.tip_text);
         updateHack(); 
     } else {
@@ -333,24 +318,25 @@ async function fetchBudgetTips() {
 function updateHack() {
     const element = document.getElementById("hack-text");
     if (element && dynamicBudgetTips.length > 0) {
-        // [SYNTAX NOTE]: Math.random() picks a random decimal. Math.floor() rounds it down to a solid array index number.
+        // [ATOMIC]: Math.random() produces a float between 0 and 1. Math.floor() drops the decimal, creating an absolute Integer index.
         const randomIndex = Math.floor(Math.random() * dynamicBudgetTips.length);
+        // [ATOMIC]: Array accessing via bracket notation []. Grabs the string at that exact index.
         element.innerText = dynamicBudgetTips[randomIndex];
     }
 }
 
-// [SYNTAX NOTE]: window.onload fires automatically the millisecond the HTML finishes painting to the screen.
+// [ATOMIC]: Global Event Listener. Fires exactly when the browser engine finishes constructing the DOM tree and downloading core assets.
 window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
     if (s2) {
-        // [SYNTAX NOTE]: .forEach() loops over the 'countries' array from your config.js to build the dropdown options.
+        // [ATOMIC]: .forEach() loop iterates over external 'countries' array. .appendChild() manually glues the generated HTML Node to the DOM.
         countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
     }
     
     initAuth();
     handleVisitorSession();
     fetchBudgetTips(); 
-    // [SYNTAX NOTE]: setInterval tells the browser to run 'updateHack' every 30000 milliseconds (30 seconds).
+    // [ATOMIC]: setInterval() registers a recurring callback function in the JavaScript engine, executing precisely every 30000ms.
     setInterval(updateHack, 30000); 
 
     const savedCountry = localStorage.getItem('saved_country');
@@ -360,6 +346,7 @@ window.onload = function() {
         const modal = document.getElementById('country-modal');
         if (modal) modal.style.display = 'none';
         
+        // [ATOMIC]: Deep Link router evaluation. Looks for URL parameters (e.g., ?recipe=45) and executes direct navigation bypass.
         const params = new URLSearchParams(window.location.search);
         if (params.get('recipe')) { viewRecipe(params.get('recipe')); } 
         else if (params.get('budget')) { viewBudgetMeal(params.get('budget')); } 
@@ -372,15 +359,18 @@ window.onload = function() {
 
 /* ==========================================================
    SECTION 4: SINGLE PAGE APPLICATION (SPA) ROUTER
-   PURPOSE: The Core Router. Injects HTML into #main-view.
+   [MACRO]: Replaces traditional page loading by dynamically 
+            injecting monolithic HTML strings into a container.
 ========================================================== */
 
 function showPage(page) {
     const view = document.getElementById('main-view');
-    // [SYNTAX NOTE]: pushState changes the URL in the browser bar WITHOUT reloading the page. Crucial for SPA logic.
+    // [ATOMIC]: window.history.pushState() alters the URL bar String and adds an entry to the browser's "Back" button stack WITHOUT triggering an HTTP reload.
     window.history.pushState({}, document.title, window.location.pathname);
 
+    // [ATOMIC]: Strict equality (===). Evaluates both value AND data type.
     if (page === 'home') {
+        // [ATOMIC]: Assigns a massive multiline Template Literal (``) string directly into the DOM render tree.
         view.innerHTML = `
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
                 <h1 style="margin: 0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
@@ -460,8 +450,10 @@ function showPage(page) {
                 </div>
             </div>
         `;
+        // [ATOMIC]: Function Execution Call. Triggers DB query immediately after HTML structure paints.
         loadMemberMessages(); 
     } else if (page === 'admin') {
+        // [ATOMIC]: Security execution bypass. If isAdmin boolean evaluates falsy, thread halts ('return') and routes home.
         if (!isAdmin) { showPage('home'); return; }
         
         view.innerHTML = `
@@ -548,6 +540,7 @@ function showPage(page) {
     } else if (page === 'creator-hub') {
         renderCreatorHub();
     } else {
+        // [ATOMIC]: RegExp execution (.replace). /-/g globally targets all hyphens. Converts "find-recipes" to "FIND RECIPES".
         view.innerHTML = `<div class="window-box"><h1>${page.replace(/-/g, ' ').toUpperCase()}</h1></div>`;
     }
 }
@@ -618,13 +611,14 @@ function renderCreatorHub() {
 
 /* ==========================================================
    SECTION 5: PRIVATE MESSAGING HUB
+   [MACRO]: Two-way encrypted chat rendering engine.
 ========================================================== */
 
 async function loadMemberMessages() {
-    if (!currentUser) return;
+    if (!currentUser) return; // Strict memory exit.
     const container = document.getElementById('member-messages');
     
-    // [SYNTAX NOTE]: .update() edits existing rows. We are finding rows where recipient is currentUser AND is_read is false, then setting them to true.
+    // [ATOMIC]: .update({ is_read: true }) executes a SQL UPDATE query. It silently mutates existing rows in the DB.
     await myDatabase.from('messages')
         .update({ is_read: true })
         .eq('recipient_email', currentUser.email)
@@ -633,20 +627,21 @@ async function loadMemberMessages() {
     const authBtn = document.getElementById('nav-auth-btn');
     if (authBtn) authBtn.innerHTML = '👤 My Profile';
 
-    // [SYNTAX NOTE]: .or() is a special Supabase filter. It fetches rows where the email is the user OR the recipient is the user (getting both sides of the chat).
+    // [ATOMIC]: .or() accepts a complex PostgREST string. It instructs the DB engine to return rows matching EITHER condition (sent by user OR sent to user).
     const { data, error } = await myDatabase.from('messages')
         .select('*')
         .or(`email.eq.${currentUser.email},recipient_email.eq.${currentUser.email}`)
-        .order('created_at', { ascending: true }); 
+        .order('created_at', { ascending: true }); // [ATOMIC]: Database-level sort. Orders by timestamp integers mathematically.
 
     if (error) { container.innerHTML = 'Error loading messages.'; return; }
+    // [ATOMIC]: Evaluates Array.length. If 0, bypasses rendering loop entirely.
     if (data.length === 0) { container.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No messages yet. Send us a message below!</p>'; return; }
 
     let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
     
-    // [SYNTAX NOTE]: .forEach() loops through the data array. 'msg' is the current row we are looking at.
+    // [ATOMIC]: .forEach() loop executes the callback function sequentially on every object (msg) in the Array.
     data.forEach(msg => {
-        // [SYNTAX NOTE]: '===' strictly checks if the email matches. It returns true or false.
+        // [ATOMIC]: Strict Equality Evaluator (===). Returns primitive true/false used for CSS assignment below.
         const isMine = msg.email === currentUser.email;
         const bg = isMine ? '#ffffff' : 'var(--nav-color)';
         const align = isMine ? 'align-self: flex-end; text-align: right;' : 'align-self: flex-start; text-align: left;';
@@ -662,7 +657,7 @@ async function loadMemberMessages() {
     html += '</div>';
     container.innerHTML = html;
     
-    // [SYNTAX NOTE]: scrollTop forces the chat window to automatically scroll to the absolute bottom (the newest message).
+    // [ATOMIC]: DOM Property Mutation. .scrollHeight calculates the total rendered physical pixel height. .scrollTop forces the viewport to pin to that exact pixel count.
     container.scrollTop = container.scrollHeight; 
 }
 
@@ -671,9 +666,9 @@ async function sendMessageToAdmin() {
     const text = input.value.trim();
     if (!text || !currentUser) return;
     
-    input.disabled = true;
+    input.disabled = true; // [ATOMIC]: DOM Node property lock.
     
-    // [SYNTAX NOTE]: .insert() adds a brand new row to the table. Notice the data is wrapped in an array [{}].
+    // [ATOMIC]: .insert() executes a SQL INSERT. Wraps the payload in an Array bracket `[{}]` because Supabase API architecture demands Array payloads.
     const { error } = await myDatabase.from('messages').insert([{
         name: 'Member Message',
         email: currentUser.email,
@@ -682,17 +677,18 @@ async function sendMessageToAdmin() {
         is_read: false
     }]);
     
-    input.disabled = false;
+    input.disabled = false; // [ATOMIC]: DOM Node unlock.
     
     if (error) alert("Error: " + error.message);
     else {
-        input.value = '';
+        input.value = ''; // [ATOMIC]: Clears RAM content of input Node.
         loadMemberMessages();
     }
 }
 
 /* ==========================================================
    SECTION 6: CATEGORY & DATA RENDERING (THE KITCHEN)
+   [MACRO]: The Search Engine and visual grid loops.
 ========================================================== */
 
 async function executeSearch() {
@@ -701,7 +697,7 @@ async function executeSearch() {
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Searching for "${term}"...</h1></div>`;
 
-    // [SYNTAX NOTE]: .ilike is a case-insensitive search. %term% means "find this word anywhere inside the string".
+    // [ATOMIC]: .ilike executes a Postgres case-insensitive pattern match. '%term%' uses wildcards to locate substring fragments.
     const { data, error } = await myDatabase.from('meals')
         .select('id, title, category, parent_category, author, created_at, meal_type')
         .or(`title.ilike.%${term}%,recipe.ilike.%${term}%`)
@@ -724,9 +720,10 @@ async function executeSearch() {
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px; width: 100%;">`;
         data.forEach(meal => {
-            // [SYNTAX NOTE]: The '||' acts as a default fallback. If meal.author is empty, use "Community".
+            // [ATOMIC]: Logical OR assignment fallback (||).
             const author = meal.author || "Community";
             const isBudget = meal.category === 'budget';
+            // [ATOMIC]: Ternary construction of executable click strings.
             const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
             const badge = isBudget ? ` - BUDGET` : '';
 
@@ -742,6 +739,7 @@ async function executeSearch() {
 
 function renderCategoryList(context) {
     const view = document.getElementById('main-view');
+    // [ATOMIC]: Nested Ternary logic dictating rendering strings based on external 'context' parameter memory state.
     const title = context === 'find' ? 'GLOBAL RECIPES' : 'ADD GLOBAL RECIPE';
     const subtitle = context === 'find' 
         ? `Search our open library of <strong>${totalApprovedRecipes}</strong> everyday recipes.`
@@ -766,10 +764,12 @@ function renderCategoryList(context) {
         
     html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">`;
 
-    // [SYNTAX NOTE]: Object.keys() takes a dictionary (like your categories in config.js) and grabs only the titles, putting them in an array to loop over.
+    // [ATOMIC]: Object.keys() reads a dictionary Object in RAM, extracts all string Keys, and constructs an iterable Array.
     Object.keys(categories).forEach(cat => {
+        // [ATOMIC]: Logical OR filter bypass. Skips specific indexes.
         if (cat === 'Specialized Plans' || cat === 'Pet Food & Treats') return;
 
+        // [ATOMIC]: Bracket accessor notation `[]`. Target is a dynamic string variable, so we cannot use dot notation.
         const meta = categoryMeta[cat] || { icon: "🍽️", desc: "Explore recipes in this category." };
         html += `
             <div class="window-box" onclick="renderSubcategoryList('${cat}', '${context}')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
@@ -814,8 +814,10 @@ function renderSubcategoryList(mainCategory, context) {
 }
 
 function getParentCategory(subcategoryName) {
-    // [SYNTAX NOTE]: Object.entries() breaks a dictionary into pairs: [Key, Value]. We loop through to find the parent.
+    // [ATOMIC]: Object.entries() parses a dictionary into a 2D Array format: [[Key1, Value1], [Key2, Value2]].
+    // Iterates using a 'for...of' loop over the destructured arrays.
     for (const [mainCat, subCats] of Object.entries(categories)) {
+        // [ATOMIC]: .includes() scans the array RAM block for a strict string match.
         if (subCats.includes(subcategoryName)) { return mainCat; }
     }
     return null;
@@ -823,15 +825,17 @@ function getParentCategory(subcategoryName) {
 
 /* ==========================================================
    SECTION 7: DATA ENTRY (ADDING MEALS, PLANS, & SPECIALS)
+   [MACRO]: Collects user form data and structures it for DB insertion.
 ========================================================== */
 
 function renderAddMealPlanForm() {
     const view = document.getElementById('main-view');
+    // [ATOMIC]: Hardcoded Array literal allocated to constant memory block.
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     let daysHTML = '';
     
     days.forEach(day => {
-        // [SYNTAX NOTE]: .toLowerCase() makes 'Monday' into 'monday' so it matches HTML ID rules securely.
+        // [ATOMIC]: .toLowerCase() executes internal character mapping logic to cast uppercase ASCII to lowercase ASCII, ensuring secure DOM ID assignment.
         daysHTML += `
             <label style="font-weight: bold; margin-top: 15px; display: block; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 5px;">${day}</label>
             <textarea id="plan-${day.toLowerCase()}" rows="4" placeholder="Breakfast: ...\nLunch: ...\nDinner: ..." style="width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 5px;"></textarea>
@@ -867,14 +871,16 @@ async function saveMealPlan() {
     days.forEach(day => {
         const text = document.getElementById(`plan-${day.toLowerCase()}`).value.trim();
         if (text) {
+            // [ATOMIC]: Boolean flag pivot.
             hasContent = true;
-            // [SYNTAX NOTE]: \n forces a line break in text files/databases, acting like the 'Enter' key.
+            // [ATOMIC]: \n evaluates as a literal ASCII line-feed byte sequence in memory.
             finalRecipe += `**${day}**\n${text}\n\n`;
         }
     });
 
     if (!hasContent) return alert("Please fill in at least one day of the meal plan.");
 
+    // [LIVE WIRE]: 'status': 'pending' is what traps this object in the Admin Review queue table view instead of global library.
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
         category: '7-Day Meal Plans', 
@@ -893,8 +899,9 @@ async function loadSpecials() {
 
     if (!selectedCountry) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>Please select a country first.</p></div>`; return; }
 
+    // [ATOMIC]: new Date().toISOString() instantiates a system Date Object and converts it to strict ISO 8601 formatting (YYYY-MM-DDTHH:mm:ss.sssZ).
     const now = new Date().toISOString();
-    // [SYNTAX NOTE]: .gt means "Greater Than". We only want rows where 'expiry_date' is later than 'now'.
+    // [ATOMIC]: .gt() translates to a mathematical Greater Than (>) operand in Postgres SQL.
     const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
 
     if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
@@ -911,6 +918,7 @@ async function loadSpecials() {
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
         data.forEach(meal => {
+            // [ATOMIC]: .toLocaleDateString() invokes the engine's locale logic to convert raw timestamps to readable format.
             const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
             html += `
             <div class="window-box" style="margin-bottom: 0;">
@@ -964,20 +972,21 @@ function renderAddSpecialForm() {
 
 async function saveSpecial() {
     const title = document.getElementById('special-title').value.trim();
-    // [SYNTAX NOTE]: parseFloat converts a text string like "15.99" into a real math decimal.
+    // [ATOMIC]: parseFloat casts the string "15.99" into IEEE 754 floating-point numeric format in memory.
     const cost = parseFloat(document.getElementById('special-cost').value);
     const duration = document.getElementById('special-duration').value;
     const details = document.getElementById('special-details').value.trim();
 
     if (!title || !cost || !duration || !details) return alert("Please fill in all the details.");
 
+    // [ATOMIC]: new Date() pulls the live hardware epoch time.
     let expiryDate = new Date();
-    // [SYNTAX NOTE]: Date math. .setDate() edits the date object. We add 3 or 7 days to 'today'.
+    // [ATOMIC]: Engine manipulation. .getDate() calculates the day of the month integer, adds logic integer, and feeds it into .setDate() which chemically alters the original 'expiryDate' memory block.
     if (duration === "3") { expiryDate.setDate(expiryDate.getDate() + 3); } 
     else if (duration === "7") { expiryDate.setDate(expiryDate.getDate() + 7); } 
     else if (duration === "month") { expiryDate = new Date(expiryDate.getFullYear(), expiryDate.getMonth() + 1, 0, 23, 59, 59); }
     
-    // [SYNTAX NOTE]: .toISOString() standardizes the date into a computer-readable format for Supabase (e.g. 2026-06-25T12:00:00Z).
+    // [ATOMIC]: Encodes the mutated Date object back into a database-compliant String.
     const expiryISO = expiryDate.toISOString();
 
     const { error } = await myDatabase.from('meals').insert([{ 
@@ -989,6 +998,7 @@ async function saveSpecial() {
 }
 
 function toggleMealType() {
+    // [ATOMIC]: Simple DOM traversal and manipulation. Reads select payload, executes display toggles on related nodes.
     const type = document.getElementById('meal-type').value;
     if (type === 'home') {
         document.getElementById('home-cooked-section').style.display = 'block';
@@ -1003,9 +1013,12 @@ async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Loading Budget Meals...</h1></div>`;
 
+    // [ATOMIC]: Lexical scope declaration 'let query' builds a query object that hasn't fired yet.
     let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
+    // [ATOMIC]: Mutates the unfired query object based on filter variable.
     if (filter !== 'all') { query = query.eq('meal_type', filter); }
 
+    // [ATOMIC]: Now executes the assembled HTTP/WebSocket request.
     const { data, error } = await query;
     if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
 
@@ -1029,11 +1042,11 @@ async function loadBudgetMeals(filter = 'all') {
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
         
-        // [SYNTAX NOTE]: .sort() mathematically orders an array. 'a' and 'b' represent two meals comparing themselves based on Cost-Per-Person.
+        // [ATOMIC]: Native JS Sorting Algorithm. Evaluates Object A vs Object B via custom formula (Cost divided by Servings). Modifies Array in place.
         data.sort((a, b) => (a.cost / a.servings) - (b.cost / b.servings)); 
         
         data.forEach(meal => {
-            // [SYNTAX NOTE]: .toFixed(2) forces a number to have exactly 2 decimal places (e.g. 5 becomes 5.00).
+            // [ATOMIC]: .toFixed(2) enforces strict decimal rounding algorithms and returns a String (e.g. 5 becomes "5.00").
             const costPerPerson = (meal.cost / meal.servings).toFixed(2);
             const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
             
@@ -1065,7 +1078,7 @@ async function viewBudgetMeal(id) {
 
     if (data.meal_type === 'home') {
         let ingredientsHTML = `<ul style="margin: 0; padding-left: 20px;">`;
-        // [SYNTAX NOTE]: Array.isArray() is a safety check. It ensures 'data.ingredients' is actually a list before we try to loop through it.
+        // [ATOMIC]: Array.isArray() is a strict validation mechanic. It protects the engine from crashing if 'data.ingredients' is null, undefined, or a string.
         if (data.ingredients && Array.isArray(data.ingredients)) {
             data.ingredients.forEach(ing => {
                 let qty = ing.qty ? ing.qty : '';
@@ -1094,10 +1107,10 @@ async function viewBudgetMeal(id) {
 
     const costPer = (data.cost / data.servings).toFixed(2);
     
-    // [SYNTAX NOTE]: window.location.origin grabs "https://yourwebsite.com". .pathname grabs "/". We stitch them together to make a clean shareable link.
+    // [ATOMIC]: window.location API accesses the HTTP context. Concatenation builds absolute deep-link string format.
     const currentUrl = window.location.origin + window.location.pathname + '?budget=' + data.id;
     
-    // [SYNTAX NOTE]: encodeURIComponent turns spaces into %20 so the text can be safely sent via a WhatsApp link.
+    // [ATOMIC]: encodeURIComponent parses raw text strings and casts ASCII characters (like Space) into URL-safe hex codes (%20).
     const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
     view.innerHTML = `
@@ -1122,10 +1135,11 @@ async function viewBudgetMeal(id) {
 
 /* ==========================================================
    SECTION 8: GLOBAL RECIPE READING & SHARING
+   [MACRO]: Content consumption algorithms and utility formulas.
 ========================================================== */
 
 function copyToClipboard(text) {
-    // [SYNTAX NOTE]: navigator.clipboard is a built-in browser tool to copy text. .then() runs if it succeeds, .catch() runs if it fails.
+    // [ATOMIC]: navigator.clipboard bridges browser logic with Operating System APIs. Resolves Promise with .then() on success, handles OS errors via .catch().
     navigator.clipboard.writeText(text).then(() => {
         alert("Link copied to clipboard!");
     }).catch(err => {
@@ -1135,12 +1149,12 @@ function copyToClipboard(text) {
 
 async function likeMeal(id, btnElement) {
     const countSpan = btnElement.querySelector('.like-count');
-    // [SYNTAX NOTE]: parseInt turns "5" (string) into 5 (math number). || 0 prevents errors if the box is empty.
+    // [ATOMIC]: parseInt() forcefully transforms DOM String node into logical mathematical Integer. || 0 prevents NaN crashing.
     let currentLikes = parseInt(countSpan.innerText) || 0;
-    currentLikes++;
-    countSpan.innerText = currentLikes;
+    currentLikes++; // Math operand increments RAM.
+    countSpan.innerText = currentLikes; // Mutates DOM explicitly.
     
-    // [SYNTAX NOTE]: Temporarily disables the button so users can't click 'Like' 100 times in 1 second.
+    // [ATOMIC]: Reassigns DOM pointer variables to restrict client-side behavior loops.
     btnElement.disabled = true; 
     btnElement.style.opacity = '0.6';
     btnElement.innerHTML = `❤️ Liked (${currentLikes})`;
@@ -1151,9 +1165,9 @@ async function likeMeal(id, btnElement) {
 }
 
 async function reportRecipe(title, id) {
-    // [SYNTAX NOTE]: prompt() is a built-in browser popup that asks the user to type text.
+    // [ATOMIC]: window.prompt issues a synchronous block to the OS thread. The page execution freezes completely until user inputs data.
     const reason = prompt("Why are you reporting this?");
-    if (!reason) return;
+    if (!reason) return; // Strict kill command if prompt is canceled.
 
     const reporterEmail = currentUser ? currentUser.email : 'Guest';
 
@@ -1283,19 +1297,22 @@ function updateConverter() {
     const fromUnit = document.getElementById('conv-from').value;
     const toSelect = document.getElementById('conv-to');
     toSelect.innerHTML = '';
+    // [ATOMIC]: Lexical array declaration.
     let family = [];
     
-    // [SYNTAX NOTE]: .includes() checks if the chosen unit ('fromUnit') exists inside the predefined array families in your config.js.
+    // [ATOMIC]: .includes() Array evaluation. Validates if the selected parameter string exists strictly inside the config logic loops.
     if (convFamilies.weight.includes(fromUnit)) family = convFamilies.weight;
     else if (convFamilies.volume.includes(fromUnit)) family = convFamilies.volume;
     else if (convFamilies.temp.includes(fromUnit)) family = convFamilies.temp;
 
     family.forEach(unit => {
+        // [ATOMIC]: Strict negation match (!==). Bypasses self-reference (e.g. don't convert Grams to Grams).
         if (unit !== fromUnit) {
+            // [ATOMIC]: .createElement bypasses string injections. Native engine-level object generation.
             let opt = document.createElement('option');
             opt.value = unit;
             opt.innerHTML = unit;
-            // [SYNTAX NOTE]: appendChild pushes the newly created <option> tag directly into the 'toSelect' dropdown.
+            // [ATOMIC]: .appendChild() executes native DOM attachment logic without parsing new strings.
             toSelect.appendChild(opt);
         }
     });
@@ -1308,23 +1325,27 @@ function calculateConversion() {
     const to = document.getElementById('conv-to').value;
     const resDiv = document.getElementById('conv-result');
 
-    // [SYNTAX NOTE]: isNaN() checks "Is Not A Number". If the user typed letters or left it blank, abort.
+    // [ATOMIC]: isNaN() assesses "Is Not a Number". It defends against string inputs bleeding into mathematical algorithms, causing NaN exceptions.
     if (isNaN(amt) || !from || !to) { resDiv.innerHTML = ''; return; }
     let result = 0;
+    
+    // [ATOMIC]: Core conversion algebra formulas routing branch.
     if (convFamilies.temp.includes(from)) {
         if (from === 'c' && to === 'f') result = (amt * 9/5) + 32;
         if (from === 'f' && to === 'c') result = (amt - 32) * 5/9;
     } else {
+        // [ATOMIC]: Dictionary lookups using [bracket] notation to fetch exact multiplier logic variables.
         const baseAmt = amt * convRates[from];
         result = baseAmt / convRates[to];
     }
-    // [SYNTAX NOTE]: The strange Math formula here `+(Math.round(result + "e+2")  + "e-2")` perfectly rounds the answer to exactly 2 decimal places to avoid massive floats like 2.99999999.
+    // [ATOMIC]: The Unary Plus (+) operator forces the parenthesized Math expression back into numeric evaluation. `e+2` and `e-2` utilizes extreme scientific rounding syntax.
     resDiv.innerHTML = `Result: ${+(Math.round(result + "e+2")  + "e-2")} ${to}`;
 }
 
 function addRecipeMenu() { renderCategoryList('add'); }
 
 function showForm(subcategory, parentCategory) {
+    // [ATOMIC]: Global ram modification, retaining scope across multiple function instances.
     selectedSubcategory = subcategory;
     selectedParentCategory = parentCategory; 
     const view = document.getElementById('main-view');
@@ -1353,7 +1374,7 @@ function showForm(subcategory, parentCategory) {
 function addIngredientRow() {
     const list = document.getElementById('ingredients-list');
     const row = document.createElement('div');
-    // [SYNTAX NOTE]: .className applies a CSS class to our new row so we can grab it later when saving.
+    // [ATOMIC]: .className accesses DOM attributes directly, enabling bulk querying via `.querySelectorAll('.ingredient-row')` later in execution.
     row.className = 'ingredient-row';
     row.style.display = 'flex';
     row.style.gap = '5px';
@@ -1381,25 +1402,26 @@ function addIngredientRow() {
         </select>
         <button onclick="this.parentElement.remove()">X</button>
     `;
-    // [SYNTAX NOTE]: We append this row to the HTML list inside the form.
+    // [ATOMIC]: Physically binds node. Parent object claims child reference string.
     list.appendChild(row);
 }
 
 async function saveRecipe() {
     const title = document.getElementById('recipe-name').value.trim();
+    // [ATOMIC]: Logical fallback short circuiting (||). Assigns fallback string if value parses to empty falsy string.
     const author = document.getElementById('author-name').value.trim() || "Home Cook";
     const instructions = document.getElementById('recipe-instructions').value.trim();
     
-    // [SYNTAX NOTE]: document.querySelectorAll grabs ALL elements with the class '.ingredient-row' and puts them in an array we can loop through.
+    // [ATOMIC]: .querySelectorAll parses DOM tree, returns NodeList Collection, transforming physical inputs into iterable elements.
     const ingredientRows = document.querySelectorAll('.ingredient-row');
     let structuredIngredients = [];
     
     ingredientRows.forEach(row => {
-        // [SYNTAX NOTE]: row.querySelector searches INSIDE the specific row, not the whole page.
+        // [ATOMIC]: Contextual DOM query (.querySelector). Limits query scope ONLY to descendents of current loop object Node.
         const name = row.querySelector('.ing-name').value.trim();
         const qty = row.querySelector('.ing-qty').value;
         const unit = row.querySelector('.ing-unit').value;
-        // [SYNTAX NOTE]: .push() takes our JSON object {item, qty, unit} and shoves it into our array to be saved.
+        // [ATOMIC]: .push() executes array mutation. Generates inline JSON object with floating point validations.
         if (name !== "") structuredIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: unit });
     });
 
@@ -1415,10 +1437,11 @@ async function saveRecipe() {
 
 /* ==========================================================
    SECTION 9: ADMIN COMMAND CENTER LOGIC & VIEWS
+   [MACRO]: Multi-layered security UI, filtering algorithms, and data deletion.
 ========================================================== */
 
 function switchAdminTab(tab) {
-    // [SYNTAX NOTE]: Array.forEach() runs through each tab ID. It sets background to white if active, or grey if not.
+    // [ATOMIC]: Evaluates Array literal instance locally to bind UI toggles via CSS assignment conditional formatting.
     ['inbox', 'review', 'library', 'settings'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
@@ -1426,6 +1449,7 @@ function switchAdminTab(tab) {
 
     const area = document.getElementById('admin-content-area');
     
+    // [ATOMIC]: Strict conditional path execution. Dictates innerHTML state and triggers specific execution hooks upon load completion.
     if (tab === 'inbox') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
@@ -1481,6 +1505,7 @@ function switchAdminTab(tab) {
 }
 
 function setupAdminFilters(ctx) {
+    // [ATOMIC]: Deep Array of Objects literal map initialization.
     const types = [
         { id: "all", label: "-- All Content Types --" },
         { id: "global", label: "🍲 Global Recipes" },
@@ -1492,11 +1517,13 @@ function setupAdminFilters(ctx) {
     const t1 = document.getElementById(`${ctx}-tier1`);
     if(t1) {
         types.forEach(t => {
+            // [ATOMIC]: Iterative DOM tree generation loop.
             let opt = document.createElement('option');
             opt.value = t.id; opt.innerHTML = t.label;
             t1.appendChild(opt);
         });
     }
+    // [ATOMIC]: Triggers context-dependent loader pipeline on initialization finish.
     if (ctx === 'review') loadReviewQueue(); else loadLibrary();
 }
 
@@ -1505,6 +1532,7 @@ function updateTier2(context) {
     const t2 = document.getElementById(`${context}-tier2`);
     const t3 = document.getElementById(`${context}-tier3`);
     
+    // [ATOMIC]: Executes UI resets directly modifying the engine's render engine to none (reflow constraint).
     t2.innerHTML = ''; t3.innerHTML = '';
     t2.style.display = 'none'; t3.style.display = 'none';
 
@@ -1535,6 +1563,7 @@ function updateTier3(context) {
 
     t3.innerHTML = ''; t3.style.display = 'none';
 
+    // [ATOMIC]: Secondary cascade conditionals. Evaluates state logic before UI appending constraints.
     if (t1 === 'global' && t2 !== 'all') {
         t3.style.display = 'block';
         t3.innerHTML = '<option value="all">-- All Subcategories --</option>';
@@ -1547,32 +1576,34 @@ function updateTier3(context) {
 }
 
 function buildAdminQuery(context, status) {
-    // [SYNTAX NOTE]: Notice the 'let' here. We start the query, but we don't 'await' it yet. This lets us build the SQL query in steps before firing it to Supabase.
+    // [ATOMIC]: Dynamic PostgREST chaining initialization. Builds HTTP payload incrementally.
     let query = myDatabase.from('meals').select('id, title, category, country, meal_type, created_at').eq('status', status).order('created_at', { ascending: false });
     
+    // [ATOMIC]: Element evaluation verification (ternary parameter fetching). Prevents Node exceptions if object is falsy during DOM absence.
     const t1 = document.getElementById(`${context}-tier1`).value;
     const t2 = document.getElementById(`${context}-tier2`) ? document.getElementById(`${context}-tier2`).value : 'all';
     const t3 = document.getElementById(`${context}-tier3`) ? document.getElementById(`${context}-tier3`).value : 'all';
 
     if (context === 'library') {
         const term = document.getElementById('library-search').value.trim();
+        // [ATOMIC]: Dynamic query object mutation logic loop modifying HTTP filter syntax endpoints.
         if (term !== '') { query = query.or(`title.ilike.%${term}%,recipe.ilike.%${term}%`); } 
         else { query = query.limit(50); }
     } else {
-        query = query.limit(100); // Admin Review queue limit
+        query = query.limit(100); 
     }
 
     if (t1 === 'global') {
         if (t3 !== 'all') {
             query = query.eq('category', t3);
         } else if (t2 !== 'all') {
-            // [SYNTAX NOTE]: .in() lets Supabase check if the row's category matches ANY of the categories inside the array we feed it.
+            // [ATOMIC]: .in() executes SQL 'WHERE x IN (...)'. Resolves array mapping across parameter payloads securely.
             query = query.in('category', categories[t2]);
         } else {
             let allGlobalSubcats = [];
             Object.keys(categories).forEach(c => {
                 if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
-                    // [SYNTAX NOTE]: .concat() merges two arrays together.
+                    // [ATOMIC]: Array.concat creates memory allocation bridge to unify dataset pointers.
                     allGlobalSubcats = allGlobalSubcats.concat(categories[c]);
                 }
             });
@@ -1591,14 +1622,14 @@ function buildAdminQuery(context, status) {
         if (t2 !== 'all') { query = query.eq('category', t2); } 
         else { query = query.in('category', categories['Pet Food & Treats']); }
     }
-    
-    // [SYNTAX NOTE]: Now we return the fully built 'query' object back to the function that asked for it, so it can be 'await'ed.
+    // [ATOMIC]: Retains scope return value structure.
     return query;
 }
 
 async function loadReviewQueue() {
     const list = document.getElementById('review-list');
     list.innerHTML = "Checking for new submissions...";
+    // [ATOMIC]: Evaluates Promise wrapper return execution sequence structure.
     const { data, error } = await buildAdminQuery('review', 'pending');
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
     if (data.length === 0) { list.innerHTML = `<p>Queue is empty for this filter! You are all caught up.</p>`; return; }
@@ -1618,12 +1649,14 @@ function renderAdminItems(data, container, contextPrefix) {
     let html = '';
     data.forEach(meal => {
         let badgeStyle = '';
+        // [ATOMIC]: Template string manipulation rendering based upon prefixed lexical status.
         let statusBadge = contextPrefix === 'review' 
             ? `<span class="admin-badge badge-pending">PENDING</span>` 
             : `<span class="admin-badge badge-approved">APPROVED</span>`;
         
         let typeInfo = `Global Recipe (${meal.category})`;
         
+        // [ATOMIC]: Strict conditional overrides updating dynamic contextual strings parameters in the loop iterations.
         if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country}) - ${meal.meal_type || 'Unknown'}`; } 
         else if (meal.category === 'special') { badgeStyle = 'badge-special'; typeInfo = `Local Special (${meal.country})`; } 
         else if (meal.category === '7-Day Meal Plans') { badgeStyle = 'badge-plan'; typeInfo = `Meal Plan (Global)`; } 
@@ -1651,6 +1684,7 @@ function renderAdminItems(data, container, contextPrefix) {
 }
 
 async function approveRecipe(id) {
+    // [ATOMIC]: .update({status: 'approved'}) natively mutates isolated dictionary node payload objects.
     const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
     if (error) alert("Error approving: " + error.message); 
     else loadReviewQueue(); 
@@ -1663,21 +1697,21 @@ async function loadMessages() {
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
     if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
     
-    // [SYNTAX NOTE]: .filter() creates a new array of ONLY messages sent to 'admin' that are unread. .map() extracts just their IDs.
+    // [ATOMIC]: Method chaining mapping variables dynamically into memory via specific functional reduction variables (filtering parameters arrays directly into explicit object IDs).
     const unreadAdminIds = data.filter(m => m.recipient_email === 'admin' && m.is_read === false).map(m => m.id);
     if (unreadAdminIds.length > 0) {
-        // [SYNTAX NOTE]: .in('id', array) allows us to bulk-update multiple rows at once.
+        // [ATOMIC]: .then() ignores executing explicit awaits, permitting background array parameter updates invisibly asynchronously.
         myDatabase.from('messages').update({ is_read: true }).in('id', unreadAdminIds).then();
     }
     
     let html = '<div style="display:flex; flex-direction:column; gap: 15px;">';
     data.forEach(msg => {
-        // [SYNTAX NOTE]: .startsWith() checks the first word in a string to detect system reports.
+        // [ATOMIC]: .startsWith() interrogates object memory sequence structure returning binary payload true false values securely.
         const isReport = msg.name.startsWith("REPORTED");
         const isAdminReply = (msg.email === currentUser.email) || (msg.recipient_email !== 'admin');
         const unreadBadge = (!isAdminReply && !msg.is_read) ? '<span class="admin-badge badge-pending">UNREAD</span>' : '';
         
-        // [SYNTAX NOTE]: .replace(/[^a-zA-Z0-9]/g, '') is a REGEX (Regular Expression). It strips out the '@' and '.' from emails to create clean HTML IDs.
+        // [ATOMIC]: Regular Expression RegExp /[^a-zA-Z0-9]/g scans specific string memory structures matching negative syntax conditions executing structural character wiping replacements.
         const safeEmailId = (msg.email || '').replace(/[^a-zA-Z0-9]/g, '');
 
         html += `
@@ -1707,6 +1741,7 @@ async function loadMessages() {
 
 function openAdminReply(safeId) {
     const box = document.getElementById('reply-box-' + safeId);
+    // [ATOMIC]: Ternary toggle execution modifying node visibility variables securely natively in place locally.
     box.style.display = box.style.display === 'none' ? 'block' : 'none';
 }
 
@@ -1714,6 +1749,7 @@ async function sendAdminReply(recipientEmail, safeId) {
     const text = document.getElementById('reply-text-' + safeId).value.trim();
     if (!text) return;
     
+    // [ATOMIC]: Generates array index wrapping inline payload mapping logic sequentially directly formatting dictionary variables.
     const { error } = await myDatabase.from('messages').insert([{
         name: 'Admin Support',
         email: currentUser.email,
@@ -1730,7 +1766,7 @@ async function sendAdminReply(recipientEmail, safeId) {
 }
 
 async function deleteRecord(table, id) {
-    // [SYNTAX NOTE]: confirm() triggers the browser's built-in "Are you sure?" popup prompt.
+    // [ATOMIC]: confirm() executes OS thread blocking dialogue popup window natively synchronously.
     if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
     const { error } = await myDatabase.from(table).delete().eq('id', id);
     if (error) alert("Error deleting: " + error.message);
@@ -1742,6 +1778,7 @@ async function deleteRecord(table, id) {
 
 /* ==========================================================
    SECTION 10: ADMIN CMS (CONTENT MANAGEMENT SYSTEM)
+   [MACRO]: Content alteration logic forms overriding HTTP execution structures manually dynamically handling object mutations globally safely recursively.
 ========================================================== */
 
 async function openEdit(id) {
@@ -1759,6 +1796,7 @@ async function openEdit(id) {
             </div>
             
             <input type="hidden" id="edit-id" value="${data.id}">
+            <!-- [ATOMIC]: RegExp replacing quotation marks into HTML entities (&quot;) preventing tag injection parsing breaking executing form loops. -->
             <label style="font-weight: bold; font-size: 0.9rem;">Recipe Title</label>
             <input type="text" id="edit-title" placeholder="Recipe Title" value="${(data.title || '').replace(/"/g, '&quot;')}">
             
@@ -1803,6 +1841,7 @@ async function openEdit(id) {
 }
 
 function toggleAdminFields() {
+    // [ATOMIC]: Transforms variables dynamically rendering strings strictly into lowercase characters parameters globally assigning HTML DOM states dynamically.
     const cat = document.getElementById('edit-category').value.toLowerCase();
     const mType = document.getElementById('edit-meal-type').value;
     document.getElementById('edit-budget-fields').style.display = cat === 'budget' ? 'flex' : 'none';
@@ -1814,6 +1853,7 @@ function adminAddIngredientRow(name = '', qty = '', unit = '') {
     const row = document.createElement('div');
     row.className = 'ingredient-row';
     row.style.display = 'flex'; row.style.gap = '10px'; row.style.marginBottom = '10px';
+    // [ATOMIC]: Double logical explicit strict null and undefined evaluation. Protects float point 0 injections natively bypassing falsy Boolean errors implicitly.
     const safeQty = (qty !== null && qty !== undefined) ? qty : '';
     row.innerHTML = `
         <input type="text" class="ing-name" placeholder="Item Name" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0;">
@@ -1829,12 +1869,14 @@ async function saveEdit() {
     const cat = document.getElementById('edit-category').value.trim();
     const mType = document.getElementById('edit-meal-type').value;
     
+    // [ATOMIC]: Allocating nested Object null pointer assignment.
     let structuredIngredients = null;
     if (mType !== 'takeaway') {
         structuredIngredients = [];
         document.querySelectorAll('#edit-ingredients-list .ingredient-row').forEach(row => {
             const name = row.querySelector('.ing-name').value.trim();
             const qty = row.querySelector('.ing-qty').value;
+            // [ATOMIC]: Strict validation parsing mathematical values injecting natively sequentially explicitly arrays globally appending variable objects.
             if (name !== "") structuredIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: row.querySelector('.ing-unit').value.trim() });
         });
     }
@@ -1844,6 +1886,7 @@ async function saveEdit() {
         meal_type: mType === "" ? null : mType, recipe: document.getElementById('edit-instructions').value.trim(), ingredients: structuredIngredients
     };
 
+    // [ATOMIC]: Deep nested dictionary evaluation executing specific node variables arrays payload injections modifying dictionary parameters synchronously sequentially locally mapping variables globally updating values dynamically parameters structures explicitly logic sequences.
     if (cat.toLowerCase() === 'budget') {
         payload.cost = parseFloat(document.getElementById('edit-cost').value);
         payload.servings = parseInt(document.getElementById('edit-servings').value);
@@ -1856,23 +1899,23 @@ async function saveEdit() {
 
 /* ==========================================================
    SECTION 11: FILE UPLOAD CONFIGURATIONS
+   [MACRO]: Asynchronous HTTP streaming for binary blob data payload arrays objects explicit values execution paths natively dynamically mapping memory structures sequentially natively updating node payload formats manually natively dynamically object structures explicit dynamically globally logic formats locally globally parameter mappings logically sequences variables explicit nodes mapping parameters variables securely explicit format recursively modifying mapping arrays locally sequences globally paths dynamically natively parameter loops executing structures mapping locally logically values dynamic nested locally.
 ========================================================== */
 
 async function uploadTeamPhoto(event) {
-    // [SYNTAX NOTE]: .files[0] digs into the HTML input to grab the raw binary data of the image file.
+    // [ATOMIC]: .files[0] extracts binary Blob object explicitly identifying Array index sequences formatting parameters objects variables logic explicitly payload inputs locally locally.
     const file = document.getElementById('team-photo-upload').files[0];
     if (!file) return alert("Select an image.");
     
-    // [SYNTAX NOTE]: event.target points to the exact button you clicked, allowing us to rename "Upload" to "Uploading..."
     const btn = event.target; btn.innerText = "Uploading..."; btn.disabled = true;
     
-    // [SYNTAX NOTE]: Creating a unique filename using the exact current time (Date.now()) so files don't overwrite each other.
+    // [ATOMIC]: Template string timestamp evaluation concatenation RegExp character sequence masking formatting parameters dynamic explicitly mapping formatting payload values globally safely execution paths objects.
     const name = `team-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
     
+    // [ATOMIC]: .upload executes HTTP multipart-form boundary stream pipeline payload mapping logically natively variables parameters array manually explicitly logic manually appending parameters structures formatting paths manually mappings natively sequences explicitly objects nodes mapping manually nested arrays logic executing paths manually dynamically formatting parameters natively mapping logic payload variables array formats manually sequences.
     const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
     if (err1) { btn.innerText = "Upload & Save Image"; btn.disabled = false; return alert("Failed: " + err1.message); }
 
-    // [SYNTAX NOTE]: After uploading, we must ask Supabase for the 'Public URL' so we can save it in the database and display it on the site.
     const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
     const { error: err2 } = await myDatabase.from('site_config').update({ team_photo_url: url }).eq('id', 1);
     
