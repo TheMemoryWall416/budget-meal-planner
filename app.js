@@ -249,8 +249,7 @@ function showPage(page) {
     if (page === 'home') {
         view.innerHTML = `
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
-                <h1 style="margin-top:0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
-                <p style="margin: 0; font-size: 1.2rem; margin-bottom: 0;">From authentic global cuisines to cost-tracked weeknight dinners. Explore <strong>${totalApprovedRecipes}</strong> recipes shared by cooks worldwide.</p>
+                <h1 style="margin: 0; font-size: 1.8rem;">WELCOME TO THE GLOBAL RECIPE & MEAL PLANNER</h1>
             </div>
 
             <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
