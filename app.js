@@ -373,11 +373,21 @@ function showPage(page) {
         // [ATOMIC]: Assigns a massive multiline Template Literal (``) string directly into the DOM render tree.
         view.innerHTML = `
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 30px 10px; border-width: 4px;">
-                <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
-                    <span style="font-size: 1.2rem; display: block; margin-bottom: 5px;">WELCOME TO</span>
-                    <a href="/" style="color: #0000EE; text-decoration: none; font-weight: 900; font-size: clamp(1.2rem, 5vw, 2.2rem); letter-spacing: -1px; display: block; word-break: break-all;">budgetmealplanner.co.za</a>
-                </h1>
-            </div>
+    <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
+        <span style="font-size: 1.2rem; display: block; margin-bottom: 5px;">WELCOME TO</span>
+        <a href="/" style="
+            color: #0000EE; 
+            text-decoration: none; 
+            font-weight: 900; 
+            /* [ATOMIC]: Floor reduced to 1.1rem, Ceiling reduced to 1.8rem. */
+            font-size: clamp(1.1rem, 4vw, 1.8rem); 
+            letter-spacing: -1px; 
+            display: block;
+        ">
+            budgetmealplanner.co.za
+        </a>
+    </h1>
+</div>
 
             <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
                 <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
