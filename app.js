@@ -372,23 +372,23 @@ function showPage(page) {
     if (page === 'home') {
         // [ATOMIC]: Assigns a massive multiline Template Literal (``) string directly into the DOM render tree.
         view.innerHTML = `
-            <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 30px 10px; border-width: 4px;">
-    <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
-        <span style="font-size: 1.0rem; display: block; margin-bottom: 5px;">WELCOME TO</span>
-        <a href="/" style="
-            color: #0000EE; 
-            text-decoration: none; 
-            font-weight: 900; 
-            /* [ATOMIC]: Using 5vw (5% of screen width) ensures it ALWAYS fits the screen horizontally. */
-            font-size: 5vw; 
-            letter-spacing: -0.5px; 
-            display: block;
-            white-space: nowrap;
-        ">
-            budgetmealplanner.co.za
-        </a>
-    </h1>
-</div>
+            <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 20px 5px; border-width: 4px; overflow: hidden;">
+        <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
+            <span style="font-size: 1.0rem; display: block; margin-bottom: 2px;">WELCOME TO</span>
+            <a href="/" style="
+                color: #0000EE; 
+                text-decoration: none; 
+                font-weight: 900; 
+                font-size: 5vw; 
+                letter-spacing: -0.5px; 
+                display: block;
+                overflow-wrap: break-word;
+                padding: 0 5px;
+            ">
+                budgetmealplanner.co.za
+            </a>
+        </h1>
+    </div>
 
             <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
                 <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
