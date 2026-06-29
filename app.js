@@ -372,69 +372,77 @@ function showPage(page) {
     if (page === 'home') {
         // [ATOMIC]: Assigns a massive multiline Template Literal (``) string directly into the DOM render tree.
         view.innerHTML = `
-            <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 20px 10px; border-width: 4px;">
-                <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
-                    <span style="font-size: 1.0rem; display: block; margin-bottom: 5px;">WELCOME TO</span>
-                    <a href="/" style="color: #0000EE; text-decoration: none; font-weight: 900; font-size: 1.8rem; display: block;">
-                        budgetmealplanner<br>.co.za
-                    </a>
-                </h1>
-            </div>
+            <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 30px 20px; border-width: 4px;">
+            <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
+                <span style="font-size: 1.0rem; display: block; margin-bottom: 5px; color: var(--text);">WELCOME TO</span>
+                <a href="/" style="
+                    color: #000000; 
+                    text-decoration: none; 
+                    font-weight: 900; 
+                    /* [ATOMIC]: clamp(min, preferred, max). The font scales perfectly between 1.4rem and 2.5rem. */
+                    font-size: clamp(1.4rem, 4vw, 2.5rem); 
+                    letter-spacing: -0.5px; 
+                    display: inline-block;
+                ">
+                    budgetmealplanner.co.za
+                </a>
+            </h1>
+        </div>
 
-            <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
-                <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                    <img id="home-team-photo" src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid var(--border); object-fit: cover;">
-                    <div style="flex: 1; min-width: 300px;">
-                        <h2 style="font-size: 1.5rem; margin-top: 0; margin-bottom: 15px;">About Us</h2>
-                        <h3 style="font-size: 1.2rem; margin-top: 0; margin-bottom: 5px;">Meet the Team</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">Hi! We're Anton and Jenny from South Africa, and we're the team behind this platform.</p>
-                        
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Who We Are</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">This website is my very first live project. I'm a self-taught developer who wanted to build something genuinely useful for everyday people. Jenny balances her full-time job as an online teacher while also serving as our lead administrator, manually reviewing community recipes and comments to help keep the platform friendly, helpful, and welcoming.</p>
+        <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
+            <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+                <img id="home-team-photo" src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid var(--border); object-fit: cover;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h2 style="font-size: 1.5rem; margin-top: 0; margin-bottom: 15px;">About Us</h2>
+                    <h3 style="font-size: 1.2rem; margin-top: 0; margin-bottom: 5px;">Meet the Team</h3>
+                    <p style="line-height: 1.6; margin-top: 0;">Hi! We're Anton and Jenny from South Africa, and we're the team behind this platform.</p>
+                    
+                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Who We Are</h3>
+                    <p style="line-height: 1.6; margin-top: 0;">This website is my very first live project. I'm a self-taught developer who wanted to build something genuinely useful for everyday people. Jenny balances her full-time job as an online teacher while also serving as our lead administrator, manually reviewing community recipes and comments to help keep the platform friendly, helpful, and welcoming.</p>
 
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Why We Built This</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">We created this platform because we couldn't find a recipe website that truly focused on affordable, realistic meals while allowing the community to actively participate. Too many recipe sites are filled with clickbait, AI-generated content, endless ads, or recipes that require expensive or difficult-to-find ingredients.</p>
-                        <p style="line-height: 1.6;">As a family living on a budget ourselves, we wanted to create one central place where people from all over the world can discover, share, and discuss recipes and budget-friendly meals.</p>
-                        <p style="line-height: 1.6;">We believe good food shouldn't be expensive, and great recipes should be shared — not hidden behind paywalls, flooded with advertisements, or buried beneath endless clickbait.</p>
+                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Why We Built This</h3>
+                    <p style="line-height: 1.6; margin-top: 0;">We created this platform because we couldn't find a recipe website that truly focused on affordable, realistic meals while allowing the community to actively participate. Too many recipe sites are filled with clickbait, AI-generated content, endless ads, or recipes that require expensive or difficult-to-find ingredients.</p>
+                    <p style="line-height: 1.6;">As a family living on a budget ourselves, we wanted to create one central place where people from all over the world can discover, share, and discuss recipes and budget-friendly meals.</p>
+                    <p style="line-height: 1.6;">We believe good food shouldn't be expensive, and great recipes should be shared — not hidden behind paywalls, flooded with advertisements, or buried beneath endless clickbait.</p>
 
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Our Approach</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">Our goal has always been to build a platform that puts people first. While technology helps us run the website, we believe the heart of this community should always be real people sharing real recipes, honest experiences, and practical advice.</p>
+                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Our Approach</h3>
+                    <p style="line-height: 1.6; margin-top: 0;">Our goal has always been to build a platform that puts people first. While technology helps us run the website, we believe the heart of this community should always be real people sharing real recipes, honest experiences, and practical advice.</p>
 
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Keeping It Free</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">The platform is completely free to use. To help cover the running costs, we've included a small number of carefully placed advertisements. We've worked hard to make sure they're as unobtrusive as possible and don't get in the way of your experience.</p>
-                        <p style="line-height: 1.6;">As the platform continues to grow, our goal is to improve this even further — whether that means reducing or removing ads in the future, or making sure any advertisements that remain are more relevant, valuable, and genuinely useful to our community.</p>
-                        <p style="line-height: 1.6;">We believe that if ads are part of the platform, they should add value rather than simply take up space.</p>
+                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Keeping It Free</h3>
+                    <p style="line-height: 1.6; margin-top: 0;">The platform is completely free to use. To help cover the running costs, we've included a small number of carefully placed advertisements. We've worked hard to make sure they're as unobtrusive as possible and don't get in the way of your experience.</p>
+                    <p style="line-height: 1.6;">As the platform continues to grow, our goal is to improve this even further — whether that means reducing or removing ads in the future, or making sure any advertisements that remain are more relevant, valuable, and genuinely useful to our community.</p>
+                    <p style="line-height: 1.6;">We believe that if ads are part of the platform, they should add value rather than simply take up space.</p>
 
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Join the Community</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">You do not need an account to use this platform. You can browse recipes, discover budget-friendly meals, share recipes, read comments, and explore the community completely free.</p>
-                        <p style="line-height: 1.6;">Creating a free account simply allows you to become a more active part of the community. Members can join discussions, leave comments, save favourite recipes, keep track of their contributions, and help shape the platform through their ideas and feedback.</p>
-                        <p style="line-height: 1.6;">We only ask for your email address as your login ID, and you choose your own password.</p>
-                        <p style="line-height: 1.6;">Creating an account does not mean you will receive unwanted emails, and we will never sell or share your email address.</p>
-                        <p style="line-height: 1.6;">The only emails you may receive from us are:</p>
-                        <ul style="line-height: 1.6; margin-top: 0; padding-left: 20px;">
-                            <li>Replies or feedback related to something you have contacted us about, such as a suggestion, question, or report.</li>
-                            <li>Newsletter emails, but only if you specifically choose to sign up for our newsletter.</li>
-                        </ul>
-                        <p style="line-height: 1.6;">We believe your inbox belongs to you. We don't want to send emails to people who don't want them, which is why newsletters are only sent to people who actively choose to receive them.</p>
+                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Join the Community</h3>
+                    <p style="line-height: 1.6; margin-top: 0;">You do not need an account to use this platform. You can browse recipes, discover budget-friendly meals, share recipes, read comments, and explore the community completely free.</p>
+                    <p style="line-height: 1.6;">Creating a free account simply allows you to become a more active part of the community. Members can join discussions, leave comments, save favourite recipes, keep track of their contributions, and help shape the platform through their ideas and feedback.</p>
+                    <p style="line-height: 1.6;">We only ask for your email address as your login ID, and you choose your own password.</p>
+                    <p style="line-height: 1.6;">Creating an account does not mean you will receive unwanted emails, and we will never sell or share your email address.</p>
+                    <p style="line-height: 1.6;">The only emails you may receive from us are:</p>
+                    <ul style="line-height: 1.6; margin-top: 0; padding-left: 20px;">
+                        <li>Replies or feedback related to something you have contacted us about, such as a suggestion, question, or report.</li>
+                        <li>Newsletter emails, but only if you specifically choose to sign up for our newsletter.</li>
+                    </ul>
+                    <p style="line-height: 1.6;">We believe your inbox belongs to you. We don't want to send emails to people who don't want them, which is why newsletters are only sent to people who actively choose to receive them.</p>
 
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Helping Us Improve</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">Because there are only two of us running the platform, there may occasionally be something we miss. If you notice anything unusual, inappropriate, or simply not working as it should, please use the Report button or contact us directly.</p>
-                        <p style="line-height: 1.6;">Every report, suggestion, recipe, and comment helps make the platform better, and we'll always do our best to respond as quickly as we can.</p>
+                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Helping Us Improve</h3>
+                    <p style="line-height: 1.6; margin-top: 0;">Because there are only two of us running the platform, there may occasionally be something we miss. If you notice anything unusual, inappropriate, or simply not working as it should, please use the Report button or contact us directly.</p>
+                    <p style="line-height: 1.6;">Every report, suggestion, recipe, and comment helps make the platform better, and we'll always do our best to respond as quickly as we can.</p>
 
-                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">The Journey Ahead</h3>
-                        <p style="line-height: 1.6; margin-top: 0;">We're only just getting started. We have lots of ideas and exciting features planned for the future, and many of them will come directly from suggestions made by our community.</p>
-                        <p style="line-height: 1.6;">We'll always listen, keep improving, and build this platform together with the people who use it.</p>
-                        <p style="line-height: 1.6;">Thank you so much for visiting our website. We truly hope it's been useful, exceeded your expectations, and maybe even helped you discover your next favourite meal.</p>
-                        <p style="line-height: 1.6;">Our mission is simple: to build one of the friendliest, most useful, and completely free recipe communities on the internet — one recipe at a time.</p>
-                        
-                        <p style="line-height: 1.6; font-style: italic;">One last thing... if something breaks, don't worry — Anton was probably just "optimising" his code. Jenny will gently remind him that it was working perfectly before he started "improving" it.</p>
-                        
-                        <p style="line-height: 1.6;">We look forward to seeing the recipes, ideas, and conversations that this community will create.</p>
-                        <p style="line-height: 1.6; font-size: 1.2rem; margin-top: 20px;">Happy cooking,<br><strong>Anton & Jenny</strong></p>
-                    </div>
+                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">The Journey Ahead</h3>
+                    <p style="line-height: 1.6; margin-top: 0;">We're only just getting started. We have lots of ideas and exciting features planned for the future, and many of them will come directly from suggestions made by our community.</p>
+                    <p style="line-height: 1.6;">We'll always listen, keep improving, and build this platform together with the people who use it.</p>
+                    <p style="line-height: 1.6;">Thank you so much for visiting our website. We truly hope it's been useful, exceeded your expectations, and maybe even helped you discover your next favourite meal.</p>
+                    <p style="line-height: 1.6;">Our mission is simple: to build one of the friendliest, most useful, and completely free recipe communities on the internet — one recipe at a time.</p>
+                    
+                    <p style="line-height: 1.6; font-style: italic;">One last thing... if something breaks, don't worry — Anton was probably just "optimising" his code. Jenny will gently remind him that it was working perfectly before he started "improving" it.</p>
+                    
+                    <p style="line-height: 1.6;">We look forward to seeing the recipes, ideas, and conversations that this community will create.</p>
+                    <p style="line-height: 1.6; font-size: 1.2rem; margin-top: 20px;">Happy cooking,<br><strong>Anton & Jenny</strong></p>
                 </div>
             </div>
-        `;
+        </div>
+    `;
     } else if (page === 'profile') {
         view.innerHTML = `
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
