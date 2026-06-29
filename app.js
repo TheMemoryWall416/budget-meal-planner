@@ -372,19 +372,19 @@ function showPage(page) {
     if (page === 'home') {
         // [ATOMIC]: Assigns a massive multiline Template Literal (``) string directly into the DOM render tree.
         view.innerHTML = `
-            <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 30px 20px; border-width: 4px;">
-            <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
+            <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 30px 10px; border-width: 4px;">
+            <h1 style="margin: 0; line-height: 1.1; font-family: sans-serif;">
                 <span style="font-size: 1.0rem; display: block; margin-bottom: 5px; color: var(--text);">WELCOME TO</span>
-                <a href="/" style="
-                    color: #000000; 
-                    text-decoration: none; 
-                    font-weight: 900; 
-                    /* [ATOMIC]: clamp(min, preferred, max). The font scales perfectly between 1.4rem and 2.5rem. */
-                    font-size: clamp(1.4rem, 4vw, 2.5rem); 
-                    letter-spacing: -0.5px; 
-                    display: inline-block;
-                ">
-                    budgetmealplanner.co.za
+                
+                <a href="/" style="color: #000000; text-decoration: none; display: inline-block;">
+                    <!-- Line 1: The main brand name (Large & Heavy) -->
+                    <span style="display: block; font-weight: 900; font-size: clamp(1.3rem, 3.5vw, 2.4rem); letter-spacing: -0.5px;">
+                        budgetmealplanner
+                    </span>
+                    <!-- Line 2: The domain extension (Smaller & Tucked up) -->
+                    <span style="display: block; font-weight: 700; font-size: clamp(1.0rem, 2.5vw, 1.6rem); letter-spacing: 1px; margin-top: -2px;">
+                        .co.za
+                    </span>
                 </a>
             </h1>
         </div>
