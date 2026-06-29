@@ -377,11 +377,9 @@ function showPage(page) {
                 <span style="font-size: 1.0rem; display: block; margin-bottom: 5px; color: var(--text);">WELCOME TO</span>
                 
                 <a href="/" style="color: #000000; text-decoration: none; display: inline-block;">
-                    <!-- Line 1: The main brand name (Large & Heavy) -->
                     <span style="display: block; font-weight: 900; font-size: clamp(1.3rem, 3.5vw, 2.4rem); letter-spacing: -0.5px;">
                         budgetmealplanner
                     </span>
-                    <!-- Line 2: The domain extension (Smaller & Tucked up) -->
                     <span style="display: block; font-weight: 700; font-size: clamp(1.0rem, 2.5vw, 1.6rem); letter-spacing: 1px; margin-top: -2px;">
                         .co.za
                     </span>
@@ -729,7 +727,7 @@ async function executeSearch() {
     `;
 
     if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 600px;"><p>No recipes found matching "${term}". Try a different ingredient or meal name.</p></div>`;
+        html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No recipes found matching "${term}". Try a different ingredient or meal name.</p></div>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px; width: 100%;">`;
         data.forEach(meal => {
@@ -927,7 +925,7 @@ async function loadSpecials() {
     `;
     
     if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 600px;"><p>No active specials posted for ${selectedCountry}. Be the first to share a deal!</p></div>`;
+        html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No active specials posted for ${selectedCountry}. Be the first to share a deal!</p></div>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
         data.forEach(meal => {
@@ -1051,7 +1049,7 @@ async function loadBudgetMeals(filter = 'all') {
     `;
     
     if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 600px;"><p>No budget meals posted for ${selectedCountry} under this filter.</p></div>`;
+        html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No budget meals posted for ${selectedCountry} under this filter.</p></div>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
         
@@ -1218,7 +1216,7 @@ async function loadSubcategory(subcategory, parentCategory) {
     `;
 
     if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 600px;"><p>No recipes found in this category yet.</p><button onclick="showForm('${subcategory}', '${parentCategory}')" style="margin-top: 10px;">Be the first to share one!</button></div>`;
+        html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No recipes found in this category yet.</p><button onclick="showForm('${subcategory}', '${parentCategory}')" style="margin-top: 10px;">Be the first to share one!</button></div>`;
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px; width: 100%;">`;
         data.forEach(meal => {
@@ -1809,7 +1807,6 @@ async function openEdit(id) {
             </div>
             
             <input type="hidden" id="edit-id" value="${data.id}">
-            <!-- [ATOMIC]: RegExp replacing quotation marks into HTML entities (&quot;) preventing tag injection parsing breaking executing form loops. -->
             <label style="font-weight: bold; font-size: 0.9rem;">Recipe Title</label>
             <input type="text" id="edit-title" placeholder="Recipe Title" value="${(data.title || '').replace(/"/g, '&quot;')}">
             
