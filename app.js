@@ -90,12 +90,17 @@ async function updateAuthUI() {
             await checkUnreadMessages();
 
             if (isAdmin) {
-                // [ATOMIC]: .createElement('a') commands the engine to forge a new anchor tag Node in isolated memory.
-                const adminBtn = document.createElement('a');
+                // [MACRO]: Switched from an inline anchor tag (<a>) to a block-level <button> tag.
+                // This ensures the element automatically inherits your CSS button styling and doesn't 
+                // silently collapse on narrow mobile screens.
+                // [ATOMIC]: .createElement('button') commands the engine to forge a new button Node.
+                const adminBtn = document.createElement('button');
                 adminBtn.id = 'nav-admin-btn';
-                adminBtn.href = 'javascript:void(0)'; // Pre-empts default anchor navigation.
                 adminBtn.onclick = () => showPage('admin');
-                adminBtn.style.cssText = 'margin-top: 8px;';
+                
+                // [ATOMIC]: Explicit layout engine override. 'display: block' and 'width: 100%' forces the 
+                // button to fill the width of the parent menu container, stopping mobile guillotine clipping.
+                adminBtn.style.cssText = 'margin-top: 8px; display: block; width: 100%; box-sizing: border-box;';
                 adminBtn.innerHTML = '⚙️ Command Center';
                 
                 // [ATOMIC]: .parentNode traverses up the tree. .insertBefore injects the forged Node precisely before the target's next sibling.
