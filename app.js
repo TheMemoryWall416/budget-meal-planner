@@ -1129,6 +1129,33 @@ async function viewBudgetMeal(id) {
     // [ATOMIC]: encodeURIComponent parses raw text strings and casts ASCII characters (like Space) into URL-safe hex codes (%20).
     const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
+    // [MACRO]: COMMUNITY COMMENTS UI INJECTION (BUDGET MEALS)
+    // [ATOMIC]: Evaluates active memory token to gatewrite interactive UI elements.
+    let commentFormHTML = '';
+    if (currentUser) {
+        commentFormHTML = `
+            <div style="margin-bottom: 20px;">
+                <textarea id="new-comment-text" rows="3" placeholder="Share your thoughts or variations..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;"></textarea>
+                <button onclick="postComment(${data.id})" style="background: var(--btn-grey);">Post Comment</button>
+            </div>
+        `;
+    } else {
+        commentFormHTML = `
+            <div style="background: #f0f0f0; border: 2px dashed var(--border); padding: 15px; text-align: center; margin-bottom: 20px;">
+                <p style="margin-top: 0; font-weight: bold;">Want to join the conversation?</p>
+                <button onclick="openAuthModal()" style="margin: 0;">Login or Sign Up to Comment</button>
+            </div>
+        `;
+    }
+
+    const commentsSectionHTML = `
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; margin-top: 10px; margin-bottom: 30px;">
+            <h2 style="margin-top: 0; font-size: 1.5rem; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Community Comments</h2>
+            ${commentFormHTML}
+            <div id="recipe-comments-list">Loading comments...</div>
+        </div>
+    `;
+
     view.innerHTML = `
         <button onclick="showPage('find-budget-meals')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
@@ -1140,13 +1167,18 @@ async function viewBudgetMeal(id) {
         
         ${contentHTML}
         
-        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
+        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
             <button onclick="likeMeal(${data.id}, this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
             <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
             <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
             <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})">⚠️ Report Recipe</button>
         </div>
+
+        ${commentsSectionHTML}
     `;
+
+    // [ATOMIC]: Triggers background fetch of community data immediately after primary DOM tree settles.
+    loadComments(data.id);
 }
 
 /* ==========================================================
@@ -1196,6 +1228,115 @@ async function reportRecipe(title, id) {
     }]);
     if (error) alert("Error sending report: " + error.message);
     else alert("Report submitted successfully. Thank you!");
+}
+
+/* ==========================================================
+   SECTION 8.5: COMMUNITY COMMENTS ENGINE
+   [MACRO]: Handles fetching, posting, liking, and reporting of user comments.
+========================================================== */
+
+async function loadComments(recipeId) {
+    const list = document.getElementById('recipe-comments-list');
+    if (!list) return;
+
+    // [ATOMIC]: Dual-layer algorithm. Sorts by likes first (driving best content to top), then by date.
+    const { data, error } = await myDatabase.from('comments')
+        .select('*')
+        .eq('recipe_id', recipeId)
+        .order('likes', { ascending: false })
+        .order('created_at', { ascending: true });
+
+    if (error) { list.innerHTML = `<p>Error loading comments.</p>`; return; }
+
+    // [MACRO]: Implements Option B (The Friendly Empty State).
+    if (data.length === 0) {
+        list.innerHTML = `<p style="color: #666; font-style: italic; text-align: center; margin-top: 10px;">Be the first to share your thoughts or variations on this recipe!</p>`;
+        return;
+    }
+
+    let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+    data.forEach(comment => {
+        const dateStr = new Date(comment.created_at).toLocaleDateString();
+        // [ATOMIC]: RegExp wiping quotation marks to prevent HTML injection crashes when passing string to onclick functions.
+        const safeText = comment.comment_text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        html += `
+            <div style="background: #fff; border: 1px solid var(--border); padding: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-weight: bold; font-size: 0.9rem;">${comment.email.split('@')[0]}</span>
+                    <span style="font-size: 0.8rem; color: #666;">${dateStr}</span>
+                </div>
+                <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 0.95rem;">${comment.comment_text}</p>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="likeComment(${comment.id}, this)" style="padding: 4px 8px; font-size: 0.8rem; background: #f9f9f9;">👍 Like (<span class="comment-like-count">${comment.likes || 0}</span>)</button>
+                    <button onclick="reportComment(${comment.id}, '${safeText}')" style="padding: 4px 8px; font-size: 0.8rem; background: #fff3cd;">⚠️ Report</button>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    list.innerHTML = html;
+}
+
+async function postComment(recipeId) {
+    if (!currentUser) return alert("Please log in to comment.");
+    const input = document.getElementById('new-comment-text');
+    const text = input.value.trim();
+    
+    if (!text) return;
+    // [MACRO]: The Troll Defense (Character Limit Execution).
+    if (text.length > 500) return alert("Comments must be under 500 characters.");
+
+    input.disabled = true; // [ATOMIC]: Node freeze prevents spam clicking.
+
+    const { error } = await myDatabase.from('comments').insert([{
+        recipe_id: recipeId,
+        email: currentUser.email,
+        comment_text: text
+    }]);
+
+    input.disabled = false;
+
+    if (error) alert("Error posting comment: " + error.message);
+    else {
+        input.value = '';
+        loadComments(recipeId); // [ATOMIC]: Silent re-render of node block after DB update.
+    }
+}
+
+async function likeComment(commentId, btnElement) {
+    const countSpan = btnElement.querySelector('.comment-like-count');
+    let currentLikes = parseInt(countSpan.innerText) || 0;
+    currentLikes++;
+    countSpan.innerText = currentLikes;
+    
+    btnElement.disabled = true; 
+    btnElement.style.opacity = '0.6';
+    btnElement.innerHTML = `👍 Liked (${currentLikes})`;
+
+    // [ATOMIC]: Separate DB read/write sequence prevents local array mapping from wiping out simultaneous live clicks.
+    const { data } = await myDatabase.from('comments').select('likes').eq('id', commentId).single();
+    const dbLikes = (data && data.likes ? data.likes : 0) + 1;
+    await myDatabase.from('comments').update({ likes: dbLikes }).eq('id', commentId);
+}
+
+async function reportComment(commentId, commentText) {
+    const reason = prompt("Why are you reporting this comment?");
+    if (!reason) return;
+
+    const reporterEmail = currentUser ? currentUser.email : 'Guest';
+    // [ATOMIC]: Truncate comment text for the subject line if it's too long, preventing UI blowout in the admin panel.
+    const shortText = commentText.length > 30 ? commentText.substring(0, 30) + '...' : commentText;
+
+    const { error } = await myDatabase.from('messages').insert([{ 
+        name: "🚩 REPORTED COMMENT: " + shortText, 
+        email: reporterEmail + " (Comment ID: " + commentId + ")", 
+        recipient_email: 'admin',
+        message: "REASON: " + reason + "\n\nFULL COMMENT:\n" + commentText,
+        is_read: false
+    }]);
+    
+    if (error) alert("Error sending report: " + error.message);
+    else alert("Comment reported successfully. Thank you for keeping the community safe!");
 }
 
 async function loadSubcategory(subcategory, parentCategory) {
@@ -1262,6 +1403,33 @@ async function viewRecipe(id) {
 
     const parentCat = data.parent_category || getParentCategory(data.category);
 
+    // [MACRO]: COMMUNITY COMMENTS UI INJECTION (GLOBAL RECIPES)
+    // [ATOMIC]: Evaluates active memory token to gatewrite interactive UI elements.
+    let commentFormHTML = '';
+    if (currentUser) {
+        commentFormHTML = `
+            <div style="margin-bottom: 20px;">
+                <textarea id="new-comment-text" rows="3" placeholder="Share your thoughts or variations..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;"></textarea>
+                <button onclick="postComment(${data.id})" style="background: var(--btn-grey);">Post Comment</button>
+            </div>
+        `;
+    } else {
+        commentFormHTML = `
+            <div style="background: #f0f0f0; border: 2px dashed var(--border); padding: 15px; text-align: center; margin-bottom: 20px;">
+                <p style="margin-top: 0; font-weight: bold;">Want to join the conversation?</p>
+                <button onclick="openAuthModal()" style="margin: 0;">Login or Sign Up to Comment</button>
+            </div>
+        `;
+    }
+
+    const commentsSectionHTML = `
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; margin-top: 10px; margin-bottom: 30px;">
+            <h2 style="margin-top: 0; font-size: 1.5rem; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Community Comments</h2>
+            ${commentFormHTML}
+            <div id="recipe-comments-list">Loading comments...</div>
+        </div>
+    `;
+
     view.innerHTML = `
         <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
@@ -1299,14 +1467,18 @@ async function viewRecipe(id) {
             <div style="white-space: pre-wrap;">${data.recipe}</div>
         </div>
         
-        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 30px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
+        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
             <button onclick="likeMeal(${data.id}, this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
             <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
             <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
             <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})">⚠️ Report Recipe</button>
         </div>
+
+        ${commentsSectionHTML}
     `;
     updateConverter();
+    // [ATOMIC]: Triggers background fetch of community data immediately after primary DOM tree settles.
+    loadComments(data.id);
 }
 
 function updateConverter() {
@@ -1686,8 +1858,11 @@ function renderAdminItems(data, container, contextPrefix) {
             </div>
             <div class="admin-card-actions">`;
         
+        // [MACRO]: Inserts the "Moderate Comments" workflow button exclusively into the Library tab.
         if (contextPrefix === 'review') {
             html += `<button style="background: #d4edda;" onclick="approveRecipe(${meal.id})">Approve</button>`;
+        } else if (contextPrefix === 'library') {
+            html += `<button style="background: #e2d9f3;" onclick="moderateComments(${meal.id}, '${meal.title.replace(/'/g, "\\'")}')">Moderate Comments</button>`;
         }
         
         html += `
@@ -1697,6 +1872,46 @@ function renderAdminItems(data, container, contextPrefix) {
         </div>`;
     });
     container.innerHTML = html;
+}
+
+// [MACRO]: The Library Comment Triage Dashboard
+async function moderateComments(recipeId, recipeTitle) {
+    const area = document.getElementById('admin-content-area');
+    area.innerHTML = `<div class="window-box"><p>Loading comments for ${recipeTitle}...</p></div>`;
+
+    const { data, error } = await myDatabase.from('comments').select('*').eq('recipe_id', recipeId).order('created_at', { ascending: false });
+    if (error) { alert("Error: " + error.message); switchAdminTab('library'); return; }
+
+    let html = `
+        <div class="window-box" style="width: 100%; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">Moderating: ${recipeTitle}</h2>
+                <button onclick="switchAdminTab('library')">← Back to Library</button>
+            </div>
+    `;
+
+    if (data.length === 0) {
+        html += `<p>No comments on this recipe.</p>`;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+        data.forEach(comment => {
+            html += `
+                <div class="admin-card" style="align-items: flex-start;">
+                    <div class="admin-card-content">
+                        <p style="font-weight: bold; margin: 0 0 5px 0;">${comment.email} <span style="font-size: 0.8rem; font-weight: normal; color: #666;">(${new Date(comment.created_at).toLocaleString()})</span></p>
+                        <p style="margin: 0; white-space: pre-wrap;">${comment.comment_text}</p>
+                        <p style="font-size: 0.8rem; color: #666; margin: 5px 0 0 0;">Likes: ${comment.likes || 0} | Comment ID: ${comment.id}</p>
+                    </div>
+                    <div class="admin-card-actions">
+                        <button style="background: #f8d7da;" onclick="deleteRecord('comments', ${comment.id}, ${recipeId}, '${recipeTitle.replace(/'/g, "\\'")}')">Delete Comment</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    html += `</div>`;
+    area.innerHTML = html;
 }
 
 async function approveRecipe(id) {
@@ -1723,7 +1938,7 @@ async function loadMessages() {
     let html = '<div style="display:flex; flex-direction:column; gap: 15px;">';
     data.forEach(msg => {
         // [ATOMIC]: .startsWith() interrogates object memory sequence structure returning binary payload true false values securely.
-        const isReport = msg.name.startsWith("REPORTED");
+        const isReport = msg.name.startsWith("REPORTED") || msg.name.startsWith("🚩 REPORTED");
         const isAdminReply = (msg.email === currentUser.email) || (msg.recipient_email !== 'admin');
         const unreadBadge = (!isAdminReply && !msg.is_read) ? '<span class="admin-badge badge-pending">UNREAD</span>' : '';
         
@@ -1781,13 +1996,15 @@ async function sendAdminReply(recipientEmail, safeId) {
     }
 }
 
-async function deleteRecord(table, id) {
+// [ATOMIC]: Modified to accept fallback parameters. This allows the dashboard to correctly return to the specific recipe's comment list after destroying a child node.
+async function deleteRecord(table, id, fallbackId = null, fallbackTitle = null) {
     // [ATOMIC]: confirm() executes OS thread blocking dialogue popup window natively synchronously.
     if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
     const { error } = await myDatabase.from(table).delete().eq('id', id);
     if (error) alert("Error deleting: " + error.message);
     else {
         if (table === 'messages') loadMessages();
+        else if (table === 'comments') moderateComments(fallbackId, fallbackTitle);
         else { loadReviewQueue(); loadLibrary(); }
     }
 }
