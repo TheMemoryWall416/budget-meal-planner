@@ -374,15 +374,16 @@ function showPage(page) {
         view.innerHTML = `
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 30px 10px; border-width: 4px;">
     <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
-        <span style="font-size: 1.2rem; display: block; margin-bottom: 5px;">WELCOME TO</span>
+        <span style="font-size: 1.0rem; display: block; margin-bottom: 5px;">WELCOME TO</span>
         <a href="/" style="
             color: #0000EE; 
             text-decoration: none; 
             font-weight: 900; 
-            /* [ATOMIC]: Floor reduced to 1.1rem, Ceiling reduced to 1.8rem. */
-            font-size: clamp(1.1rem, 4vw, 1.8rem); 
-            letter-spacing: -1px; 
+            /* [ATOMIC]: Using 5vw (5% of screen width) ensures it ALWAYS fits the screen horizontally. */
+            font-size: 5vw; 
+            letter-spacing: -0.5px; 
             display: block;
+            white-space: nowrap;
         ">
             budgetmealplanner.co.za
         </a>
