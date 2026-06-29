@@ -375,7 +375,7 @@ function showPage(page) {
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 30px 10px; border-width: 4px;">
                 <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
                     <span style="font-size: 1.2rem; display: block; margin-bottom: 5px;">WELCOME TO</span>
-                    <a href="/" style="color: #0000EE; text-decoration: none; font-weight: 900; font-size: clamp(1.2rem, 5vw, 2.8rem); letter-spacing: -1px; display: block; word-break: break-all;">budgetmealplanner.co.za</a>
+                    <a href="/" style="color: #0000EE; text-decoration: none; font-weight: 900; font-size: clamp(1.2rem, 5vw, 2.2rem); letter-spacing: -1px; display: block; word-break: break-all;">budgetmealplanner.co.za</a>
                 </h1>
             </div>
 
