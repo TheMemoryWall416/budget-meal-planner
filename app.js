@@ -1129,7 +1129,7 @@ async function viewBudgetMeal(id) {
     // [ATOMIC]: encodeURIComponent parses raw text strings and casts ASCII characters (like Space) into URL-safe hex codes (%20).
     const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
 
-    // [MACRO]: COMMUNITY COMMENTS UI INJECTION (BUDGET MEALS)
+    // [MACRO]: PHASE 0 - COMMUNITY COMMENTS UI INJECTION (BUDGET MEALS)
     // [ATOMIC]: Evaluates active memory token to gatewrite interactive UI elements.
     let commentFormHTML = '';
     if (currentUser) {
@@ -1231,7 +1231,7 @@ async function reportRecipe(title, id) {
 }
 
 /* ==========================================================
-   SECTION 8.5: COMMUNITY COMMENTS ENGINE
+   SECTION 8.5: COMMUNITY COMMENTS ENGINE (PHASE 0)
    [MACRO]: Handles fetching, posting, liking, and reporting of user comments.
 ========================================================== */
 
@@ -1403,7 +1403,7 @@ async function viewRecipe(id) {
 
     const parentCat = data.parent_category || getParentCategory(data.category);
 
-    // [MACRO]: COMMUNITY COMMENTS UI INJECTION (GLOBAL RECIPES)
+    // [MACRO]: PHASE 0 - COMMUNITY COMMENTS UI INJECTION (GLOBAL RECIPES)
     // [ATOMIC]: Evaluates active memory token to gatewrite interactive UI elements.
     let commentFormHTML = '';
     if (currentUser) {
@@ -1783,16 +1783,15 @@ function buildAdminQuery(context, status) {
     }
 
     if (t1 === 'global') {
+        // [MACRO]: PHASE 2 FILTER FIX - Eliminated fragile array match. Subbed with exact DB parent_category verification.
         if (t3 !== 'all') {
             query = query.eq('category', t3);
         } else if (t2 !== 'all') {
-            // [ATOMIC]: .in() executes SQL 'WHERE x IN (...)'. Resolves array mapping across parameter payloads securely.
-            query = query.in('category', categories[t2]);
+            query = query.eq('parent_category', t2);
         } else {
             let allGlobalSubcats = [];
             Object.keys(categories).forEach(c => {
                 if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
-                    // [ATOMIC]: Array.concat creates memory allocation bridge to unify dataset pointers.
                     allGlobalSubcats = allGlobalSubcats.concat(categories[c]);
                 }
             });
@@ -1809,7 +1808,7 @@ function buildAdminQuery(context, status) {
         query = query.eq('category', '7-Day Meal Plans');
     } else if (t1 === 'pet') {
         if (t2 !== 'all') { query = query.eq('category', t2); } 
-        else { query = query.in('category', categories['Pet Food & Treats']); }
+        else { query = query.eq('parent_category', 'Pet Food & Treats'); }
     }
     // [ATOMIC]: Retains scope return value structure.
     return query;
@@ -2161,7 +2160,15 @@ async function saveEdit() {
     };
 
     // [ATOMIC]: Deep nested dictionary evaluation executing specific node variables arrays payload injections modifying dictionary parameters synchronously sequentially locally mapping variables globally updating values dynamically parameters structures explicitly logic sequences.
-    if (cat.toLowerCase() === 'budget') {
+    // [MACRO]: Auto-assigns the parent_category on save to ensure filters never break.
+    let resolvedParent = null;
+    if (cat === 'budget' || cat === 'special') resolvedParent = null;
+    else if (cat === '7-Day Meal Plans') resolvedParent = 'Specialized Plans';
+    else { resolvedParent = getParentCategory(cat); }
+    
+    if (resolvedParent) { payload.parent_category = resolvedParent; }
+
+    if (cat === 'budget') {
         payload.cost = parseFloat(document.getElementById('edit-cost').value);
         payload.servings = parseInt(document.getElementById('edit-servings').value);
     } else { payload.cost = null; payload.servings = null; }
