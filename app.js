@@ -376,17 +376,19 @@ function showPage(page) {
         <h1 style="margin: 0; line-height: 1.2; font-family: sans-serif;">
             <span style="font-size: 1.0rem; display: block; margin-bottom: 2px;">WELCOME TO</span>
             <a href="/" style="
-                color: #0000EE; 
-                text-decoration: none; 
-                font-weight: 900; 
-                font-size: 5vw; 
-                letter-spacing: -0.5px; 
-                display: block;
-                overflow-wrap: break-word;
-                padding: 0 5px;
-            ">
-                budgetmealplanner.co.za
-            </a>
+    color: #0000EE; 
+    text-decoration: none; 
+    font-weight: 900; 
+    font-size: 4vw; 
+    letter-spacing: -0.5px; 
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+">
+    budgetmealplanner.co.za
+</a>
         </h1>
     </div>
 
