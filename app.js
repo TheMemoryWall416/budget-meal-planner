@@ -1430,6 +1430,7 @@ async function viewRecipe(id) {
         </div>
     `;
 
+    // [MACRO]: PHASE 1 UI ALIGNMENT - Enforcing strict box-sizing and height to synchronize inputs and dropdowns.
     view.innerHTML = `
         <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
@@ -1440,8 +1441,8 @@ async function viewRecipe(id) {
         <div class="window-box" style="background: var(--nav-color); max-width: 650px; width: 100%; box-sizing: border-box;">
             <h3 style="margin-top: 0; font-size: 1.1rem;">Smart Converter</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="number" step="any" id="conv-amount" oninput="calculateConversion()" placeholder="Qty" style="flex: 1; margin: 0; min-width: 60px;">
-                <select id="conv-from" onchange="updateConverter()">
+                <input type="number" step="any" id="conv-amount" oninput="calculateConversion()" placeholder="Qty" style="flex: 1; margin: 0; min-width: 60px; height: 38px; box-sizing: border-box;">
+                <select id="conv-from" onchange="updateConverter()" style="height: 38px; box-sizing: border-box;">
                     <optgroup label="Weight">
                         <option value="g">Gram (g)</option><option value="kg">Kilogram (kg)</option><option value="oz">Ounce (oz)</option><option value="lb">Pound (lb)</option>
                     </optgroup>
@@ -1454,7 +1455,7 @@ async function viewRecipe(id) {
                     </optgroup>
                 </select>
                 <span style="font-weight: bold; padding: 0 5px;">to</span>
-                <select id="conv-to" onchange="calculateConversion()"></select>
+                <select id="conv-to" onchange="calculateConversion()" style="height: 38px; box-sizing: border-box;"></select>
             </div>
             <div id="conv-result" style="margin-top: 10px; font-weight: bold; font-size: 1.2rem; min-height: 25px; color: #333;"></div>
         </div>
@@ -2021,6 +2022,37 @@ async function openEdit(id) {
     const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
     if (error) { alert("Error: " + error.message); switchAdminTab('library'); return; }
 
+    // [MACRO]: PHASE 2 - THE DATA INTEGRITY LOCKDOWN
+    // Replacing free-text inputs with strict dropdowns to eliminate "ghosting" in database filters.
+    
+    // [ATOMIC]: Dynamically building the country dropdown options based on the global array.
+    let countryOptionsHTML = '<option value="">-- None / Global --</option>';
+    if (typeof countries !== 'undefined') {
+        countries.forEach(c => {
+            const isSel = (data.country === c) ? 'selected' : '';
+            countryOptionsHTML += `<option value="${c}" ${isSel}>${c}</option>`;
+        });
+    }
+
+    // [ATOMIC]: Dynamically building the category dropdown options to enforce exact string matches.
+    let categoryOptionsHTML = '<option value="">-- Select Category --</option>';
+    const hardcodedCats = ['budget', 'special', '7-Day Meal Plans'];
+    hardcodedCats.forEach(hc => {
+        const isSel = (data.category === hc) ? 'selected' : '';
+        categoryOptionsHTML += `<option value="${hc}" ${isSel}>${hc === 'budget' ? 'budget (Budget Meal)' : hc}</option>`;
+    });
+    
+    if (typeof categories !== 'undefined') {
+        Object.keys(categories).forEach(mainCat => {
+            categories[mainCat].forEach(sub => {
+                if (!hardcodedCats.includes(sub)) {
+                    const isSel = (data.category === sub) ? 'selected' : '';
+                    categoryOptionsHTML += `<option value="${sub}" ${isSel}>${sub}</option>`;
+                }
+            });
+        });
+    }
+
     area.innerHTML = `
         <div class="window-box" style="width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -2033,8 +2065,18 @@ async function openEdit(id) {
             <input type="text" id="edit-title" placeholder="Recipe Title" value="${(data.title || '').replace(/"/g, '&quot;')}">
             
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;"><label style="font-weight: bold; font-size: 0.9rem;">Category</label><input type="text" id="edit-category" oninput="toggleAdminFields()" placeholder="e.g. budget, Breakfast" value="${(data.category || '').replace(/"/g, '&quot;')}"></div>
-                <div style="flex: 1;"><label style="font-weight: bold; font-size: 0.9rem;">Country</label><input type="text" id="edit-country" placeholder="e.g. South Africa" value="${(data.country || '').replace(/"/g, '&quot;')}"></div>
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; font-size: 0.9rem;">Category</label>
+                    <select id="edit-category" onchange="toggleAdminFields()" style="width: 100%; box-sizing: border-box;">
+                        ${categoryOptionsHTML}
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; font-size: 0.9rem;">Country</label>
+                    <select id="edit-country" style="width: 100%; box-sizing: border-box;">
+                        ${countryOptionsHTML}
+                    </select>
+                </div>
             </div>
             
             <label style="font-weight: bold; font-size: 0.9rem;">Meal Type (Crucial for Budget Meals)</label>
