@@ -1330,11 +1330,11 @@ async function viewRecipe(id) {
             ${imageHTML}
         </div>
         
-        <div class="window-box" style="background: var(--nav-color); max-width: 650px; width: 100%; box-sizing: border-box;">
+        <div class="window-box" style="background: #f0f0f0; max-width: 650px; width: 100%; box-sizing: border-box;">
             <h3 style="margin-top: 0; font-size: 1.1rem;">Smart Converter</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="number" step="any" id="conv-amount" oninput="calculateConversion()" placeholder="Qty" style="flex: 1; margin: 0; min-width: 60px; height: 38px; box-sizing: border-box;">
-                <select id="conv-from" onchange="updateConverter()" style="height: 38px; box-sizing: border-box;">
+                <input type="number" step="any" id="conv-amount" oninput="calculateConversion()" placeholder="Qty" style="flex: 1; margin: 0; min-width: 60px; height: 38px; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 4px; outline: none; vertical-align: middle;">
+                <select id="conv-from" onchange="updateConverter()" style="height: 38px; margin: 0; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 4px; outline: none; vertical-align: middle;">
                     <optgroup label="Weight">
                         <option value="g">Gram (g)</option><option value="kg">Kilogram (kg)</option><option value="oz">Ounce (oz)</option><option value="lb">Pound (lb)</option>
                     </optgroup>
@@ -1346,8 +1346,8 @@ async function viewRecipe(id) {
                         <option value="c">Celsius (°C)</option><option value="f">Fahrenheit (°F)</option>
                     </optgroup>
                 </select>
-                <span style="font-weight: bold; padding: 0 5px;">to</span>
-                <select id="conv-to" onchange="calculateConversion()" style="height: 38px; box-sizing: border-box;"></select>
+                <span style="font-weight: bold; padding: 0 5px; margin: 0; line-height: 38px;">to</span>
+                <select id="conv-to" onchange="calculateConversion()" style="height: 38px; margin: 0; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 4px; outline: none; vertical-align: middle;"></select>
             </div>
             <div id="conv-result" style="margin-top: 10px; font-weight: bold; font-size: 1.2rem; min-height: 25px; color: #333;"></div>
         </div>
@@ -1502,7 +1502,6 @@ async function saveRecipe() {
 }
 
 function switchAdminTab(tab) {
-    // [MACRO]: Added 'photo' to the administrative view array.
     ['inbox', 'review', 'photo', 'library', 'settings'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
@@ -1531,7 +1530,6 @@ function switchAdminTab(tab) {
             </div>`;
         setupAdminFilters('review');
     } 
-    // [MACRO]: The Dedicated Visual Moderation Dashboard Tab
     else if (tab === 'photo') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
@@ -1574,12 +1572,10 @@ function switchAdminTab(tab) {
     }
 }
 
-// [MACRO]: The Visual Moderation Engine
 async function loadPhotoQueue() {
     const area = document.getElementById('photo-list');
     area.innerHTML = "Checking for pending photos...";
     
-    // Finds any meal where a user has uploaded a photo that needs approval.
     const { data, error } = await myDatabase.from('meals')
         .select('id, title, pending_image_url')
         .not('pending_image_url', 'is', null);
@@ -1915,7 +1911,6 @@ async function deleteRecord(table, id, fallbackId = null, fallbackTitle = null) 
     }
 }
 
-// [MACRO]: Admin Content Editing & Photo Overrides
 async function openEdit(id) {
     const area = document.getElementById('admin-content-area');
     area.innerHTML = `<div class="window-box"><p>Loading record...</p></div>`;
