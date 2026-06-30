@@ -104,6 +104,21 @@
         
         <a href="javascript:void(0)" id="nav-auth-btn" onclick="openAuthModal()" style="background: var(--nav-color); margin-top: 15px;">🚪 Join / Sign In</a>
     </div>
+
+    <!-- ========================================== -->
+    <!--          THE SANCTUARY MENU                -->
+    <!-- ========================================== -->
+    <div class="window-box" style="padding: 15px; border-color: #8b4513; background: #fdf6e3; box-shadow: inset 0 0 10px rgba(139, 69, 19, 0.05);">
+        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; text-align: center; border-bottom: 2px dashed rgba(139, 69, 19, 0.3); padding-bottom: 10px; color: #5c3a21; font-family: 'Georgia', 'Times New Roman', serif;">The Sanctuary</h2>
+        
+        <a href="javascript:void(0)" onclick="showPage('family')" style="background: #fff; border-color: #8b4513;">🏡 Meet the Family</a>
+        <a href="javascript:void(0)" onclick="showPage('shoutbox')" style="background: #fff; border-color: #8b4513;">🔥 The Campfire (Chat)</a>
+        <a href="javascript:void(0)" onclick="showPage('broadcasts')" style="background: #fff; border-color: #8b4513; position: relative;">
+            📣 Community Updates
+            <span id="new-broadcast-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: #dc3545; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; border: 1px solid #000;">NEW</span>
+        </a>
+        <a href="javascript:void(0)" onclick="document.getElementById('safety-modal').style.display='flex'" style="background: #fff3cd; border-color: #ffeeba; margin-top: 15px; margin-bottom: 0;">🛡️ Moderation & Safety</a>
+    </div>
     
     <div class="window-box" style="padding: 15px; text-align: center;">
         <a href="privacy.html" style="background: none; border: none; font-size: 0.75rem; text-decoration: underline; padding: 4px;">Privacy Policy</a>
@@ -124,6 +139,29 @@
         <div class="ad-placeholder">Future AdSense Space<br>(300 x 250)</div>
     </div>
 </aside>
+
+<!-- ========================================== -->
+<!--       COMMUNITY CONSTITUTION MODAL         -->
+<!-- ========================================== -->
+<div id="safety-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center;">
+    <div class="window-box" style="background: #fdf6e3; padding: 40px; text-align: left; border-width: 3px; border-color: #8b4513; max-width: 500px; width: 95%; max-height: 90vh; overflow-y: auto;">
+        <h2 style="margin-top: 0; font-size: 1.6rem; color: #8b4513; font-family: 'Georgia', 'Times New Roman', serif; border-bottom: 2px dashed rgba(139, 69, 19, 0.3); padding-bottom: 10px;">🛡️ Community Constitution</h2>
+        
+        <p style="line-height: 1.5;">Welcome to our home. To keep this space safe, useful, and friendly for everyone, we rely on the community to self-regulate.</p>
+        
+        <h3 style="font-size: 1.1rem; margin-top: 20px; color: #5c3a21;">The Golden Rule</h3>
+        <p style="line-height: 1.5;">Treat others as you would guests in your own kitchen. Be helpful, be kind, and keep the focus on the food and the community.</p>
+        
+        <h3 style="font-size: 1.1rem; margin-top: 20px; color: #5c3a21;">How Moderation Works</h3>
+        <p style="line-height: 1.5;">You will see a ⚠️ <strong>Report</strong> button on recipes and comments. If you see spam, abuse, or a fake/expired deal, click it. We (Anton & Jenny) personally review every single report in our Command Center.</p>
+        
+        <div style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin-top: 20px; line-height: 1.5;">
+            <strong>Note:</strong> Repeatedly breaking the rules will result in a permanent account ban. Let's keep this space awesome!
+        </div>
+        
+        <button onclick="document.getElementById('safety-modal').style.display='none'" style="width: 100%; margin-top: 20px; padding: 12px; background: var(--btn-grey);">Understood. Take me back.</button>
+    </div>
+</div>
 
 <div id="auth-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center;">
     <div class="window-box" style="background: #fff; padding: 40px; text-align: left; border-width: 3px; max-width: 440px; width: 95%;">
