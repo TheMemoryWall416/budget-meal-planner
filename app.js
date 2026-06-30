@@ -2092,10 +2092,14 @@ async function loadCookbook() {
             const badge = isBudget ? ` - BUDGET (${meal.country})` : '';
             const author = meal.author || 'Community';
             
+            // [MACRO]: Flexbox injection. Space-between forces the text to the left and the remove button to the absolute right.
             html += `
-                <div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0;">
-                    <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
-                    <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
+                <div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div>
+                        <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
+                        <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
+                    </div>
+                    <button onclick="removeFromCookbook(${meal.id}, event)" style="margin: 0; padding: 6px 12px; background: #f8d7da; border-color: #dc3545; color: #721c24; font-size: 0.8rem; white-space: nowrap;">❌ Remove</button>
                 </div>
             `;
         }
@@ -2103,4 +2107,23 @@ async function loadCookbook() {
     
     html += '</div>';
     list.innerHTML = html;
+}
+
+// [ATOMIC]: New standalone function for isolated profile deletion.
+async function removeFromCookbook(recipeId, event) {
+    // [ATOMIC]: .stopPropagation() halts the browser's event sequence, stopping the parent <div> from executing viewRecipe() when the button is clicked.
+    event.stopPropagation(); 
+    if (!confirm("Remove this recipe from your cookbook?")) return;
+    
+    const { error } = await myDatabase.from('favorites')
+        .delete()
+        .eq('user_email', currentUser.email)
+        .eq('recipe_id', recipeId);
+        
+    if (error) {
+        alert("Error: " + error.message);
+    } else {
+        // [ATOMIC]: Silent recursive call to fetch the updated DB state and repaint the UI instantly.
+        loadCookbook(); 
+    }
 }
