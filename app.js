@@ -386,6 +386,22 @@ function showPage(page) {
             </div>
         `;
         loadMemberMessages(); 
+
+    // ========================================================
+    // [STEP 9]: THE SANCTUARY GATES & PLACEHOLDERS
+    // ========================================================
+    } else if (page === 'family') {
+        if (!currentUser) {
+            alert("🏡 The Family Hub is a private sanctuary for our registered members. Please log in or join us for free to enter!");
+            openAuthModal();
+            return; // Stops the page from loading
+        }
+        renderFamilyPage();
+    } else if (page === 'shoutbox') {
+        view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px;"><h1>🔥 The Campfire (Coming in Step 10)</h1></div>`;
+    } else if (page === 'broadcasts') {
+        view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px;"><h1>📣 Community Updates (Coming Next)</h1></div>`;
+    
     } else if (page === 'admin') {
         if (!isAdmin) { showPage('home'); return; }
         
@@ -2371,119 +2387,3 @@ async function saveFamilyMember(event) {
 async function loadAdminFamilyList() {
     const listDiv = document.getElementById('admin-family-list');
     if (!listDiv) return;
-
-    listDiv.innerHTML = "<p>Loading family members...</p>";
-
-    // Fetch from Supabase, ordered by the number you typed in
-    const { data, error } = await myDatabase.from('family_members')
-        .select('*')
-        .order('order_index', { ascending: true });
-
-    if (error) {
-        listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
-        return;
-    }
-
-    if (data.length === 0) {
-        listDiv.innerHTML = "<p>No family members added yet.</p>";
-        return;
-    }
-
-    let html = "";
-    data.forEach(member => {
-        html += `
-            <div style="display: flex; gap: 15px; border: 1px solid var(--border); padding: 15px; background: #fff; align-items: center;">
-                <img src="${member.image_url}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%;">
-                <div style="flex: 1;">
-                    <h4 style="margin: 0 0 5px 0; font-size: 1.1rem;">${member.name} <span style="font-size: 0.8rem; color: #666; font-weight: normal;">(${member.type.toUpperCase()}) - Order: ${member.order_index}</span></h4>
-                    <p style="margin: 0; font-size: 0.9rem; color: #555; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${member.story}</p>
-                </div>
-                <button style="background: #f8d7da; margin: 0; height: fit-content; cursor: pointer;" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
-            </div>
-        `;
-    });
-
-    listDiv.innerHTML = html;
-}
-
-async function deleteFamilyMember(id, imageUrl) {
-    if (!confirm("Are you sure you want to remove this family member?")) return;
-
-    // Delete the image from storage to save space
-    const fileName = imageUrl.split('/').pop();
-    await myDatabase.storage.from('recipe_images').remove([fileName]);
-
-    // Delete from database
-    const { error } = await myDatabase.from('family_members').delete().eq('id', id);
-
-    if (error) {
-        alert("Error deleting: " + error.message);
-    } else {
-        loadAdminFamilyList(); // Refresh the visual list
-    }
-}
-
-// ==========================================
-//        BROADCAST LOGIC (ADMIN)
-// ==========================================
-
-async function postBroadcast(event) {
-    const message = document.getElementById('broadcast-message').value.trim();
-    const signature = document.getElementById('broadcast-signature').value;
-
-    if (!message) return alert("Please type a message first!");
-
-    const btn = event ? event.target : document.querySelector('button[onclick^="postBroadcast"]');
-    const originalText = btn.innerText;
-    btn.innerText = "Sending...";
-    btn.disabled = true;
-
-    const { error } = await myDatabase.from('community_updates').insert([{
-        message: message,
-        author_signature: '— ' + signature
-    }]);
-
-    btn.innerText = originalText;
-    btn.disabled = false;
-
-    if (error) {
-        alert("Error posting broadcast: " + error.message);
-    } else {
-        document.getElementById('broadcast-message').value = '';
-        loadAdminBroadcasts();
-    }
-}
-
-async function loadAdminBroadcasts() {
-    const listDiv = document.getElementById('admin-broadcast-list');
-    if (!listDiv) return;
-
-    const { data, error } = await myDatabase.from('community_updates')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) { listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`; return; }
-    if (data.length === 0) { listDiv.innerHTML = "<p>No broadcasts sent yet.</p>"; return; }
-
-    let html = "";
-    data.forEach(update => {
-        const dateStr = new Date(update.created_at).toLocaleString();
-        html += `
-            <div style="border: 1px solid var(--border); padding: 15px; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
-                <div style="flex: 1;">
-                    <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 1rem;">${update.message}</p>
-                    <p style="margin: 0; font-size: 0.85rem; font-weight: bold; color: #007bff;">${update.author_signature} <span style="font-weight: normal; color: #666;">(${dateStr})</span></p>
-                </div>
-                <button style="background: #f8d7da; margin: 0; padding: 6px 12px; cursor: pointer;" onclick="deleteBroadcast('${update.id}')">Delete</button>
-            </div>
-        `;
-    });
-    listDiv.innerHTML = html;
-}
-
-async function deleteBroadcast(id) {
-    if (!confirm("Delete this broadcast? It will be removed from the users' feed instantly.")) return;
-    const { error } = await myDatabase.from('community_updates').delete().eq('id', id);
-    if (error) alert("Error deleting: " + error.message);
-    else loadAdminBroadcasts();
-}
