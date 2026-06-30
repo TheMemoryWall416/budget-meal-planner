@@ -417,6 +417,7 @@ function showPage(page) {
                 <button id="tab-library" onclick="switchAdminTab('library')" style="margin:0;">📚 Manage Library</button>
                 <button id="tab-settings" onclick="switchAdminTab('settings')" style="margin:0;">⚙️ Site Settings</button>
                 <button id="tab-family" onclick="switchAdminTab('family')" style="margin:0;">🏡 Family Hub</button>
+                <button id="tab-broadcasts" onclick="switchAdminTab('broadcasts')" style="margin:0;">📣 Broadcasts</button>
             </div>
             
             <div id="admin-content-area" style="width: 100%; max-width: 1000px;"></div>
@@ -1506,7 +1507,7 @@ async function saveRecipe() {
 }
 
 function switchAdminTab(tab) {
-    ['inbox', 'review', 'photo', 'library', 'settings', 'family'].forEach(t => {
+    ['inbox', 'review', 'photo', 'library', 'settings', 'family', 'broadcasts'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
     });
@@ -1607,6 +1608,35 @@ function switchAdminTab(tab) {
             </div>
         `;
         if (typeof loadAdminFamilyList === 'function') loadAdminFamilyList();
+    } else if (tab === 'broadcasts') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">📣 Community Broadcasts</h2>
+                <p style="color: #555;">Post an update directly to the user sidebar. Everyone will see it.</p>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 700px; background: #e6f7ff; padding: 20px; border: 2px solid var(--border); margin-bottom: 30px;">
+                    <textarea id="broadcast-message" placeholder="Type your announcement here... (e.g., Hey everyone, we are looking for moderators!)" rows="4" required style="margin-bottom: 0; font-family: inherit;"></textarea>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-weight: bold;">Post as:</label>
+                        <select id="broadcast-signature" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+                            <option value="Anton">— Anton</option>
+                            <option value="Jenny">— Jenny</option>
+                            <option value="Anton & Jenny">— Anton & Jenny</option>
+                        </select>
+                        <button onclick="postBroadcast(event)" style="padding: 10px 20px; background-color: #007bff; color: white; border: 2px solid var(--border); font-weight: bold; cursor: pointer; margin: 0;">
+                            Send Broadcast 📢
+                        </button>
+                    </div>
+                </div>
+
+                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px;">Past Broadcasts</h3>
+                <div id="admin-broadcast-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                    <p><i>Loading past broadcasts...</i></p>
+                </div>
+            </div>
+        `;
+        if (typeof loadAdminBroadcasts === 'function') loadAdminBroadcasts();
     }
 }
 
@@ -2391,4 +2421,69 @@ async function deleteFamilyMember(id, imageUrl) {
     } else {
         loadAdminFamilyList(); // Refresh the visual list
     }
+}
+
+// ==========================================
+//        BROADCAST LOGIC (ADMIN)
+// ==========================================
+
+async function postBroadcast(event) {
+    const message = document.getElementById('broadcast-message').value.trim();
+    const signature = document.getElementById('broadcast-signature').value;
+
+    if (!message) return alert("Please type a message first!");
+
+    const btn = event ? event.target : document.querySelector('button[onclick^="postBroadcast"]');
+    const originalText = btn.innerText;
+    btn.innerText = "Sending...";
+    btn.disabled = true;
+
+    const { error } = await myDatabase.from('community_updates').insert([{
+        message: message,
+        author_signature: '— ' + signature
+    }]);
+
+    btn.innerText = originalText;
+    btn.disabled = false;
+
+    if (error) {
+        alert("Error posting broadcast: " + error.message);
+    } else {
+        document.getElementById('broadcast-message').value = '';
+        loadAdminBroadcasts();
+    }
+}
+
+async function loadAdminBroadcasts() {
+    const listDiv = document.getElementById('admin-broadcast-list');
+    if (!listDiv) return;
+
+    const { data, error } = await myDatabase.from('community_updates')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) { listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { listDiv.innerHTML = "<p>No broadcasts sent yet.</p>"; return; }
+
+    let html = "";
+    data.forEach(update => {
+        const dateStr = new Date(update.created_at).toLocaleString();
+        html += `
+            <div style="border: 1px solid var(--border); padding: 15px; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
+                <div style="flex: 1;">
+                    <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 1rem;">${update.message}</p>
+                    <p style="margin: 0; font-size: 0.85rem; font-weight: bold; color: #007bff;">${update.author_signature} <span style="font-weight: normal; color: #666;">(${dateStr})</span></p>
+                </div>
+                <button style="background: #f8d7da; margin: 0; padding: 6px 12px; cursor: pointer;" onclick="deleteBroadcast('${update.id}')">Delete</button>
+            </div>
+        `;
+    });
+    listDiv.innerHTML = html;
+}
+
+async function deleteBroadcast(id) {
+    if (!confirm("Delete this broadcast? It will be removed from the users' feed instantly.")) return;
+    const { error } = await myDatabase.from('community_updates').delete().eq('id', id);
+    if (error) alert("Error deleting: " + error.message);
+    else loadAdminBroadcasts();
 }
