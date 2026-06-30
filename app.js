@@ -13,6 +13,16 @@ let currentUser = null;
 let isLoginMode = false; 
 let isAdmin = false;
 
+// [FIXED]: Unified Interceptor Function - Defined only once.
+function triggerPhotoUpload(recipeId) {
+    if (!currentUser) { 
+        alert("Please log in or sign up to share a photo of your meal!"); 
+        openAuthModal(); 
+        return; 
+    }
+    document.getElementById(`recipe-photo-upload-${recipeId}`).click();
+}
+
 async function initAuth() {
     const { data: { session } } = await myDatabase.auth.getSession();
     currentUser = session ? session.user : null;
@@ -1227,16 +1237,6 @@ async function loadSubcategory(subcategory, parentCategory) {
     view.innerHTML = html;
 }
 
-// User-Facing Photo Upload Logic
-function triggerPhotoUpload(recipeId) {
-    if (!currentUser) { 
-        alert("Please log in or sign up to share a photo of your meal!"); 
-        openAuthModal(); 
-        return; 
-    }
-    document.getElementById(`recipe-photo-upload-${recipeId}`).click();
-}
-
 async function submitPendingPhoto(recipeId, event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1258,12 +1258,989 @@ async function submitPendingPhoto(recipeId, event) {
     else viewRecipe(recipeId);
 }
 
-// [ATOMIC]: Added a unified upload interceptor to ensure mobile/desktop consistency.
-function triggerPhotoUpload(recipeId) {
-    if (!currentUser) { 
-        alert("Please log in or sign up to share a photo of your meal!"); 
-        openAuthModal(); 
+async function viewRecipe(id) {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `<div class="window-box"><h1>Loading Recipe...</h1></div>`;
+
+    const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
+    if (error) return;
+
+    let ingredientsHTML = `<ul style="margin: 0; padding-left: 20px;">`;
+    if (data.ingredients && Array.isArray(data.ingredients)) {
+        data.ingredients.forEach(ing => {
+            let qty = ing.qty ? ing.qty : '';
+            let unit = ing.unit ? ing.unit : '';
+            ingredientsHTML += `<li style="margin-bottom: 8px;"><strong>${qty} ${unit}</strong> ${ing.item}</li>`;
+        });
+    } else { ingredientsHTML += `<li>No structured ingredients found.</li>`; }
+    ingredientsHTML += `</ul>`;
+
+    const author = data.author || "Home Cook";
+    const date = data.created_at ? new Date(data.created_at).toLocaleDateString() : "Unknown Date";
+    const currentUrl = window.location.origin + window.location.pathname + '?recipe=' + data.id;
+    const whatsappText = encodeURIComponent(`Check out this recipe for ${data.title} on Budget Meal Planner! ${currentUrl}`);
+    const parentCat = data.parent_category || getParentCategory(data.category);
+
+    let commentFormHTML = '';
+    if (currentUser) {
+        commentFormHTML = `
+            <div style="margin-bottom: 20px;">
+                <textarea id="new-comment-text" rows="3" placeholder="Share your thoughts or variations..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;"></textarea>
+                <button onclick="postComment(${data.id})" style="background: var(--btn-grey);">Post Comment</button>
+            </div>
+        `;
+    } else {
+        commentFormHTML = `
+            <div style="background: #f0f0f0; border: 2px dashed var(--border); padding: 15px; text-align: center; margin-bottom: 20px;">
+                <p style="margin-top: 0; font-weight: bold;">Want to join the conversation?</p>
+                <button onclick="openAuthModal()" style="margin: 0;">Login or Sign Up to Comment</button>
+            </div>
+        `;
+    }
+
+    const commentsSectionHTML = `
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; margin-top: 10px; margin-bottom: 30px;">
+            <h2 style="margin-top: 0; font-size: 1.5rem; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Community Comments</h2>
+            ${commentFormHTML}
+            <div id="recipe-comments-list">Loading comments...</div>
+        </div>
+    `;
+
+    // THE VISUAL ENGINE INJECTION: Display live photo, pending banner, or the "Add Photo" placeholder.
+    let imageHTML = '';
+    if (data.image_url) {
+        imageHTML = `<img src="${data.image_url}" style="width: 100%; height: 350px; object-fit: cover; border: 2px solid var(--border); margin-bottom: 20px; display: block;">`;
+    } else if (data.pending_image_url) {
+        imageHTML = `<div style="width: 100%; padding: 20px; box-sizing: border-box; background: #fff3cd; border: 2px solid var(--border); text-align: center; margin-bottom: 20px;">📸 A photo has been submitted and is waiting for Anton & Jenny to approve it!</div>`;
+    } else {
+        imageHTML = `
+        <div style="width: 100%; height: 250px; background: #fdf6e3; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; transition: background 0.2s;" onclick="triggerPhotoUpload(${data.id})" onmouseover="this.style.background='#f4ecd8'" onmouseout="this.style.background='#fdf6e3'">
+            <span style="font-size: 2.5rem; margin-bottom: 10px;">📸</span>
+            <strong style="color: #333; font-size: 1.1rem;">Made this? Add a photo!</strong>
+            <span style="font-size: 0.9rem; color: #666; margin-top: 5px;">(Click to upload)</span>
+            <input type="file" id="recipe-photo-upload-${data.id}" accept="image/*" style="display: none;" onchange="submitPendingPhoto(${data.id}, event)">
+        </div>`;
+    }
+
+    view.innerHTML = `
+        <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
+            <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date}</p>
+        </div>
+        
+        <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
+            ${imageHTML}
+        </div>
+        
+        <div class="window-box" style="background: #f0f0f0; max-width: 650px; width: 100%; box-sizing: border-box;">
+            <h3 style="margin-top: 0; font-size: 1.1rem;">Smart Converter</h3>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" step="any" id="conv-amount" oninput="calculateConversion()" placeholder="Qty" style="flex: 1; margin: 0; min-width: 60px; height: 38px; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 4px; outline: none; vertical-align: middle;">
+                <select id="conv-from" onchange="updateConverter()" style="height: 38px; margin: 0; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 4px; outline: none; vertical-align: middle;">
+                    <optgroup label="Weight">
+                        <option value="g">Gram (g)</option><option value="kg">Kilogram (kg)</option><option value="oz">Ounce (oz)</option><option value="lb">Pound (lb)</option>
+                    </optgroup>
+                    <optgroup label="Volume">
+                        <option value="ml">Milliliter (ml)</option><option value="l">Liter (L)</option><option value="tsp">Teaspoon (tsp)</option>
+                        <option value="tbsp">Tablespoon (tbsp)</option><option value="cup">Cup</option><option value="fl oz">Fluid Ounce (fl oz)</option>
+                    </optgroup>
+                    <optgroup label="Temperature">
+                        <option value="c">Celsius (°C)</option><option value="f">Fahrenheit (°F)</option>
+                    </optgroup>
+                </select>
+                <span style="font-weight: bold; padding: 0 5px; margin: 0; line-height: 38px;">to</span>
+                <select id="conv-to" onchange="calculateConversion()" style="height: 38px; margin: 0; padding: 0 10px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 4px; outline: none; vertical-align: middle;"></select>
+            </div>
+            <div id="conv-result" style="margin-top: 10px; font-weight: bold; font-size: 1.2rem; min-height: 25px; color: #333;"></div>
+        </div>
+
+        <div class="farmhouse-scroll">
+            <h2>Ingredients</h2>
+            ${ingredientsHTML}
+            
+            <h2 style="margin-top: 30px;">Instructions</h2>
+            <div style="white-space: pre-wrap;">${data.recipe}</div>
+        </div>
+        
+        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
+            <button onclick="likeMeal(${data.id}, this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+            <button id="fav-btn-${data.id}" onclick="toggleFavorite(${data.id})">⭐ Save to Favorites</button>
+            <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
+            <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})">⚠️ Report Recipe</button>
+        </div>
+
+        ${commentsSectionHTML}
+    `;
+    updateConverter();
+    loadComments(data.id);
+    checkFavoriteStatus(data.id);
+}
+
+function updateConverter() {
+    const fromUnit = document.getElementById('conv-from').value;
+    const toSelect = document.getElementById('conv-to');
+    toSelect.innerHTML = '';
+    let family = [];
+    
+    if (convFamilies.weight.includes(fromUnit)) family = convFamilies.weight;
+    else if (convFamilies.volume.includes(fromUnit)) family = convFamilies.volume;
+    else if (convFamilies.temp.includes(fromUnit)) family = convFamilies.temp;
+
+    family.forEach(unit => {
+        if (unit !== fromUnit) {
+            let opt = document.createElement('option');
+            opt.value = unit;
+            opt.innerHTML = unit;
+            toSelect.appendChild(opt);
+        }
+    });
+    calculateConversion();
+}
+
+function calculateConversion() {
+    const amt = parseFloat(document.getElementById('conv-amount').value);
+    const from = document.getElementById('conv-from').value;
+    const to = document.getElementById('conv-to').value;
+    const resDiv = document.getElementById('conv-result');
+
+    if (isNaN(amt) || !from || !to) { resDiv.innerHTML = ''; return; }
+    let result = 0;
+    
+    if (convFamilies.temp.includes(from)) {
+        if (from === 'c' && to === 'f') result = (amt * 9/5) + 32;
+        if (from === 'f' && to === 'c') result = (amt - 32) * 5/9;
+    } else {
+        const baseAmt = amt * convRates[from];
+        result = baseAmt / convRates[to];
+    }
+    resDiv.innerHTML = `Result: ${+(Math.round(result + "e+2")  + "e-2")} ${to}`;
+}
+
+function addRecipeMenu() { renderCategoryList('add'); }
+
+function showForm(subcategory, parentCategory) {
+    selectedSubcategory = subcategory;
+    selectedParentCategory = parentCategory; 
+    const view = document.getElementById('main-view');
+    
+    view.innerHTML = `
+        <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 15px;">← Back</button>
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">Adding to: ${subcategory}</h1>
+        </div>
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
+            <input type="text" id="recipe-name" placeholder="Recipe Title">
+            <input type="text" id="author-name" placeholder="Your Name (Optional)">
+            <div id="ingredients-container" style="width: 100%; max-width: 450px; background: #f0f0f0; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
+                <h3 style="margin-top: 0;">Ingredients</h3>
+                <div id="ingredients-list"></div>
+                <button onclick="addIngredientRow()">+ Add Another Ingredient</button>
+            </div>
+            <textarea id="recipe-instructions" rows="8" placeholder="Instructions..."></textarea>
+            <br>
+            <button onclick="saveRecipe()">Post Recipe Live</button>
+        </div>
+    `;
+    addIngredientRow();
+}
+
+function addIngredientRow() {
+    const list = document.getElementById('ingredients-list');
+    const row = document.createElement('div');
+    row.className = 'ingredient-row';
+    row.style.display = 'flex';
+    row.style.gap = '5px';
+    row.style.marginBottom = '8px';
+    row.style.alignItems = 'stretch'; 
+
+    row.innerHTML = `
+        <input type="text" class="ing-name" placeholder="Item (e.g. Flour)" style="flex: 2;">
+        <input type="number" step="any" class="ing-qty" placeholder="Qty" style="flex: 1;">
+        <select class="ing-unit" style="flex: 1;">
+            <option value="">-- Unit --</option>
+            <option value="tsp">Teaspoon (tsp)</option>
+            <option value="tbsp">Tablespoon (tbsp)</option>
+            <option value="cup">Cup</option>
+            <option value="ml">Milliliter (ml)</option>
+            <option value="l">Liter (L)</option>
+            <option value="g">Gram (g)</option>
+            <option value="kg">Kilogram (kg)</option>
+            <option value="oz">Ounce (oz)</option>
+            <option value="lb">Pound (lb)</option>
+            <option value="whole">Whole / Item</option>
+            <option value="pinch">Pinch</option>
+            <option value="slice">Slice</option>
+            <option value="can">Can</option>
+        </select>
+        <button onclick="this.parentElement.remove()">X</button>
+    `;
+    list.appendChild(row);
+}
+
+async function saveRecipe() {
+    const title = document.getElementById('recipe-name').value.trim();
+    const author = document.getElementById('author-name').value.trim() || "Home Cook";
+    const instructions = document.getElementById('recipe-instructions').value.trim();
+    
+    const ingredientRows = document.querySelectorAll('.ingredient-row');
+    let structuredIngredients = [];
+    
+    ingredientRows.forEach(row => {
+        const name = row.querySelector('.ing-name').value.trim();
+        const qty = row.querySelector('.ing-qty').value;
+        const unit = row.querySelector('.ing-unit').value;
+        if (name !== "") structuredIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: unit });
+    });
+
+    if (!title || !instructions) return alert("Please enter a title and instructions.");
+
+    const { error } = await myDatabase.from('meals').insert([{ 
+        title: title, author: author, category: selectedSubcategory, parent_category: selectedParentCategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString(), status: 'pending'
+    }]);
+    
+    if (error) alert("Error: " + error.message);
+    else { alert("Recipe posted successfully!"); loadSubcategory(selectedSubcategory, selectedParentCategory); }
+}
+
+function switchAdminTab(tab) {
+    ['inbox', 'review', 'photo', 'library', 'settings'].forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
+    });
+
+    const area = document.getElementById('admin-content-area');
+    
+    if (tab === 'inbox') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">User Messages & Reports</h2>
+                <div id="messages-list">Loading...</div>
+            </div>`;
+        loadMessages();
+    } 
+    else if (tab === 'review') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">Needs Approval</h2>
+                <div class="search-box">
+                    <select id="review-tier1" onchange="updateTier2('review')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
+                    <select id="review-tier2" onchange="updateTier3('review')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
+                    <select id="review-tier3" onchange="loadReviewQueue()" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
+                </div>
+                <div id="review-list" style="margin-top: 20px;">Loading...</div>
+            </div>`;
+        setupAdminFilters('review');
+    } 
+    else if (tab === 'photo') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">Pending Photo Submissions</h2>
+                <p style="color: #555;">Approve user-submitted photos to send them live, or decline to delete them.</p>
+                <div id="photo-list" style="margin-top: 20px;">Loading...</div>
+            </div>`;
+        loadPhotoQueue();
+    }
+    else if (tab === 'library') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">Approved Content</h2>
+                <div class="search-box">
+                    <input type="text" id="library-search" placeholder="Search title or ingredient..." style="flex-basis: 100%; margin-bottom: 10px;" onkeyup="if(event.key === 'Enter') loadLibrary()">
+                    <select id="library-tier1" onchange="updateTier2('library')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
+                    <select id="library-tier2" onchange="updateTier3('library')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
+                    <select id="library-tier3" onchange="loadLibrary()" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
+                    <button onclick="loadLibrary()" style="flex-basis: 100%; margin-top: 10px;">🔍 Search / Apply Filters</button>
+                </div>
+                <div id="library-list" style="margin-top: 20px;">Loading...</div>
+            </div>`;
+        setupAdminFilters('library');
+    } 
+    else if (tab === 'settings') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">Site Settings</h2>
+                <div class="admin-card" style="flex-direction: column; align-items: flex-start;">
+                    <h3 style="margin-top: 0;">📸 Update Team Photo</h3>
+                    <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
+                    <button style="background: #d4edda;" onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
+                </div>
+                <div class="admin-card" style="flex-direction: column; align-items: flex-start; margin-top: 20px;">
+                    <h3 style="margin-top: 0;">🖼️ Update Website Background</h3>
+                    <input type="file" id="bg-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
+                    <button style="background: #d4edda;" onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
+                </div>
+            </div>`;
+    }
+}
+
+async function loadPhotoQueue() {
+    const area = document.getElementById('photo-list');
+    area.innerHTML = "Checking for pending photos...";
+    
+    const { data, error } = await myDatabase.from('meals')
+        .select('id, title, pending_image_url')
+        .not('pending_image_url', 'is', null);
+        
+    if (error) { area.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { 
+        area.innerHTML = `<div style="text-align:center; padding: 40px;"><h2 style="margin:0;">All caught up!</h2><p style="color:#666;">No pending photos to review.</p></div>`; 
         return; 
     }
-    document.getElementById(`recipe-photo-upload-${recipeId}`).click();
+    
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">';
+    data.forEach(meal => {
+        html += `
+        <div class="window-box" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 0;">
+            <img src="${meal.pending_image_url}" style="width: 100%; height: 250px; object-fit: cover; border-bottom: 2px solid var(--border);">
+            <div style="padding: 15px;">
+                <h3 style="margin: 0 0 5px 0;">${meal.title}</h3>
+                <p style="margin: 0 0 15px 0; font-size: 0.85rem; color: #666;">Submitted by Community</p>
+                <div style="display: flex; gap: 10px;">
+                    <button style="background: #d4edda; flex: 1; padding: 10px 0; margin: 0;" onclick="approvePhoto(${meal.id}, '${meal.pending_image_url}')">✅ Approve</button>
+                    <button style="background: #f8d7da; flex: 1; padding: 10px 0; margin: 0;" onclick="declinePhoto(${meal.id}, '${meal.pending_image_url}')">❌ Decline</button>
+                </div>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    area.innerHTML = html;
+}
+
+async function approvePhoto(id, url) {
+    const { error } = await myDatabase.from('meals').update({ image_url: url, pending_image_url: null }).eq('id', id);
+    if (error) alert("Error approving photo: " + error.message);
+    else loadPhotoQueue();
+}
+
+async function declinePhoto(id, url) {
+    if(!confirm("Decline and permanently delete this photo?")) return;
+    const fileName = url.split('/').pop();
+    await myDatabase.storage.from('recipe_images').remove([fileName]);
+    const { error } = await myDatabase.from('meals').update({ pending_image_url: null }).eq('id', id);
+    if (error) alert("Error declining photo: " + error.message);
+    else loadPhotoQueue();
+}
+
+function setupAdminFilters(ctx) {
+    const types = [
+        { id: "all", label: "-- All Content Types --" },
+        { id: "global", label: "🍲 Global Recipes" },
+        { id: "budget", label: "💰 Budget Meals" },
+        { id: "special", label: "🏷️ Local Specials" },
+        { id: "plan", label: "📅 7-Day Meal Plans" },
+        { id: "pet", label: "🐾 Pet Food & Treats" }
+    ];
+    const t1 = document.getElementById(`${ctx}-tier1`);
+    if(t1) {
+        types.forEach(t => {
+            let opt = document.createElement('option');
+            opt.value = t.id; opt.innerHTML = t.label;
+            t1.appendChild(opt);
+        });
+    }
+    if (ctx === 'review') loadReviewQueue(); else loadLibrary();
+}
+
+function updateTier2(context) {
+    const t1 = document.getElementById(`${context}-tier1`).value;
+    const t2 = document.getElementById(`${context}-tier2`);
+    const t3 = document.getElementById(`${context}-tier3`);
+    
+    t2.innerHTML = ''; t3.innerHTML = '';
+    t2.style.display = 'none'; t3.style.display = 'none';
+
+    if (t1 === 'global') {
+        t2.style.display = 'block';
+        t2.innerHTML = '<option value="all">-- All Main Categories --</option>';
+        Object.keys(categories).forEach(cat => {
+            if (cat !== 'Pet Food & Treats' && cat !== 'Specialized Plans') {
+                t2.innerHTML += `<option value="${cat}">${cat}</option>`;
+            }
+        });
+    } else if (t1 === 'budget' || t1 === 'special') {
+        t2.style.display = 'block';
+        t2.innerHTML = '<option value="all">-- All Countries --</option>';
+        countries.forEach(c => t2.innerHTML += `<option value="${c}">${c}</option>`);
+    } else if (t1 === 'pet') {
+        t2.style.display = 'block';
+        t2.innerHTML = '<option value="all">-- All Pets --</option>';
+        categories['Pet Food & Treats'].forEach(sub => t2.innerHTML += `<option value="${sub}">${sub}</option>`);
+    }
+    if (context === 'review') loadReviewQueue(); else loadLibrary();
+}
+
+function updateTier3(context) {
+    const t1 = document.getElementById(`${context}-tier1`).value;
+    const t2 = document.getElementById(`${context}-tier2`).value;
+    const t3 = document.getElementById(`${context}-tier3`);
+
+    t3.innerHTML = ''; t3.style.display = 'none';
+
+    if (t1 === 'global' && t2 !== 'all') {
+        t3.style.display = 'block';
+        t3.innerHTML = '<option value="all">-- All Subcategories --</option>';
+        categories[t2].forEach(sub => t3.innerHTML += `<option value="${sub}">${sub}</option>`);
+    } else if (t1 === 'budget') {
+        t3.style.display = 'block';
+        t3.innerHTML = `<option value="all">-- All Meal Types --</option><option value="home">Home-Cooked</option><option value="takeaway">Takeaway</option>`;
+    }
+    if (context === 'review') loadReviewQueue(); else loadLibrary();
+}
+
+function buildAdminQuery(context, status) {
+    let query = myDatabase.from('meals').select('id, title, category, country, meal_type, created_at').eq('status', status).order('created_at', { ascending: false });
+    
+    const t1 = document.getElementById(`${context}-tier1`).value;
+    const t2 = document.getElementById(`${context}-tier2`) ? document.getElementById(`${context}-tier2`).value : 'all';
+    const t3 = document.getElementById(`${context}-tier3`) ? document.getElementById(`${context}-tier3`).value : 'all';
+
+    if (context === 'library') {
+        const term = document.getElementById('library-search').value.trim();
+        if (term !== '') { query = query.or(`title.ilike.%${term}%,recipe.ilike.%${term}%`); } 
+        else { query = query.limit(50); }
+    } else {
+        query = query.limit(100); 
+    }
+
+    if (t1 === 'global') {
+        if (t3 !== 'all') {
+            query = query.eq('category', t3);
+        } else if (t2 !== 'all') {
+            query = query.eq('parent_category', t2);
+        } else {
+            let allGlobalSubcats = [];
+            Object.keys(categories).forEach(c => {
+                if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
+                    allGlobalSubcats = allGlobalSubcats.concat(categories[c]);
+                }
+            });
+            query = query.in('category', allGlobalSubcats);
+        }
+    } else if (t1 === 'budget') {
+        query = query.eq('category', 'budget');
+        if (t2 !== 'all') query = query.eq('country', t2);
+        if (t3 !== 'all') query = query.eq('meal_type', t3);
+    } else if (t1 === 'special') {
+        query = query.eq('category', 'special');
+        if (t2 !== 'all') query = query.eq('country', t2);
+    } else if (t1 === 'plan') {
+        query = query.eq('category', '7-Day Meal Plans');
+    } else if (t1 === 'pet') {
+        if (t2 !== 'all') { query = query.eq('category', t2); } 
+        else { query = query.eq('parent_category', 'Pet Food & Treats'); }
+    }
+    return query;
+}
+
+async function loadReviewQueue() {
+    const list = document.getElementById('review-list');
+    list.innerHTML = "Checking for new submissions...";
+    const { data, error } = await buildAdminQuery('review', 'pending');
+    if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<p>Queue is empty for this filter! You are all caught up.</p>`; return; }
+    renderAdminItems(data, list, 'review');
+}
+
+async function loadLibrary() {
+    const list = document.getElementById('library-list');
+    list.innerHTML = "Loading library...";
+    const { data, error } = await buildAdminQuery('library', 'approved');
+    if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<p>No approved content found matching this filter.</p>`; return; }
+    renderAdminItems(data, list, 'library');
+}
+
+function renderAdminItems(data, container, contextPrefix) {
+    let html = '';
+    data.forEach(meal => {
+        let badgeStyle = '';
+        let statusBadge = contextPrefix === 'review' 
+            ? `<span class="admin-badge badge-pending">PENDING</span>` 
+            : `<span class="admin-badge badge-approved">APPROVED</span>`;
+        
+        let typeInfo = `Global Recipe (${meal.category})`;
+        
+        if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country}) - ${meal.meal_type || 'Unknown'}`; } 
+        else if (meal.category === 'special') { badgeStyle = 'badge-special'; typeInfo = `Local Special (${meal.country})`; } 
+        else if (meal.category === '7-Day Meal Plans') { badgeStyle = 'badge-plan'; typeInfo = `Meal Plan (Global)`; } 
+        else if (categories['Pet Food & Treats'].includes(meal.category)) { badgeStyle = 'badge-pet'; typeInfo = `Pet Food (${meal.category})`; }
+
+        html += `
+        <div class="admin-card" id="${contextPrefix}-${meal.id}">
+            <div class="admin-card-content">
+                <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${meal.title} ${statusBadge}</p>
+                <p style="font-size: 0.85rem; color: #666; margin: 0;">Type: ${typeInfo} | ID: ${meal.id} | Date: ${new Date(meal.created_at).toLocaleDateString()}</p>
+            </div>
+            <div class="admin-card-actions">`;
+        
+        if (contextPrefix === 'review') {
+            html += `<button style="background: #d4edda;" onclick="approveRecipe(${meal.id})">Approve</button>`;
+        } else if (contextPrefix === 'library') {
+            html += `<button style="background: #e2d9f3;" onclick="moderateComments(${meal.id}, '${meal.title.replace(/'/g, "\\'")}')">Moderate Comments</button>`;
+        }
+        
+        html += `
+                <button style="background: #fff3cd;" onclick="openEdit(${meal.id})">Edit</button>
+                <button style="background: #f8d7da;" onclick="deleteRecord('meals', ${meal.id})">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+async function moderateComments(recipeId, recipeTitle) {
+    const area = document.getElementById('admin-content-area');
+    area.innerHTML = `<div class="window-box"><p>Loading comments for ${recipeTitle}...</p></div>`;
+
+    const { data, error } = await myDatabase.from('comments').select('*').eq('recipe_id', recipeId).order('created_at', { ascending: false });
+    if (error) { alert("Error: " + error.message); switchAdminTab('library'); return; }
+
+    let html = `
+        <div class="window-box" style="width: 100%; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">Moderating: ${recipeTitle}</h2>
+                <button onclick="switchAdminTab('library')">← Back to Library</button>
+            </div>
+    `;
+
+    if (data.length === 0) {
+        html += `<p>No comments on this recipe.</p>`;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+        data.forEach(comment => {
+            html += `
+                <div class="admin-card" style="align-items: flex-start;">
+                    <div class="admin-card-content">
+                        <p style="font-weight: bold; margin: 0 0 5px 0;">${comment.email} <span style="font-size: 0.8rem; font-weight: normal; color: #666;">(${new Date(comment.created_at).toLocaleString()})</span></p>
+                        <p style="margin: 0; white-space: pre-wrap;">${comment.comment_text}</p>
+                        <p style="font-size: 0.8rem; color: #666; margin: 5px 0 0 0;">Likes: ${comment.likes || 0} | Comment ID: ${comment.id}</p>
+                    </div>
+                    <div class="admin-card-actions">
+                        <button style="background: #f8d7da;" onclick="deleteRecord('comments', ${comment.id}, ${recipeId}, '${recipeTitle.replace(/'/g, "\\'")}')">Delete Comment</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    html += `</div>`;
+    area.innerHTML = html;
+}
+
+async function approveRecipe(id) {
+    const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
+    if (error) alert("Error approving: " + error.message); 
+    else loadReviewQueue(); 
+}
+
+async function loadMessages() {
+    const list = document.getElementById('messages-list');
+    const { data, error } = await myDatabase.from('messages').select('*').order('created_at', { ascending: false });
+    
+    if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
+    
+    const unreadAdminIds = data.filter(m => m.recipient_email === 'admin' && m.is_read === false).map(m => m.id);
+    if (unreadAdminIds.length > 0) {
+        myDatabase.from('messages').update({ is_read: true }).in('id', unreadAdminIds).then();
+    }
+    
+    let html = '<div style="display:flex; flex-direction:column; gap: 15px;">';
+    data.forEach(msg => {
+        const isReport = msg.name.startsWith("REPORTED") || msg.name.startsWith("🚩 REPORTED");
+        const isAdminReply = (msg.email === currentUser.email) || (msg.recipient_email !== 'admin');
+        const unreadBadge = (!isAdminReply && !msg.is_read) ? '<span class="admin-badge badge-pending">UNREAD</span>' : '';
+        const safeEmailId = (msg.email || '').replace(/[^a-zA-Z0-9]/g, '');
+
+        html += `
+        <div class="admin-card" style="background: ${isReport ? '#fff0f0' : (isAdminReply ? '#f9f9f9' : '#ffffff')}; border: ${isReport ? '2px solid #dc3545' : '2px solid var(--border)'}; flex-direction: column; align-items: flex-start;">
+            <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                <div>
+                    <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">
+                        ${isAdminReply ? 'Admin Reply To:' : msg.name} <span style="font-size: 0.85rem; color: #666;">(${isAdminReply ? msg.recipient_email : msg.email})</span> ${unreadBadge}
+                    </p>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">${new Date(msg.created_at).toLocaleString()}</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    ${!isAdminReply && !isReport ? `<button style="background: #d4edda;" onclick="openAdminReply('${safeEmailId}')">Reply</button>` : ''}
+                    <button style="background: #f8d7da;" onclick="deleteRecord('messages', ${msg.id})">Delete</button>
+                </div>
+            </div>
+            <p style="white-space: pre-wrap; margin: 0;">${msg.message}</p>
+            
+            <div id="reply-box-${safeEmailId}" style="display:none; width: 100%; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
+                <textarea id="reply-text-${safeEmailId}" rows="3" placeholder="Type your reply to ${msg.email}..." style="width: 100%; margin-bottom: 10px;"></textarea>
+                <button style="background: #d4edda;" onclick="sendAdminReply('${msg.email}', '${safeEmailId}')">Send Reply</button>
+            </div>
+        </div>`;
+    });
+    list.innerHTML = html + '</div>';
+}
+
+function openAdminReply(safeId) {
+    const box = document.getElementById('reply-box-' + safeId);
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function sendAdminReply(recipientEmail, safeId) {
+    const text = document.getElementById('reply-text-' + safeId).value.trim();
+    if (!text) return;
+    
+    const { error } = await myDatabase.from('messages').insert([{
+        name: 'Admin Support',
+        email: currentUser.email,
+        recipient_email: recipientEmail,
+        message: text,
+        is_read: false
+    }]);
+    
+    if (error) alert("Error sending reply: " + error.message);
+    else {
+        alert("Reply sent successfully!");
+        loadMessages();
+    }
+}
+
+async function deleteRecord(table, id, fallbackId = null, fallbackTitle = null) {
+    if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
+    const { error } = await myDatabase.from(table).delete().eq('id', id);
+    if (error) alert("Error deleting: " + error.message);
+    else {
+        if (table === 'messages') loadMessages();
+        else if (table === 'comments') moderateComments(fallbackId, fallbackTitle);
+        else { loadReviewQueue(); loadLibrary(); }
+    }
+}
+
+async function openEdit(id) {
+    const area = document.getElementById('admin-content-area');
+    area.innerHTML = `<div class="window-box"><p>Loading record...</p></div>`;
+    
+    const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
+    if (error) { alert("Error: " + error.message); switchAdminTab('library'); return; }
+
+    let countryOptionsHTML = '<option value="">-- None / Global --</option>';
+    if (typeof countries !== 'undefined') {
+        countries.forEach(c => {
+            const isSel = (data.country === c) ? 'selected' : '';
+            countryOptionsHTML += `<option value="${c}" ${isSel}>${c}</option>`;
+        });
+    }
+
+    let categoryOptionsHTML = '<option value="">-- Select Category --</option>';
+    const hardcodedCats = ['budget', 'special', '7-Day Meal Plans'];
+    hardcodedCats.forEach(hc => {
+        const isSel = (data.category === hc) ? 'selected' : '';
+        categoryOptionsHTML += `<option value="${hc}" ${isSel}>${hc === 'budget' ? 'budget (Budget Meal)' : hc}</option>`;
+    });
+    
+    if (typeof categories !== 'undefined') {
+        Object.keys(categories).forEach(mainCat => {
+            categories[mainCat].forEach(sub => {
+                if (!hardcodedCats.includes(sub)) {
+                    const isSel = (data.category === sub) ? 'selected' : '';
+                    categoryOptionsHTML += `<option value="${sub}" ${isSel}>${sub}</option>`;
+                }
+            });
+        });
+    }
+
+    let currentPhotoHTML = '';
+    if (data.image_url) {
+        currentPhotoHTML = `
+            <div style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--border); background: #fdf6e3; display: inline-block;">
+                <p style="margin: 0 0 10px 0; font-size: 0.9rem; font-weight: bold;">Currently Live Photo:</p>
+                <img src="${data.image_url}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 10px;">
+                <button style="background: #f8d7da; padding: 4px 8px; font-size: 0.8rem; margin: 0;" onclick="adminRemovePhoto(${data.id}, '${data.image_url}')">🗑️ Remove Photo</button>
+            </div>
+        `;
+    } else {
+        currentPhotoHTML = `<p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">No live photo for this recipe.</p>`;
+    }
+
+    area.innerHTML = `
+        <div class="window-box" style="width: 100%; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">Edit Record</h2>
+                <button onclick="switchAdminTab('library')">Cancel & Return</button>
+            </div>
+            
+            <div class="admin-card" style="flex-direction: column; align-items: flex-start; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">🖼️ Recipe Photo Management</h3>
+                ${currentPhotoHTML}
+                <label style="font-size: 0.85rem; color: #555; display: block; border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px; width: 100%;">Upload / Replace Live Photo (Bypasses moderation queue):</label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="file" id="admin-recipe-photo-${data.id}" accept="image/*" style="margin: 0;">
+                    <button onclick="adminUploadRecipePhoto(${data.id})" style="background: #e2d9f3; padding: 6px 12px; font-size: 0.9rem; margin: 0;">Upload & Set Live</button>
+                </div>
+            </div>
+
+            <input type="hidden" id="edit-id" value="${data.id}">
+            <label style="font-weight: bold; font-size: 0.9rem;">Recipe Title</label>
+            <input type="text" id="edit-title" placeholder="Recipe Title" value="${(data.title || '').replace(/"/g, '&quot;')}">
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; font-size: 0.9rem;">Category</label>
+                    <select id="edit-category" onchange="toggleAdminFields()" style="width: 100%; box-sizing: border-box;">
+                        ${categoryOptionsHTML}
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-weight: bold; font-size: 0.9rem;">Country</label>
+                    <select id="edit-country" style="width: 100%; box-sizing: border-box;">
+                        ${countryOptionsHTML}
+                    </select>
+                </div>
+            </div>
+            
+            <label style="font-weight: bold; font-size: 0.9rem;">Meal Type (Crucial for Budget Meals)</label>
+            <select id="edit-meal-type" onchange="toggleAdminFields()">
+                <option value="" ${!data.meal_type ? 'selected' : ''}>Global Recipe (No specific type)</option>
+                <option value="home" ${data.meal_type === 'home' ? 'selected' : ''}>Home-Cooked (Uses Ingredients)</option>
+                <option value="takeaway" ${data.meal_type === 'takeaway' ? 'selected' : ''}>Takeaway (No Ingredients)</option>
+            </select>
+            
+            <div id="edit-budget-fields" style="display:none; gap: 10px; margin-bottom: 15px;">
+                <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Total Cost</label><input type="number" id="edit-cost" placeholder="Cost" step="any" value="${data.cost || ''}"></div>
+                <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Servings</label><input type="number" id="edit-servings" placeholder="Servings" value="${data.servings || ''}"></div>
+            </div>
+            
+            <div id="edit-ingredients-container" style="background: #ffffff; border: 2px solid var(--border); padding: 20px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">Ingredients</h3>
+                <div id="edit-ingredients-list"></div>
+                <button onclick="adminAddIngredientRow()" style="margin-top: 15px;">+ Add Ingredient Row</button>
+            </div>
+            
+            <label style="font-weight: bold; font-size: 0.9rem;">Instructions / What is Included</label>
+            <textarea id="edit-instructions" rows="8" placeholder="Instructions...">${(data.recipe || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+            
+            <button style="background: #d4edda; width: 100%; font-size: 1.1rem; padding: 15px;" onclick="saveEdit()">💾 Save Changes to Database</button>
+        </div>
+    `;
+
+    toggleAdminFields();
+
+    const ingList = document.getElementById('edit-ingredients-list');
+    ingList.innerHTML = ''; 
+    if (data.ingredients && Array.isArray(data.ingredients)) {
+        data.ingredients.forEach(ing => adminAddIngredientRow(ing.item, ing.qty, ing.unit));
+    }
+    adminAddIngredientRow(); 
+}
+
+async function adminRemovePhoto(id, url) {
+    if(!confirm("Are you sure you want to remove the live photo? This will delete the file entirely.")) return;
+    const fileName = url.split('/').pop();
+    await myDatabase.storage.from('recipe_images').remove([fileName]);
+    const { error } = await myDatabase.from('meals').update({ image_url: null }).eq('id', id);
+    if(error) alert("Error: " + error.message);
+    else openEdit(id);
+}
+
+async function adminUploadRecipePhoto(id) {
+    const file = document.getElementById(`admin-recipe-photo-${id}`).files[0];
+    if (!file) return alert("Select an image first.");
+    
+    alert("Uploading directly to live...");
+    const name = `recipe-${id}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    const { error: err1 } = await myDatabase.storage.from('recipe_images').upload(name, file);
+    if (err1) return alert("Upload Failed: " + err1.message);
+
+    const url = myDatabase.storage.from('recipe_images').getPublicUrl(name).data.publicUrl;
+    const { error: err2 } = await myDatabase.from('meals').update({ image_url: url, pending_image_url: null }).eq('id', id);
+    if (err2) alert("Database Error: " + err2.message);
+    else openEdit(id);
+}
+
+function toggleAdminFields() {
+    const cat = document.getElementById('edit-category').value.toLowerCase();
+    const mType = document.getElementById('edit-meal-type').value;
+    document.getElementById('edit-budget-fields').style.display = cat === 'budget' ? 'flex' : 'none';
+    document.getElementById('edit-ingredients-container').style.display = mType === 'takeaway' ? 'none' : 'block';
+}
+
+function adminAddIngredientRow(name = '', qty = '', unit = '') {
+    const list = document.getElementById('edit-ingredients-list');
+    const row = document.createElement('div');
+    row.className = 'ingredient-row';
+    row.style.display = 'flex'; row.style.gap = '10px'; row.style.marginBottom = '10px';
+    const safeQty = (qty !== null && qty !== undefined) ? qty : '';
+    row.innerHTML = `
+        <input type="text" class="ing-name" placeholder="Item Name" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0;">
+        <input type="number" step="any" class="ing-qty" placeholder="Qty" value="${safeQty}" style="flex: 1; margin: 0;">
+        <input type="text" class="ing-unit" placeholder="Unit" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0;">
+        <button style="background: #f8d7da; margin: 0; padding: 0 15px;" onclick="this.parentElement.remove()">X</button>
+    `;
+    list.appendChild(row);
+}
+
+async function saveEdit() {
+    const id = document.getElementById('edit-id').value;
+    const cat = document.getElementById('edit-category').value.trim();
+    const mType = document.getElementById('edit-meal-type').value;
+    
+    let structuredIngredients = null;
+    if (mType !== 'takeaway') {
+        structuredIngredients = [];
+        document.querySelectorAll('#edit-ingredients-list .ingredient-row').forEach(row => {
+            const name = row.querySelector('.ing-name').value.trim();
+            const qty = row.querySelector('.ing-qty').value;
+            if (name !== "") structuredIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: row.querySelector('.ing-unit').value.trim() });
+        });
+    }
+
+    let payload = {
+        title: document.getElementById('edit-title').value.trim(), category: cat, country: document.getElementById('edit-country').value.trim(),
+        meal_type: mType === "" ? null : mType, recipe: document.getElementById('edit-instructions').value.trim(), ingredients: structuredIngredients
+    };
+
+    let resolvedParent = null;
+    if (cat === 'budget' || cat === 'special') resolvedParent = null;
+    else if (cat === '7-Day Meal Plans') resolvedParent = 'Specialized Plans';
+    else { resolvedParent = getParentCategory(cat); }
+    
+    if (resolvedParent) { payload.parent_category = resolvedParent; }
+
+    if (cat === 'budget') {
+        payload.cost = parseFloat(document.getElementById('edit-cost').value);
+        payload.servings = parseInt(document.getElementById('edit-servings').value);
+    } else { payload.cost = null; payload.servings = null; }
+
+    const { error } = await myDatabase.from('meals').update(payload).eq('id', id);
+    if (error) alert("Error saving: " + error.message);
+    else { alert("Updated successfully!"); switchAdminTab('library'); }
+}
+
+async function checkFavoriteStatus(recipeId) {
+    if (!currentUser) return;
+    const btn = document.getElementById(`fav-btn-${recipeId}`);
+    if (!btn) return;
+    
+    const { data, error } = await myDatabase.from('favorites')
+        .select('id')
+        .eq('user_email', currentUser.email)
+        .eq('recipe_id', recipeId)
+        .single();
+        
+    if (data) {
+        btn.innerHTML = '⭐ Saved to Favorites';
+        btn.style.background = '#d4edda';
+        btn.dataset.saved = 'true';
+    } else {
+        btn.innerHTML = '⭐ Save to Favorites';
+        btn.style.background = '';
+        btn.dataset.saved = 'false';
+    }
+}
+
+async function toggleFavorite(recipeId) {
+    if (!currentUser) {
+        alert("Please create a free account to save recipes to your personal cookbook!");
+        openAuthModal();
+        return;
+    }
+
+    const btn = document.getElementById(`fav-btn-${recipeId}`);
+    btn.disabled = true;
+    
+    if (btn.dataset.saved === 'true') {
+        const { error } = await myDatabase.from('favorites')
+            .delete()
+            .eq('user_email', currentUser.email)
+            .eq('recipe_id', recipeId);
+        if (!error) {
+            btn.innerHTML = '⭐ Save to Favorites';
+            btn.style.background = '';
+            btn.dataset.saved = 'false';
+        }
+    } else {
+        const { error } = await myDatabase.from('favorites').insert([{
+            user_email: currentUser.email,
+            recipe_id: recipeId
+        }]);
+        if (!error) {
+            btn.innerHTML = '⭐ Saved to Favorites';
+            btn.style.background = '#d4edda';
+            btn.dataset.saved = 'true';
+        }
+    }
+    btn.disabled = false;
+}
+
+function toggleCookbook() {
+    const inbox = document.getElementById('profile-inbox-section');
+    const cookbook = document.getElementById('profile-cookbook-section');
+    
+    if (inbox.style.display === 'none') {
+        inbox.style.display = 'block';
+        cookbook.style.display = 'none';
+    } else {
+        inbox.style.display = 'none';
+        cookbook.style.display = 'block';
+        loadCookbook();
+    }
+}
+
+async function loadCookbook() {
+    const list = document.getElementById('cookbook-list');
+    list.innerHTML = 'Loading your recipes...';
+    
+    const { data: favs, error: favErr } = await myDatabase.from('favorites')
+        .select('recipe_id')
+        .eq('user_email', currentUser.email)
+        .order('created_at', { ascending: false });
+        
+    if (favErr) { list.innerHTML = 'Error loading favorites.'; return; }
+    if (!favs || favs.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#666; margin-top: 20px;">Your cookbook is empty. Explore recipes and click "Save to Favorites" to build your collection!</p>';
+        return;
+    }
+    
+    const recipeIds = favs.map(f => f.recipe_id);
+    const { data: meals, error: mealErr } = await myDatabase.from('meals')
+        .select('id, title, category, author, meal_type, country')
+        .in('id', recipeIds);
+        
+    if (mealErr) { list.innerHTML = 'Error loading recipes.'; return; }
+    
+    let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+    
+    favs.forEach(fav => {
+        const meal = meals.find(m => m.id === fav.recipe_id);
+        if (meal) {
+            const isBudget = meal.category === 'budget';
+            const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
+            const badge = isBudget ? ` - BUDGET (${meal.country})` : '';
+            const author = meal.author || 'Community';
+            
+            html += `
+                <div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div>
+                        <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
+                        <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
+                    </div>
+                    <button onclick="removeFromCookbook(${meal.id}, event)" style="margin: 0; padding: 6px 12px; background: #f8d7da; border-color: #dc3545; color: #721c24; font-size: 0.8rem; white-space: nowrap;">❌ Remove</button>
+                </div>
+            `;
+        }
+    });
+    
+    html += '</div>';
+    list.innerHTML = html;
+}
+
+async function removeFromCookbook(recipeId, event) {
+    event.stopPropagation(); 
+    if (!confirm("Remove this recipe from your cookbook?")) return;
+    
+    const { error } = await myDatabase.from('favorites')
+        .delete()
+        .eq('user_email', currentUser.email)
+        .eq('recipe_id', recipeId);
+        
+    if (error) alert("Error: " + error.message);
+    else loadCookbook(); 
 }
