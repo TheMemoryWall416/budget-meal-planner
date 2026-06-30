@@ -393,21 +393,22 @@ function showPage(page) {
                 .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #ffffff; padding: 20px; border: 2px solid var(--border); }
             </style>
             
-            <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.8rem;">Command Center</h1>
                     <p style="margin: 0; font-size: 1rem; color: #555;">Authorized personnel only.</p>
                 </div>
             </div>
             
-            <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
+            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
                 <button id="tab-inbox" onclick="switchAdminTab('inbox')" style="margin:0;">📥 Inbox & Reports</button>
                 <button id="tab-review" onclick="switchAdminTab('review')" style="margin:0;">⏳ New Recipe Queue</button>
+                <button id="tab-photo" onclick="switchAdminTab('photo')" style="margin:0;">📸 Photo Moderation</button>
                 <button id="tab-library" onclick="switchAdminTab('library')" style="margin:0;">📚 Manage Library</button>
                 <button id="tab-settings" onclick="switchAdminTab('settings')" style="margin:0;">⚙️ Site Settings</button>
             </div>
             
-            <div id="admin-content-area" style="width: 100%; max-width: 900px;"></div>
+            <div id="admin-content-area" style="width: 100%; max-width: 1000px;"></div>
         `;
         switchAdminTab('inbox');
         
@@ -945,19 +946,18 @@ async function viewBudgetMeal(id) {
     const { data, error } = await myDatabase.from('meals').select('*').eq('id', id).single();
     if (error) return;
 
+    let ingredientsHTML = `<ul style="margin: 0; padding-left: 20px;">`;
+    if (data.ingredients && Array.isArray(data.ingredients)) {
+        data.ingredients.forEach(ing => {
+            let qty = ing.qty ? ing.qty : '';
+            let unit = ing.unit ? ing.unit : '';
+            ingredientsHTML += `<li style="margin-bottom: 8px;"><strong>${qty} ${unit}</strong> ${ing.item}</li>`;
+        });
+    }
+    ingredientsHTML += `</ul>`;
+
     let contentHTML = "";
-
     if (data.meal_type === 'home') {
-        let ingredientsHTML = `<ul style="margin: 0; padding-left: 20px;">`;
-        if (data.ingredients && Array.isArray(data.ingredients)) {
-            data.ingredients.forEach(ing => {
-                let qty = ing.qty ? ing.qty : '';
-                let unit = ing.unit ? ing.unit : '';
-                ingredientsHTML += `<li style="margin-bottom: 8px;"><strong>${qty} ${unit}</strong> ${ing.item}</li>`;
-            });
-        }
-        ingredientsHTML += `</ul>`;
-
         contentHTML = `
             <div class="farmhouse-scroll">
                 <h2>Ingredients</h2>
@@ -1004,6 +1004,22 @@ async function viewBudgetMeal(id) {
         </div>
     `;
 
+    // THE VISUAL ENGINE INJECTION: Display live photo, pending banner, or the "Add Photo" placeholder.
+    let imageHTML = '';
+    if (data.image_url) {
+        imageHTML = `<img src="${data.image_url}" style="width: 100%; height: 350px; object-fit: cover; border: 2px solid var(--border); margin-bottom: 20px; display: block;">`;
+    } else if (data.pending_image_url) {
+        imageHTML = `<div style="width: 100%; padding: 20px; box-sizing: border-box; background: #fff3cd; border: 2px solid var(--border); text-align: center; margin-bottom: 20px;">📸 A photo has been submitted and is waiting for Anton & Jenny to approve it!</div>`;
+    } else {
+        imageHTML = `
+        <div style="width: 100%; height: 250px; background: #fdf6e3; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; transition: background 0.2s;" onclick="document.getElementById('recipe-photo-upload-${data.id}').click()" onmouseover="this.style.background='#f4ecd8'" onmouseout="this.style.background='#fdf6e3'">
+            <span style="font-size: 2.5rem; margin-bottom: 10px;">📸</span>
+            <strong style="color: #333; font-size: 1.1rem;">Made this? Add a photo!</strong>
+            <span style="font-size: 0.9rem; color: #666; margin-top: 5px;">(Click to upload)</span>
+            <input type="file" id="recipe-photo-upload-${data.id}" accept="image/*" style="display: none;" onchange="submitPendingPhoto(${data.id}, event)">
+        </div>`;
+    }
+
     view.innerHTML = `
         <button onclick="showPage('find-budget-meals')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
@@ -1011,6 +1027,10 @@ async function viewBudgetMeal(id) {
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
             </div>
+        </div>
+        
+        <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
+            ${imageHTML}
         </div>
         
         ${contentHTML}
@@ -1207,6 +1227,34 @@ async function loadSubcategory(subcategory, parentCategory) {
     view.innerHTML = html;
 }
 
+// User-Facing Photo Upload Logic
+async function submitPendingPhoto(recipeId, event) {
+    if (!currentUser) { 
+        alert("Please create a free account to share a photo of your meal!"); 
+        openAuthModal(); 
+        return; 
+    }
+    
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    alert("Uploading photo... please wait.");
+    
+    const name = `recipe-${recipeId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    const { error: err1 } = await myDatabase.storage.from('recipe_images').upload(name, file);
+    if (err1) return alert("Upload Failed: " + err1.message);
+    
+    const url = myDatabase.storage.from('recipe_images').getPublicUrl(name).data.publicUrl;
+    
+    const { error: err2 } = await myDatabase.from('meals').update({ pending_image_url: url }).eq('id', recipeId);
+    if (err2) return alert("Database Update Failed: " + err2.message);
+    
+    alert("Photo submitted! Anton and Jenny will review it shortly.");
+    
+    if (window.location.search.includes('budget')) viewBudgetMeal(recipeId);
+    else viewRecipe(recipeId);
+}
+
 async function viewRecipe(id) {
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Loading Recipe...</h1></div>`;
@@ -1226,10 +1274,8 @@ async function viewRecipe(id) {
 
     const author = data.author || "Home Cook";
     const date = data.created_at ? new Date(data.created_at).toLocaleDateString() : "Unknown Date";
-
     const currentUrl = window.location.origin + window.location.pathname + '?recipe=' + data.id;
     const whatsappText = encodeURIComponent(`Check out this recipe for ${data.title} on Budget Meal Planner! ${currentUrl}`);
-
     const parentCat = data.parent_category || getParentCategory(data.category);
 
     let commentFormHTML = '';
@@ -1257,11 +1303,31 @@ async function viewRecipe(id) {
         </div>
     `;
 
+    // THE VISUAL ENGINE INJECTION: Display live photo, pending banner, or the "Add Photo" placeholder.
+    let imageHTML = '';
+    if (data.image_url) {
+        imageHTML = `<img src="${data.image_url}" style="width: 100%; height: 350px; object-fit: cover; border: 2px solid var(--border); margin-bottom: 20px; display: block;">`;
+    } else if (data.pending_image_url) {
+        imageHTML = `<div style="width: 100%; padding: 20px; box-sizing: border-box; background: #fff3cd; border: 2px solid var(--border); text-align: center; margin-bottom: 20px;">📸 A photo has been submitted and is waiting for Anton & Jenny to approve it!</div>`;
+    } else {
+        imageHTML = `
+        <div style="width: 100%; height: 250px; background: #fdf6e3; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; transition: background 0.2s;" onclick="document.getElementById('recipe-photo-upload-${data.id}').click()" onmouseover="this.style.background='#f4ecd8'" onmouseout="this.style.background='#fdf6e3'">
+            <span style="font-size: 2.5rem; margin-bottom: 10px;">📸</span>
+            <strong style="color: #333; font-size: 1.1rem;">Made this? Add a photo!</strong>
+            <span style="font-size: 0.9rem; color: #666; margin-top: 5px;">(Click to upload)</span>
+            <input type="file" id="recipe-photo-upload-${data.id}" accept="image/*" style="display: none;" onchange="submitPendingPhoto(${data.id}, event)">
+        </div>`;
+    }
+
     view.innerHTML = `
         <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date}</p>
+        </div>
+        
+        <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
+            ${imageHTML}
         </div>
         
         <div class="window-box" style="background: var(--nav-color); max-width: 650px; width: 100%; box-sizing: border-box;">
@@ -1436,7 +1502,8 @@ async function saveRecipe() {
 }
 
 function switchAdminTab(tab) {
-    ['inbox', 'review', 'library', 'settings'].forEach(t => {
+    // [MACRO]: Added 'photo' to the administrative view array.
+    ['inbox', 'review', 'photo', 'library', 'settings'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
     });
@@ -1464,6 +1531,16 @@ function switchAdminTab(tab) {
             </div>`;
         setupAdminFilters('review');
     } 
+    // [MACRO]: The Dedicated Visual Moderation Dashboard Tab
+    else if (tab === 'photo') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">Pending Photo Submissions</h2>
+                <p style="color: #555;">Approve user-submitted photos to send them live, or decline to delete them.</p>
+                <div id="photo-list" style="margin-top: 20px;">Loading...</div>
+            </div>`;
+        loadPhotoQueue();
+    }
     else if (tab === 'library') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
@@ -1495,6 +1572,56 @@ function switchAdminTab(tab) {
                 </div>
             </div>`;
     }
+}
+
+// [MACRO]: The Visual Moderation Engine
+async function loadPhotoQueue() {
+    const area = document.getElementById('photo-list');
+    area.innerHTML = "Checking for pending photos...";
+    
+    // Finds any meal where a user has uploaded a photo that needs approval.
+    const { data, error } = await myDatabase.from('meals')
+        .select('id, title, pending_image_url')
+        .not('pending_image_url', 'is', null);
+        
+    if (error) { area.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { 
+        area.innerHTML = `<div style="text-align:center; padding: 40px;"><h2 style="margin:0;">All caught up!</h2><p style="color:#666;">No pending photos to review.</p></div>`; 
+        return; 
+    }
+    
+    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">';
+    data.forEach(meal => {
+        html += `
+        <div class="window-box" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 0;">
+            <img src="${meal.pending_image_url}" style="width: 100%; height: 250px; object-fit: cover; border-bottom: 2px solid var(--border);">
+            <div style="padding: 15px;">
+                <h3 style="margin: 0 0 5px 0;">${meal.title}</h3>
+                <p style="margin: 0 0 15px 0; font-size: 0.85rem; color: #666;">Submitted by Community</p>
+                <div style="display: flex; gap: 10px;">
+                    <button style="background: #d4edda; flex: 1; padding: 10px 0; margin: 0;" onclick="approvePhoto(${meal.id}, '${meal.pending_image_url}')">✅ Approve</button>
+                    <button style="background: #f8d7da; flex: 1; padding: 10px 0; margin: 0;" onclick="declinePhoto(${meal.id}, '${meal.pending_image_url}')">❌ Decline</button>
+                </div>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    area.innerHTML = html;
+}
+
+async function approvePhoto(id, url) {
+    const { error } = await myDatabase.from('meals').update({ image_url: url, pending_image_url: null }).eq('id', id);
+    if (error) alert("Error approving photo: " + error.message);
+    else loadPhotoQueue();
+}
+
+async function declinePhoto(id, url) {
+    if(!confirm("Decline and permanently delete this photo?")) return;
+    const fileName = url.split('/').pop();
+    await myDatabase.storage.from('recipe_images').remove([fileName]);
+    const { error } = await myDatabase.from('meals').update({ pending_image_url: null }).eq('id', id);
+    if (error) alert("Error declining photo: " + error.message);
+    else loadPhotoQueue();
 }
 
 function setupAdminFilters(ctx) {
@@ -1788,6 +1915,7 @@ async function deleteRecord(table, id, fallbackId = null, fallbackTitle = null) 
     }
 }
 
+// [MACRO]: Admin Content Editing & Photo Overrides
 async function openEdit(id) {
     const area = document.getElementById('admin-content-area');
     area.innerHTML = `<div class="window-box"><p>Loading record...</p></div>`;
@@ -1821,6 +1949,19 @@ async function openEdit(id) {
         });
     }
 
+    let currentPhotoHTML = '';
+    if (data.image_url) {
+        currentPhotoHTML = `
+            <div style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--border); background: #fdf6e3; display: inline-block;">
+                <p style="margin: 0 0 10px 0; font-size: 0.9rem; font-weight: bold;">Currently Live Photo:</p>
+                <img src="${data.image_url}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 10px;">
+                <button style="background: #f8d7da; padding: 4px 8px; font-size: 0.8rem; margin: 0;" onclick="adminRemovePhoto(${data.id}, '${data.image_url}')">🗑️ Remove Photo</button>
+            </div>
+        `;
+    } else {
+        currentPhotoHTML = `<p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">No live photo for this recipe.</p>`;
+    }
+
     area.innerHTML = `
         <div class="window-box" style="width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1828,6 +1969,16 @@ async function openEdit(id) {
                 <button onclick="switchAdminTab('library')">Cancel & Return</button>
             </div>
             
+            <div class="admin-card" style="flex-direction: column; align-items: flex-start; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">🖼️ Recipe Photo Management</h3>
+                ${currentPhotoHTML}
+                <label style="font-size: 0.85rem; color: #555; display: block; border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px; width: 100%;">Upload / Replace Live Photo (Bypasses moderation queue):</label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="file" id="admin-recipe-photo-${data.id}" accept="image/*" style="margin: 0;">
+                    <button onclick="adminUploadRecipePhoto(${data.id})" style="background: #e2d9f3; padding: 6px 12px; font-size: 0.9rem; margin: 0;">Upload & Set Live</button>
+                </div>
+            </div>
+
             <input type="hidden" id="edit-id" value="${data.id}">
             <label style="font-weight: bold; font-size: 0.9rem;">Recipe Title</label>
             <input type="text" id="edit-title" placeholder="Recipe Title" value="${(data.title || '').replace(/"/g, '&quot;')}">
@@ -1880,6 +2031,30 @@ async function openEdit(id) {
         data.ingredients.forEach(ing => adminAddIngredientRow(ing.item, ing.qty, ing.unit));
     }
     adminAddIngredientRow(); 
+}
+
+async function adminRemovePhoto(id, url) {
+    if(!confirm("Are you sure you want to remove the live photo? This will delete the file entirely.")) return;
+    const fileName = url.split('/').pop();
+    await myDatabase.storage.from('recipe_images').remove([fileName]);
+    const { error } = await myDatabase.from('meals').update({ image_url: null }).eq('id', id);
+    if(error) alert("Error: " + error.message);
+    else openEdit(id);
+}
+
+async function adminUploadRecipePhoto(id) {
+    const file = document.getElementById(`admin-recipe-photo-${id}`).files[0];
+    if (!file) return alert("Select an image first.");
+    
+    alert("Uploading directly to live...");
+    const name = `recipe-${id}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    const { error: err1 } = await myDatabase.storage.from('recipe_images').upload(name, file);
+    if (err1) return alert("Upload Failed: " + err1.message);
+
+    const url = myDatabase.storage.from('recipe_images').getPublicUrl(name).data.publicUrl;
+    const { error: err2 } = await myDatabase.from('meals').update({ image_url: url, pending_image_url: null }).eq('id', id);
+    if (err2) alert("Database Error: " + err2.message);
+    else openEdit(id);
 }
 
 function toggleAdminFields() {
@@ -1940,55 +2115,6 @@ async function saveEdit() {
     if (error) alert("Error saving: " + error.message);
     else { alert("Updated successfully!"); switchAdminTab('library'); }
 }
-
-async function uploadTeamPhoto(event) {
-    const file = document.getElementById('team-photo-upload').files[0];
-    if (!file) return alert("Select an image.");
-    
-    const btn = event.target; btn.innerText = "Uploading..."; btn.disabled = true;
-    
-    const name = `team-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
-    
-    const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
-    if (err1) { btn.innerText = "Upload & Save Image"; btn.disabled = false; return alert("Failed: " + err1.message); }
-
-    const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
-    const { error: err2 } = await myDatabase.from('site_config').update({ team_photo_url: url }).eq('id', 1);
-    
-    btn.innerText = "Upload & Save Image"; btn.disabled = false;
-    if (err2) alert("Failed: " + err2.message); else alert("Updated! Refresh main site.");
-}
-
-async function uploadBackgroundPhoto(event) {
-    const file = document.getElementById('bg-photo-upload').files[0];
-    if (!file) return alert("Select an image.");
-    
-    const btn = event.target; 
-    btn.innerText = "Uploading..."; 
-    btn.disabled = true;
-    
-    const name = `bg-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
-    
-    const { error: err1 } = await myDatabase.storage.from('website_assets').upload(name, file);
-    if (err1) { 
-        btn.innerText = "Upload & Save Background"; 
-        btn.disabled = false; 
-        return alert("Upload Failed: " + err1.message); 
-    }
-
-    const url = myDatabase.storage.from('website_assets').getPublicUrl(name).data.publicUrl;
-    const { error: err2 } = await myDatabase.from('site_config').update({ main_background_url: url }).eq('id', 1);
-    
-    btn.innerText = "Upload & Save Background"; 
-    btn.disabled = false;
-    
-    if (err2) alert("Database Update Failed: " + err2.message); 
-    else alert("Background Updated! Refresh the main site to see the changes.");
-}
-
-/* ==========================================================
-   SECTION 12: FAVORITES ENGINE (THE SANCTUARY COOKBOOK)
-========================================================== */
 
 async function checkFavoriteStatus(recipeId) {
     if (!currentUser) return;
@@ -2092,7 +2218,6 @@ async function loadCookbook() {
             const badge = isBudget ? ` - BUDGET (${meal.country})` : '';
             const author = meal.author || 'Community';
             
-            // [MACRO]: Flexbox injection. Space-between forces the text to the left and the remove button to the absolute right.
             html += `
                 <div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                     <div>
@@ -2109,9 +2234,7 @@ async function loadCookbook() {
     list.innerHTML = html;
 }
 
-// [ATOMIC]: New standalone function for isolated profile deletion.
 async function removeFromCookbook(recipeId, event) {
-    // [ATOMIC]: .stopPropagation() halts the browser's event sequence, stopping the parent <div> from executing viewRecipe() when the button is clicked.
     event.stopPropagation(); 
     if (!confirm("Remove this recipe from your cookbook?")) return;
     
@@ -2120,10 +2243,6 @@ async function removeFromCookbook(recipeId, event) {
         .eq('user_email', currentUser.email)
         .eq('recipe_id', recipeId);
         
-    if (error) {
-        alert("Error: " + error.message);
-    } else {
-        // [ATOMIC]: Silent recursive call to fetch the updated DB state and repaint the UI instantly.
-        loadCookbook(); 
-    }
+    if (error) alert("Error: " + error.message);
+    else loadCookbook(); 
 }
