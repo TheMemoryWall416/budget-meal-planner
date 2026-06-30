@@ -259,6 +259,7 @@ window.onload = function() {
     initAuth();
     handleVisitorSession();
     fetchBudgetTips(); 
+    checkNewBroadcasts(); // Lights up the "NEW" badge if there are fresh announcements
     setInterval(updateHack, 30000); 
 
     const savedCountry = localStorage.getItem('saved_country');
@@ -388,19 +389,19 @@ function showPage(page) {
         loadMemberMessages(); 
 
     // ========================================================
-    // [STEP 9]: THE SANCTUARY GATES & PLACEHOLDERS
+    // [STEP 9 & 10]: THE SANCTUARY GATES & VIEWS
     // ========================================================
     } else if (page === 'family') {
         if (!currentUser) {
             alert("🏡 The Family Hub is a private sanctuary for our registered members. Please log in or join us for free to enter!");
             openAuthModal();
-            return; // Stops the page from loading
+            return; 
         }
         renderFamilyPage();
     } else if (page === 'shoutbox') {
-        view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px;"><h1>🔥 The Campfire (Coming in Step 10)</h1></div>`;
+        renderShoutbox();
     } else if (page === 'broadcasts') {
-        view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px;"><h1>📣 Community Updates (Coming Next)</h1></div>`;
+        renderPublicBroadcasts();
     
     } else if (page === 'admin') {
         if (!isAdmin) { showPage('home'); return; }
@@ -2549,4 +2550,198 @@ async function renderFamilyPage() {
         html += `</div>`;
     }
     view.innerHTML = html;
+}
+
+// ==========================================
+//        THE CAMPFIRE (SHOUTBOX)
+// ==========================================
+
+function renderShoutbox() {
+    const view = document.getElementById('main-view');
+    
+    let inputArea = '';
+    if (currentUser) {
+        inputArea = `
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="text" id="shoutbox-input" placeholder="Say hello to the community..." style="flex: 1; margin: 0;" onkeyup="if(event.key === 'Enter') postShoutboxMessage()">
+                <button onclick="postShoutboxMessage()" style="margin: 0; background: var(--nav-color);">Send 🔥</button>
+            </div>
+        `;
+    } else {
+        inputArea = `
+            <div style="background: #f0f0f0; border: 2px dashed var(--border); padding: 15px; text-align: center; margin-bottom: 20px;">
+                <p style="margin-top: 0; font-weight: bold;">Want to join the conversation around the fire?</p>
+                <button onclick="openAuthModal()" style="margin: 0;">Sign In to Chat</button>
+            </div>
+        `;
+    }
+
+    view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 20px; border-width: 3px; border-color: #8b4513;">
+            <h1 style="margin: 0 0 10px 0; font-size: 2.2rem; font-family: 'Georgia', serif; color: #5c3a21;">🔥 The Campfire</h1>
+            <p style="margin: 0; font-size: 1.1rem; color: #333; line-height: 1.5;">Pull up a log. This is our community shoutbox. Say hi, share what you're cooking, or just hang out.</p>
+        </div>
+        <div style="width: 100%; max-width: 800px; box-sizing: border-box;">
+            ${inputArea}
+            <div id="shoutbox-messages" style="display: flex; flex-direction: column; gap: 10px;">
+                <p>Loading messages...</p>
+            </div>
+        </div>
+    `;
+    loadShoutboxMessages();
+}
+
+async function loadShoutboxMessages() {
+    const container = document.getElementById('shoutbox-messages');
+    if (!container) return;
+
+    const { data, error } = await myDatabase.from('global_chat')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50); // Keep it fast, last 50 messages
+
+    if (error) { container.innerHTML = `<p>Error loading chat: ${error.message}</p>`; return; }
+    if (data.length === 0) { container.innerHTML = `<p style="text-align: center; color: #666; font-style: italic;">The campfire is quiet. Be the first to speak!</p>`; return; }
+
+    let html = '';
+    data.forEach(msg => {
+        const isAdminPost = msg.user_name.includes('Anton') || msg.user_name.includes('Jenny') || msg.user_name.includes('👑');
+        const nameStyle = isAdminPost ? 'color: #d9534f; font-weight: 900;' : 'color: #333; font-weight: bold;';
+        const timeStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        // The Flag button (only for members)
+        let reportBtn = currentUser ? `<span style="cursor:pointer; font-size: 0.8rem; opacity: 0.5;" onclick="reportShoutbox('${msg.id}', '${msg.message.replace(/'/g, "\\'")}')" title="Report Message">🚩</span>` : '';
+
+        html += `
+            <div style="background: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 4px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; align-items: center;">
+                    <div>
+                        <span style="${nameStyle}">${msg.user_name}</span>
+                        <span style="font-size: 0.75rem; color: #888; margin-left: 8px;">${timeStr}</span>
+                    </div>
+                    ${reportBtn}
+                </div>
+                <div style="font-size: 0.95rem; line-height: 1.4; word-wrap: break-word;">${msg.message}</div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+async function postShoutboxMessage() {
+    if (!currentUser) return openAuthModal();
+    const input = document.getElementById('shoutbox-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.disabled = true;
+    
+    // Set the name that will appear in chat
+    let displayName = currentUser.email.split('@')[0];
+    if (isAdmin) displayName = "Anton & Jenny 👑";
+
+    const { error } = await myDatabase.from('global_chat').insert([{
+        user_id: currentUser.id,
+        user_name: displayName,
+        message: text
+    }]);
+
+    input.disabled = false;
+    if (error) alert("Error posting: " + error.message);
+    else {
+        input.value = '';
+        loadShoutboxMessages();
+    }
+}
+
+async function reportShoutbox(id, text) {
+    const reason = prompt("Why are you reporting this message?");
+    if (!reason) return;
+    const reporter = currentUser ? currentUser.email : 'Guest';
+    
+    const { error } = await myDatabase.from('reports').insert([{
+        item_type: 'chat',
+        item_id: id,
+        reported_by: currentUser.id
+    }]);
+    
+    // Also send it to the inbox so you see it right away
+    await myDatabase.from('messages').insert([{ 
+        name: "🚩 REPORTED CHAT", 
+        email: reporter, 
+        recipient_email: 'admin',
+        message: "REASON: " + reason + "\n\nMESSAGE:\n" + text,
+        is_read: false
+    }]);
+
+    if (error) alert("Error: " + error.message);
+    else alert("Message reported. Thank you.");
+}
+
+// ==========================================
+//        PUBLIC BROADCAST RECEIVER
+// ==========================================
+
+function renderPublicBroadcasts() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 20px; border-width: 3px; border-color: #8b4513;">
+            <h1 style="margin: 0 0 10px 0; font-size: 2.2rem; font-family: 'Georgia', serif; color: #5c3a21;">📣 Community Updates</h1>
+            <p style="margin: 0; font-size: 1.1rem; color: #333; line-height: 1.5;">The latest news, announcements, and updates straight from Anton & Jenny.</p>
+        </div>
+        <div id="public-broadcast-list" style="width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 15px;">
+            <p>Loading updates...</p>
+        </div>
+    `;
+    
+    // Hide the red badge on the left menu when they view the page
+    const badge = document.getElementById('new-broadcast-badge');
+    if (badge) badge.style.display = 'none';
+    
+    // Save the time they looked at this so we know they are caught up
+    localStorage.setItem('last_broadcast_view', Date.now().toString());
+
+    loadPublicBroadcasts();
+}
+
+async function loadPublicBroadcasts() {
+    const container = document.getElementById('public-broadcast-list');
+    if (!container) return;
+
+    const { data, error } = await myDatabase.from('community_updates')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) { container.innerHTML = `<p>Error loading updates: ${error.message}</p>`; return; }
+    if (data.length === 0) { container.innerHTML = `<div class="window-box"><p>No recent announcements.</p></div>`; return; }
+
+    let html = '';
+    data.forEach(update => {
+        const dateStr = new Date(update.created_at).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        html += `
+            <div class="window-box" style="background: #fff; margin-bottom: 0; border-left: 5px solid #007bff; padding: 20px;">
+                <p style="font-size: 0.85rem; color: #666; margin: 0 0 10px 0; font-weight: bold; text-transform: uppercase;">${dateStr}</p>
+                <p style="margin: 0 0 15px 0; font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap;">${update.message}</p>
+                <p style="margin: 0; font-weight: bold; color: #007bff; font-family: 'Georgia', serif; font-size: 1.1rem;">${update.author_signature}</p>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+async function checkNewBroadcasts() {
+    const { data, error } = await myDatabase.from('community_updates')
+        .select('created_at')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+    if (!error && data.length > 0) {
+        const latestDbTime = new Date(data[0].created_at).getTime();
+        const lastViewTime = parseInt(localStorage.getItem('last_broadcast_view') || '0');
+
+        if (latestDbTime > lastViewTime) {
+            const badge = document.getElementById('new-broadcast-badge');
+            if (badge) badge.style.display = 'block';
+        }
+    }
 }
