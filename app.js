@@ -416,6 +416,7 @@ function showPage(page) {
                 <button id="tab-photo" onclick="switchAdminTab('photo')" style="margin:0;">📸 Photo Moderation</button>
                 <button id="tab-library" onclick="switchAdminTab('library')" style="margin:0;">📚 Manage Library</button>
                 <button id="tab-settings" onclick="switchAdminTab('settings')" style="margin:0;">⚙️ Site Settings</button>
+                <button id="tab-family" onclick="switchAdminTab('family')" style="margin:0;">🏡 Family Hub</button>
             </div>
             
             <div id="admin-content-area" style="width: 100%; max-width: 1000px;"></div>
@@ -1505,7 +1506,7 @@ async function saveRecipe() {
 }
 
 function switchAdminTab(tab) {
-    ['inbox', 'review', 'photo', 'library', 'settings'].forEach(t => {
+    ['inbox', 'review', 'photo', 'library', 'settings', 'family'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
     });
@@ -1572,6 +1573,40 @@ function switchAdminTab(tab) {
                     <button style="background: #d4edda;" onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
                 </div>
             </div>`;
+    } else if (tab === 'family') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">🏡 The Family Hub</h2>
+                <p style="color: #555;">Add a new family member or pet to the Sanctuary page.</p>
+
+                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 500px; background: #fdf6e3; padding: 20px; border: 2px solid var(--border); margin-bottom: 30px;">
+                    <input type="text" id="family-name" placeholder="Name (e.g., Buster, Anton)" required style="margin-bottom: 0;">
+                    
+                    <select id="family-type" style="margin-bottom: 0;">
+                        <option value="pet">Pet</option>
+                        <option value="human">Human</option>
+                    </select>
+                    
+                    <textarea id="family-story" placeholder="Write their story here..." rows="4" required style="margin-bottom: 0;"></textarea>
+                    
+                    <label style="font-weight: bold; font-size: 0.9rem;">Upload Photo:</label>
+                    <input type="file" id="family-image" accept="image/*" required style="margin-bottom: 0;">
+                    
+                    <label style="font-weight: bold; font-size: 0.9rem;">Display Order (1 shows up first):</label>
+                    <input type="number" id="family-order" value="1" min="1" style="margin-bottom: 0;">
+                    
+                    <button onclick="saveFamilyMember()" style="padding: 10px; background-color: #d4edda; border: 2px solid var(--border); font-weight: bold;">
+                        Add to Family Hub
+                    </button>
+                </div>
+
+                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px;">Manage Current Family</h3>
+                <div id="admin-family-list" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+                    <p><i>Loading family members...</i></p>
+                </div>
+            </div>
+        `;
+        if (typeof loadAdminFamilyList === 'function') loadAdminFamilyList();
     }
 }
 
