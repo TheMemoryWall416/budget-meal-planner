@@ -41,13 +41,14 @@
         }
 
         /* [ATOMIC]: CSS Descendant Selector (nav a). Applies strict rendering rules only to anchor tags physically nested inside the <nav> node. */
-        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 8px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; }
+        nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 8px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; text-align: center; }
         nav a:hover { filter: brightness(90%); }
         
         /* [ATOMIC]: display: flex combined with align-items: center and justify-content: center forces absolute mathematical dead-centering of elements inside the placeholder box. */
         .ad-placeholder { display: flex; align-items: center; justify-content: center; height: 250px; background: #f0f0f0; border: 2px dashed #999; color: #666; font-weight: bold; text-align: center; padding: 10px; }
         
-        button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; }
+        /* [CLEANUP]: Added text-align: center; to force center alignment on all buttons globally */
+        button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; text-align: center; }
         
         /* [ATOMIC]: transform: translate(-1px, -1px) executes a 2D matrix geometry shift, moving the button 1 pixel up and left.
            box-shadow increases to 2px, creating the physical illusion that the button is "popping up" towards the user. */
@@ -105,19 +106,15 @@
         <a href="javascript:void(0)" id="nav-auth-btn" onclick="openAuthModal()" style="background: var(--nav-color); margin-top: 15px;">🚪 Join / Sign In</a>
     </div>
 
-    <!-- ========================================== -->
-    <!--          THE SANCTUARY MENU                -->
-    <!-- ========================================== -->
-    <div class="window-box" style="padding: 15px; border-color: #8b4513; background: #fdf6e3; box-shadow: inset 0 0 10px rgba(139, 69, 19, 0.05);">
-        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; text-align: center; border-bottom: 2px dashed rgba(139, 69, 19, 0.3); padding-bottom: 10px; color: #5c3a21; font-family: 'Georgia', 'Times New Roman', serif;">The Sanctuary</h2>
+    <div class="window-box" style="padding: 15px;">
+        <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 10px;">The Sanctuary</h2>
         
-        <a href="javascript:void(0)" onclick="showPage('family')" style="background: #fff; border-color: #8b4513;">🏡 Meet the Family</a>
-        <a href="javascript:void(0)" onclick="showPage('shoutbox')" style="background: #fff; border-color: #8b4513;">🔥 The Campfire (Chat)</a>
-        <a href="javascript:void(0)" onclick="showPage('broadcasts')" style="background: #fff; border-color: #8b4513; position: relative;">
+        <a href="javascript:void(0)" onclick="showPage('shoutbox')">🔥 The Campfire (Chat)</a>
+        <a href="javascript:void(0)" onclick="showPage('broadcasts')" style="position: relative;">
             📣 Community Updates
             <span id="new-broadcast-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: #dc3545; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; border: 1px solid #000;">NEW</span>
         </a>
-        <a href="javascript:void(0)" onclick="document.getElementById('safety-modal').style.display='flex'" style="background: #fff3cd; border-color: #ffeeba; margin-top: 15px; margin-bottom: 0;">🛡️ Moderation & Safety</a>
+        <a href="javascript:void(0)" onclick="document.getElementById('safety-modal').style.display='flex'" style="margin-top: 15px; margin-bottom: 0;">🛡️ Moderation & Safety</a>
     </div>
     
     <div class="window-box" style="padding: 15px; text-align: center;">
@@ -140,9 +137,6 @@
     </div>
 </aside>
 
-<!-- ========================================== -->
-<!--       COMMUNITY CONSTITUTION MODAL         -->
-<!-- ========================================== -->
 <div id="safety-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center;">
     <div class="window-box" style="background: #fdf6e3; padding: 40px; text-align: left; border-width: 3px; border-color: #8b4513; max-width: 500px; width: 95%; max-height: 90vh; overflow-y: auto;">
         <h2 style="margin-top: 0; font-size: 1.6rem; color: #8b4513; font-family: 'Georgia', 'Times New Roman', serif; border-bottom: 2px dashed rgba(139, 69, 19, 0.3); padding-bottom: 10px;">🛡️ Community Constitution</h2>
