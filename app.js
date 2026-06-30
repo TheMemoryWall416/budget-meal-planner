@@ -1595,7 +1595,7 @@ function switchAdminTab(tab) {
                     <label style="font-weight: bold; font-size: 0.9rem;">Display Order (1 shows up first):</label>
                     <input type="number" id="family-order" value="1" min="1" style="margin-bottom: 0;">
                     
-                    <button onclick="saveFamilyMember()" style="padding: 10px; background-color: #d4edda; border: 2px solid var(--border); font-weight: bold;">
+                    <button onclick="saveFamilyMember(event)" style="padding: 10px; background-color: #d4edda; border: 2px solid var(--border); font-weight: bold; cursor: pointer;">
                         Add to Family Hub
                     </button>
                 </div>
@@ -2278,4 +2278,117 @@ async function removeFromCookbook(recipeId, event) {
         
     if (error) alert("Error: " + error.message);
     else loadCookbook(); 
+}
+
+// ==========================================
+//        FAMILY HUB LOGIC (ADMIN)
+// ==========================================
+
+async function saveFamilyMember(event) {
+    const name = document.getElementById('family-name').value.trim();
+    const type = document.getElementById('family-type').value;
+    const story = document.getElementById('family-story').value.trim();
+    const orderIndex = document.getElementById('family-order').value;
+    const fileInput = document.getElementById('family-image');
+    const file = fileInput.files[0];
+
+    if (!name || !story || !file) {
+        return alert("Please fill in the name, story, and select a photo!");
+    }
+
+    const btn = event ? event.target : document.querySelector('button[onclick^="saveFamilyMember"]');
+    const originalText = btn ? btn.innerText : 'Add to Family Hub';
+    if (btn) {
+        btn.innerText = "Uploading... please wait";
+        btn.disabled = true;
+    }
+
+    // 1. Upload the Image (Using your existing recipe_images bucket for simplicity)
+    const fileName = `family-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    const { error: uploadError } = await myDatabase.storage.from('recipe_images').upload(fileName, file);
+    
+    if (uploadError) {
+        if (btn) { btn.innerText = originalText; btn.disabled = false; }
+        return alert("Photo upload failed: " + uploadError.message);
+    }
+
+    const imageUrl = myDatabase.storage.from('recipe_images').getPublicUrl(fileName).data.publicUrl;
+
+    // 2. Save to Database
+    const { error: dbError } = await myDatabase.from('family_members').insert([{
+        name: name,
+        type: type,
+        story: story,
+        image_url: imageUrl,
+        order_index: parseInt(orderIndex) || 1
+    }]);
+
+    if (btn) { btn.innerText = originalText; btn.disabled = false; }
+
+    if (dbError) {
+        alert("Database error: " + dbError.message);
+    } else {
+        alert("Successfully added to the Family Hub!");
+        // Clear the form
+        document.getElementById('family-name').value = '';
+        document.getElementById('family-story').value = '';
+        fileInput.value = '';
+        // Reload the list
+        loadAdminFamilyList();
+    }
+}
+
+async function loadAdminFamilyList() {
+    const listDiv = document.getElementById('admin-family-list');
+    if (!listDiv) return;
+
+    listDiv.innerHTML = "<p>Loading family members...</p>";
+
+    // Fetch from Supabase, ordered by the number you typed in
+    const { data, error } = await myDatabase.from('family_members')
+        .select('*')
+        .order('order_index', { ascending: true });
+
+    if (error) {
+        listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+        return;
+    }
+
+    if (data.length === 0) {
+        listDiv.innerHTML = "<p>No family members added yet.</p>";
+        return;
+    }
+
+    let html = "";
+    data.forEach(member => {
+        html += `
+            <div style="display: flex; gap: 15px; border: 1px solid var(--border); padding: 15px; background: #fff; align-items: center;">
+                <img src="${member.image_url}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%;">
+                <div style="flex: 1;">
+                    <h4 style="margin: 0 0 5px 0; font-size: 1.1rem;">${member.name} <span style="font-size: 0.8rem; color: #666; font-weight: normal;">(${member.type.toUpperCase()}) - Order: ${member.order_index}</span></h4>
+                    <p style="margin: 0; font-size: 0.9rem; color: #555; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${member.story}</p>
+                </div>
+                <button style="background: #f8d7da; margin: 0; height: fit-content; cursor: pointer;" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
+            </div>
+        `;
+    });
+
+    listDiv.innerHTML = html;
+}
+
+async function deleteFamilyMember(id, imageUrl) {
+    if (!confirm("Are you sure you want to remove this family member?")) return;
+
+    // Delete the image from storage to save space
+    const fileName = imageUrl.split('/').pop();
+    await myDatabase.storage.from('recipe_images').remove([fileName]);
+
+    // Delete from database
+    const { error } = await myDatabase.from('family_members').delete().eq('id', id);
+
+    if (error) {
+        alert("Error deleting: " + error.message);
+    } else {
+        loadAdminFamilyList(); // Refresh the visual list
+    }
 }
