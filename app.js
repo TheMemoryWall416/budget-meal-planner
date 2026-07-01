@@ -2454,21 +2454,33 @@ async function moveFamilyMember(id, direction) {
     const listDiv = document.getElementById('admin-family-list');
     listDiv.innerHTML = "<p>Updating order...</p>";
 
+    // 1. Fetch the current live list
     const { data, error } = await myDatabase.from('family_members').select('id, order_index').order('order_index', { ascending: true });
-    if (error || !data) return alert("Error loading order.");
+    if (error || !data) {
+        alert("Error loading order.");
+        return loadAdminFamilyList();
+    }
 
+    // 2. Find the exact item you clicked
     const currentIndex = data.findIndex(m => m.id == id);
-    if (currentIndex === -1) return;
+    if (currentIndex === -1) return loadAdminFamilyList();
 
+    // 3. Figure out who they are swapping with
     let swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (swapIndex < 0 || swapIndex >= data.length) return; 
+    if (swapIndex < 0 || swapIndex >= data.length) return loadAdminFamilyList();
 
-    const currentItem = data[currentIndex];
-    const swapItem = data[swapIndex];
+    // 4. Swap their positions in our local JavaScript array FIRST
+    const temp = data[currentIndex];
+    data[currentIndex] = data[swapIndex];
+    data[swapIndex] = temp;
 
-    await myDatabase.from('family_members').update({ order_index: swapItem.order_index }).eq('id', currentItem.id);
-    await myDatabase.from('family_members').update({ order_index: currentItem.order_index }).eq('id', swapItem.id);
+    // 5. The Magic Fix: Loop through the new order and force a clean 1, 2, 3 sequence into the database
+    // This wipes out any duplicate numbers that were breaking the sorting!
+    for (let i = 0; i < data.length; i++) {
+        await myDatabase.from('family_members').update({ order_index: i + 1 }).eq('id', data[i].id);
+    }
 
+    // 6. Reload the shiny new list
     loadAdminFamilyList(); 
 }
 
