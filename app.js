@@ -388,9 +388,6 @@ function showPage(page) {
         `;
         loadMemberMessages(); 
 
-    // ========================================================
-    // [STEP 9 & 10]: THE SANCTUARY GATES & VIEWS
-    // ========================================================
     } else if (page === 'family') {
         if (!currentUser) {
             alert("🏡 The Family Hub is a private sanctuary for our registered members. Please log in or join us for free to enter!");
@@ -2571,9 +2568,9 @@ async function renderFamilyPage() {
     if (error) { view.innerHTML = `<div class="window-box"><p>Error: ${error.message}</p></div>`; return; }
 
     let html = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 20px; border-width: 3px; border-color: #8b4513;">
-            <h1 style="margin: 0 0 10px 0; font-size: 2.2rem; font-family: 'Georgia', serif; color: #5c3a21;">🏡 Meet the Family</h1>
-            <p style="margin: 0; font-size: 1.1rem; color: #333; line-height: 1.5;">Welcome to our personal sanctuary. Get to know the humans and pets behind the platform!</p>
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">🏡 MEET THE FAMILY</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Welcome to our personal sanctuary. Get to know the humans and pets behind the platform!</p>
         </div>
     `;
 
@@ -2629,9 +2626,9 @@ function renderShoutbox() {
     }
 
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 20px; border-width: 3px; border-color: #000000;">
-            <h1 style="margin: 0 0 10px 0; font-size: 2.2rem; font-family: 'Georgia', serif; color: #000000;">🔥 The Campfire</h1>
-            <p style="margin: 0; font-size: 1.1rem; color: #000000; line-height: 1.5;">Pull up a log. This is our global community shoutbox. Say hi, share what you're cooking, and connect with everyday cooks from all over the world!</p>
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">🔥 THE CAMPFIRE</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Pull up a log. This is our global community shoutbox. Say hi, share what you're cooking, and connect with everyday cooks from all over the world!</p>
         </div>
         <div style="width: 100%; max-width: 800px; box-sizing: border-box;">
             ${inputArea}
@@ -2737,9 +2734,9 @@ async function reportShoutbox(id, text) {
 function renderPublicBroadcasts() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 20px; border-width: 3px; border-color: #8b4513;">
-            <h1 style="margin: 0 0 10px 0; font-size: 2.2rem; font-family: 'Georgia', serif; color: #5c3a21;">📣 Community Updates</h1>
-            <p style="margin: 0; font-size: 1.1rem; color: #333; line-height: 1.5;">The latest news, announcements, and updates straight from Anton & Jenny.</p>
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">📣 COMMUNITY UPDATES</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">The latest news, announcements, and updates straight from Anton & Jenny.</p>
         </div>
         <div id="public-broadcast-list" style="width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 15px;">
             <p>Loading updates...</p>
