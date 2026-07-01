@@ -2575,21 +2575,19 @@ async function renderFamilyPage() {
     if (data.length === 0) {
         html += `<div class="window-box" style="width: 100%; max-width: 800px;"><p>The house is quiet... Anton & Jenny haven't uploaded their photos yet!</p></div>`;
     } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 800px;">`;
+        html += `<div style="display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px;">`;
         data.forEach(member => {
             const isPet = member.type === 'pet';
             const badge = isPet ? '🐾 Family Pet' : '👤 The Team';
             
-            // [FIXED]: Removed max-width on image container and border-right on image for perfect mobile stacking
+            // [FIXED]: Compact, horizontal layout with a circular portrait. Locked flex-wrap to prevent dropping.
             html += `
-                <div class="window-box" style="padding: 0; overflow: hidden; display: flex; flex-wrap: wrap; background: #fff; margin-bottom: 0; border-width: 2px;">
-                    <div style="flex: 1; min-width: 300px;">
-                        <img src="${member.image_url}" style="width: 100%; height: 100%; min-height: 300px; object-fit: cover; display: block;">
-                    </div>
-                    <div style="flex: 2; min-width: 300px; padding: 30px; display: flex; flex-direction: column; justify-content: center; background: #fdf6e3;">
-                        <span style="display: inline-block; padding: 5px 12px; background: #8b4513; color: white; font-size: 0.8rem; font-weight: bold; border-radius: 15px; margin-bottom: 15px; width: fit-content; box-shadow: 2px 2px 0px rgba(0,0,0,0.2);">${badge}</span>
-                        <h2 style="margin: 0 0 15px 0; font-size: 2.2rem; color: #2b1a10; font-family: 'Georgia', serif;">${member.name}</h2>
-                        <p style="margin: 0; font-size: 1.05rem; line-height: 1.7; color: #444; white-space: pre-wrap;">${member.story}</p>
+                <div class="window-box" style="padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: nowrap; background: #fff; margin-bottom: 0;">
+                    <img src="${member.image_url}" style="width: 100px; height: 100px; min-width: 100px; border-radius: 50%; border: 3px solid var(--border); object-fit: cover; flex-shrink: 0; background: #fdf6e3;">
+                    <div style="flex: 1; min-width: 0;">
+                        <span style="display: inline-block; padding: 4px 10px; background: #8b4513; color: white; font-size: 0.75rem; font-weight: bold; border-radius: 12px; margin-bottom: 8px; box-shadow: 1px 1px 0px rgba(0,0,0,0.2);">${badge}</span>
+                        <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #2b1a10; font-family: 'Georgia', serif; line-height: 1.2;">${member.name}</h2>
+                        <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #444; white-space: pre-wrap; word-wrap: break-word;">${member.story}</p>
                     </div>
                 </div>
             `;
