@@ -13,6 +13,37 @@ let currentUser = null;
 let isLoginMode = false; 
 let isAdmin = false;
 
+// ==========================================
+//        THE SWR CACHE ENGINE (NEW TOOL)
+// ==========================================
+async function fetchWithSWR(cacheKey, dbQueryFunction, renderFunction) {
+    const cachedDataString = localStorage.getItem(cacheKey);
+    let hasRenderedCache = false;
+
+    if (cachedDataString) {
+        try {
+            const cachedData = JSON.parse(cachedDataString);
+            renderFunction(cachedData);
+            hasRenderedCache = true;
+        } catch (e) {
+            console.error("Cache parsing error:", e);
+        }
+    }
+
+    try {
+        const freshData = await dbQueryFunction();
+        if (freshData) {
+            const freshDataString = JSON.stringify(freshData);
+            if (freshDataString !== cachedDataString || !hasRenderedCache) {
+                localStorage.setItem(cacheKey, freshDataString);
+                renderFunction(freshData);
+            }
+        }
+    } catch (e) {
+        console.error("Fresh fetch error:", e);
+    }
+}
+
 // [FIXED]: Unified Interceptor Function - Defined only once.
 function triggerPhotoUpload(recipeId) {
     if (!currentUser) { 
@@ -259,7 +290,7 @@ window.onload = function() {
     initAuth();
     handleVisitorSession();
     fetchBudgetTips(); 
-    checkNewBroadcasts(); // Lights up the "NEW" badge if there are fresh announcements
+    checkNewBroadcasts(); 
     setInterval(updateHack, 30000); 
 
     const savedCountry = localStorage.getItem('saved_country');
@@ -558,6 +589,7 @@ function renderCreatorHub() {
     `;
 }
 
+// [UPGRADED]: Uses SWR Caching
 async function loadMemberMessages() {
     if (!currentUser) return; 
     const container = document.getElementById('member-messages');
@@ -570,32 +602,46 @@ async function loadMemberMessages() {
     const authBtn = document.getElementById('nav-auth-btn');
     if (authBtn) authBtn.innerHTML = '👤 My Profile';
 
-    const { data, error } = await myDatabase.from('messages')
-        .select('*')
-        .or(`email.eq.${currentUser.email},recipient_email.eq.${currentUser.email}`)
-        .order('created_at', { ascending: true }); 
+    const cacheKey = `cache_member_messages_${currentUser.email}`;
 
-    if (error) { container.innerHTML = 'Error loading messages.'; return; }
-    if (data.length === 0) { container.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No messages yet. Send us a message below!</p>'; return; }
+    const renderList = (data) => {
+        if (data.length === 0) { container.innerHTML = '<p style="color: #666; text-align: center; margin-top: 20px;">No messages yet. Send us a message below!</p>'; return; }
 
-    let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
-    
-    data.forEach(msg => {
-        const isMine = msg.email === currentUser.email;
-        const bg = isMine ? '#ffffff' : 'var(--nav-color)';
-        const align = isMine ? 'align-self: flex-end; text-align: right;' : 'align-self: flex-start; text-align: left;';
-        const sender = isMine ? 'You' : 'Anton & Jenny';
-        
-        html += `
-            <div style="background: ${bg}; border: 2px solid var(--border); padding: 10px; border-radius: 4px; max-width: 80%; ${align}">
-                <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; color: #333;">${sender} - ${new Date(msg.created_at).toLocaleString()}</div>
-                <div style="font-size: 0.95rem; white-space: pre-wrap;">${msg.message}</div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-    container.scrollTop = container.scrollHeight; 
+        let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+        data.forEach(msg => {
+            const isMine = msg.email === currentUser.email;
+            const bg = isMine ? '#ffffff' : 'var(--nav-color)';
+            const align = isMine ? 'align-self: flex-end; text-align: right;' : 'align-self: flex-start; text-align: left;';
+            const sender = isMine ? 'You' : 'Anton & Jenny';
+            
+            html += `
+                <div style="background: ${bg}; border: 2px solid var(--border); padding: 10px; border-radius: 4px; max-width: 80%; ${align}">
+                    <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; color: #333;">${sender} - ${new Date(msg.created_at).toLocaleString()}</div>
+                    <div style="font-size: 0.95rem; white-space: pre-wrap;">${msg.message}</div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight; 
+    };
+
+    if (!localStorage.getItem(cacheKey)) {
+        container.innerHTML = 'Loading messages...';
+    }
+
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            const { data, error } = await myDatabase.from('messages')
+                .select('*')
+                .or(`email.eq.${currentUser.email},recipient_email.eq.${currentUser.email}`)
+                .order('created_at', { ascending: true }); 
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
 }
 
 async function sendMessageToAdmin() {
@@ -804,48 +850,61 @@ async function saveMealPlan() {
     else { alert("Meal Plan posted successfully!"); loadSubcategory('7-Day Meal Plans', 'Specialized Plans'); }
 }
 
+// [UPGRADED]: Uses SWR Caching
 async function loadSpecials() {
     const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box"><h1>Loading Local Specials...</h1></div>`;
-
     if (!selectedCountry) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>Please select a country first.</p></div>`; return; }
 
-    const now = new Date().toISOString();
-    const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
+    const cacheKey = `cache_specials_${selectedCountry}`;
 
-    if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>${error.message}</p></div>`; return; }
+    const renderList = (data) => {
+        let html = `
+            <button onclick="showPage('find-recipes')" style="margin-bottom: 15px;">← Back</button>
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
+                <h1 style="margin: 0; font-size: 1.8rem;">Local Specials in ${selectedCountry}</h1>
+            </div>
+        `;
+        
+        if (data.length === 0) {
+            html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No active specials posted for ${selectedCountry}. Be the first to share a deal!</p></div>`;
+        } else {
+            html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
+            data.forEach(meal => {
+                const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
+                html += `
+                <div class="window-box" style="margin-bottom: 0;">
+                    <div style="margin-bottom: 8px;">
+                        <span style="font-size: 0.75rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">EXPIRES: ${expiryStr}</span>
+                    </div>
+                    <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
+                    <div style="font-size: 1.2rem; margin-bottom: 10px; font-weight: bold;">
+                        ${currencyMap[selectedCountry] || ''}${meal.cost}
+                    </div>
+                    <div style="font-size: 1rem; line-height: 1.5; white-space: pre-wrap;">${meal.recipe}</div>
+                    <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;">
+                        <button onclick="reportRecipe('${meal.title.replace(/'/g, "\\'")}', ${meal.id})">⚠️ Report Fake/Expired Deal</button>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+        view.innerHTML = html;
+    };
 
-    let html = `
-        <button onclick="showPage('find-recipes')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 1.8rem;">Local Specials in ${selectedCountry}</h1>
-        </div>
-    `;
-    
-    if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No active specials posted for ${selectedCountry}. Be the first to share a deal!</p></div>`;
-    } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
-        data.forEach(meal => {
-            const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
-            html += `
-            <div class="window-box" style="margin-bottom: 0;">
-                <div style="margin-bottom: 8px;">
-                    <span style="font-size: 0.75rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">EXPIRES: ${expiryStr}</span>
-                </div>
-                <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
-                <div style="font-size: 1.2rem; margin-bottom: 10px; font-weight: bold;">
-                    ${currencyMap[selectedCountry] || ''}${meal.cost}
-                </div>
-                <div style="font-size: 1rem; line-height: 1.5; white-space: pre-wrap;">${meal.recipe}</div>
-                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;">
-                    <button onclick="reportRecipe('${meal.title.replace(/'/g, "\\'")}', ${meal.id})">⚠️ Report Fake/Expired Deal</button>
-                </div>
-            </div>`;
-        });
-        html += `</div>`;
+    if (!localStorage.getItem(cacheKey)) {
+        view.innerHTML = `<div class="window-box"><h1>Loading Local Specials...</h1></div>`;
     }
-    view.innerHTML = html;
+
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            const now = new Date().toISOString();
+            const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
 }
 
 function renderAddSpecialForm() {
@@ -912,57 +971,70 @@ function toggleMealType() {
     }
 }
 
+// [UPGRADED]: Uses SWR Caching
 async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box"><h1>Loading Budget Meals...</h1></div>`;
+    const cacheKey = `cache_budget_${selectedCountry}_${filter}`;
 
-    let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
-    if (filter !== 'all') { query = query.eq('meal_type', filter); }
-
-    const { data, error } = await query;
-    if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>${error.message}</p></div>`; return; }
-
-    let html = `
-        <button onclick="showPage('find-recipes')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 1.8rem;">Budget Meals in ${selectedCountry}</h1>
-        </div>
-    `;
-    
-    html += `
-        <div class="window-box" style="margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
-            <button onclick="loadBudgetMeals('all')">All</button>
-            <button onclick="loadBudgetMeals('takeaway')">Takeaway Only</button>
-            <button onclick="loadBudgetMeals('home')">Home-Cooked Only</button>
-        </div>
-    `;
-    
-    if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No budget meals posted for ${selectedCountry} under this filter.</p></div>`;
-    } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
+    const renderList = (data) => {
+        let html = `
+            <button onclick="showPage('find-recipes')" style="margin-bottom: 15px;">← Back</button>
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
+                <h1 style="margin: 0; font-size: 1.8rem;">Budget Meals in ${selectedCountry}</h1>
+            </div>
+        `;
         
-        data.sort((a, b) => (a.cost / a.servings) - (b.cost / b.servings)); 
+        html += `
+            <div class="window-box" style="margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box;">
+                <button onclick="loadBudgetMeals('all')">All</button>
+                <button onclick="loadBudgetMeals('takeaway')">Takeaway Only</button>
+                <button onclick="loadBudgetMeals('home')">Home-Cooked Only</button>
+            </div>
+        `;
         
-        data.forEach(meal => {
-            const costPerPerson = (meal.cost / meal.servings).toFixed(2);
-            const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
+        if (data.length === 0) {
+            html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No budget meals posted for ${selectedCountry} under this filter.</p></div>`;
+        } else {
+            html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
             
-            html += `
-            <div class="window-box" onclick="viewBudgetMeal(${meal.id})" style="cursor: pointer; margin-bottom: 0;">
-                <div style="margin-bottom: 8px;">
-                    <span style="font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">${badgeText}</span>
-                </div>
-                <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
-                <div style="font-size: 1.1rem;">
-                    <strong>${currencyMap[selectedCountry]}${costPerPerson}</strong> per person 
-                    <span style="font-size: 0.9rem; color: #555; display: block; margin-top: 5px;">(Total: ${currencyMap[selectedCountry]}${meal.cost} for ${meal.servings} servings)</span>
-                </div>
-            </div>`;
-        });
-        html += `</div>`;
+            let sortedData = [...data].sort((a, b) => (a.cost / a.servings) - (b.cost / b.servings)); 
+            
+            sortedData.forEach(meal => {
+                const costPerPerson = (meal.cost / meal.servings).toFixed(2);
+                const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
+                
+                html += `
+                <div class="window-box" onclick="viewBudgetMeal(${meal.id})" style="cursor: pointer; margin-bottom: 0;">
+                    <div style="margin-bottom: 8px;">
+                        <span style="font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">${badgeText}</span>
+                    </div>
+                    <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
+                    <div style="font-size: 1.1rem;">
+                        <strong>${currencyMap[selectedCountry]}${costPerPerson}</strong> per person 
+                        <span style="font-size: 0.9rem; color: #555; display: block; margin-top: 5px;">(Total: ${currencyMap[selectedCountry]}${meal.cost} for ${meal.servings} servings)</span>
+                    </div>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+        view.innerHTML = html;
+    };
+
+    if (!localStorage.getItem(cacheKey)) {
+        view.innerHTML = `<div class="window-box"><h1>Loading Budget Meals...</h1></div>`;
     }
-    view.innerHTML = html;
+
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            let query = myDatabase.from('meals').select('*').eq('category', 'budget').eq('country', selectedCountry);
+            if (filter !== 'all') { query = query.eq('meal_type', filter); }
+            const { data, error } = await query;
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
 }
 
 async function viewBudgetMeal(id) {
@@ -1030,7 +1102,6 @@ async function viewBudgetMeal(id) {
         </div>
     `;
 
-    // THE VISUAL ENGINE INJECTION: Display live photo, pending banner, or the "Add Photo" placeholder.
     let imageHTML = '';
     if (data.image_url) {
         imageHTML = `<img src="${data.image_url}" style="width: 100%; height: 350px; object-fit: cover; border: 2px solid var(--border); margin-bottom: 20px; display: block;">`;
@@ -1116,43 +1187,58 @@ async function reportRecipe(title, id) {
     else alert("Report submitted successfully. Thank you!");
 }
 
+// [UPGRADED]: Uses SWR Caching
 async function loadComments(recipeId) {
     const list = document.getElementById('recipe-comments-list');
     if (!list) return;
 
-    const { data, error } = await myDatabase.from('comments')
-        .select('*')
-        .eq('recipe_id', recipeId)
-        .order('likes', { ascending: false })
-        .order('created_at', { ascending: true });
+    const cacheKey = `cache_comments_${recipeId}`;
 
-    if (error) { list.innerHTML = `<p>Error loading comments.</p>`; return; }
+    const renderList = (data) => {
+        if (data.length === 0) {
+            list.innerHTML = `<p style="color: #666; font-style: italic; text-align: center; margin-top: 10px;">Be the first to share your thoughts or variations on this recipe!</p>`;
+            return;
+        }
 
-    if (data.length === 0) {
-        list.innerHTML = `<p style="color: #666; font-style: italic; text-align: center; margin-top: 10px;">Be the first to share your thoughts or variations on this recipe!</p>`;
-        return;
+        let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
+        data.forEach(comment => {
+            const dateStr = new Date(comment.created_at).toLocaleDateString();
+            const safeText = comment.comment_text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            html += `
+                <div style="background: #fff; border: 1px solid var(--border); padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-weight: bold; font-size: 0.9rem;">${comment.email.split('@')[0]}</span>
+                        <span style="font-size: 0.8rem; color: #666;">${dateStr}</span>
+                    </div>
+                    <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 0.95rem;">${comment.comment_text}</p>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="likeComment(${comment.id}, this)" style="padding: 4px 8px; font-size: 0.8rem; background: #f9f9f9;">👍 Like (<span class="comment-like-count">${comment.likes || 0}</span>)</button>
+                        <button onclick="reportComment(${comment.id}, '${safeText}')" style="padding: 4px 8px; font-size: 0.8rem; background: #fff3cd;">⚠️ Report</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        list.innerHTML = html;
+    };
+
+    if (!localStorage.getItem(cacheKey)) {
+        list.innerHTML = `Loading comments...`;
     }
 
-    let html = '<div style="display: flex; flex-direction: column; gap: 15px;">';
-    data.forEach(comment => {
-        const dateStr = new Date(comment.created_at).toLocaleDateString();
-        const safeText = comment.comment_text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        html += `
-            <div style="background: #fff; border: 1px solid var(--border); padding: 15px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="font-weight: bold; font-size: 0.9rem;">${comment.email.split('@')[0]}</span>
-                    <span style="font-size: 0.8rem; color: #666;">${dateStr}</span>
-                </div>
-                <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 0.95rem;">${comment.comment_text}</p>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="likeComment(${comment.id}, this)" style="padding: 4px 8px; font-size: 0.8rem; background: #f9f9f9;">👍 Like (<span class="comment-like-count">${comment.likes || 0}</span>)</button>
-                    <button onclick="reportComment(${comment.id}, '${safeText}')" style="padding: 4px 8px; font-size: 0.8rem; background: #fff3cd;">⚠️ Report</button>
-                </div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    list.innerHTML = html;
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            const { data, error } = await myDatabase.from('comments')
+                .select('*')
+                .eq('recipe_id', recipeId)
+                .order('likes', { ascending: false })
+                .order('created_at', { ascending: true });
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
 }
 
 async function postComment(recipeId) {
@@ -1214,43 +1300,53 @@ async function reportComment(commentId, commentText) {
     else alert("Comment reported successfully. Thank you for keeping the community safe!");
 }
 
+// [UPGRADED]: Uses SWR Caching
 async function loadSubcategory(subcategory, parentCategory) {
     const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Loading ${subcategory}...</h1></div>`;
+    const cacheKey = `cache_category_${subcategory}`;
 
-    const { data, error } = await myDatabase.from('meals')
-        .select('id, title, category, parent_category, author, created_at')
-        .eq('category', subcategory)
-        .eq('parent_category', parentCategory)
-        .order('created_at', { ascending: false });
+    const renderList = (data) => {
+        let html = `
+            <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin-bottom: 15px;">← Back</button>
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
+                <h1 style="margin: 0; font-size: 1.8rem;">${subcategory}</h1>
+            </div>
+        `;
 
-    if (error) { 
-        view.innerHTML = `<button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin-bottom: 15px;">← Back</button><div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>${error.message}</p></div>`; 
-        return; 
+        if (data.length === 0) {
+            html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No recipes found in this category yet.</p><button onclick="showForm('${subcategory}', '${parentCategory}')" style="margin-top: 10px;">Be the first to share one!</button></div>`;
+        } else {
+            html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px; width: 100%;">`;
+            data.forEach(meal => {
+                const author = meal.author || "Home Cook";
+                const date = meal.created_at ? new Date(meal.created_at).toLocaleDateString() : "Unknown Date";
+                html += `<div class="window-box" onclick="viewRecipe(${meal.id})" style="cursor: pointer; margin-bottom: 0;">
+                            <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}</div>
+                            <div style="font-size: 0.85rem; color: #666;">By ${author} • ${date}</div>
+                         </div>`;
+            });
+            html += `</div>`;
+        }
+        view.innerHTML = html;
+    };
+
+    if (!localStorage.getItem(cacheKey)) {
+        view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Loading ${subcategory}...</h1></div>`;
     }
 
-    let html = `
-        <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 1.8rem;">${subcategory}</h1>
-        </div>
-    `;
-
-    if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;"><p>No recipes found in this category yet.</p><button onclick="showForm('${subcategory}', '${parentCategory}')" style="margin-top: 10px;">Be the first to share one!</button></div>`;
-    } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 10px; max-width: 600px; width: 100%;">`;
-        data.forEach(meal => {
-            const author = meal.author || "Home Cook";
-            const date = meal.created_at ? new Date(meal.created_at).toLocaleDateString() : "Unknown Date";
-            html += `<div class="window-box" onclick="viewRecipe(${meal.id})" style="cursor: pointer; margin-bottom: 0;">
-                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}</div>
-                        <div style="font-size: 0.85rem; color: #666;">By ${author} • ${date}</div>
-                     </div>`;
-        });
-        html += `</div>`;
-    }
-    view.innerHTML = html;
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            const { data, error } = await myDatabase.from('meals')
+                .select('id, title, category, parent_category, author, created_at')
+                .eq('category', subcategory)
+                .eq('parent_category', parentCategory)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
 }
 
 async function submitPendingPhoto(recipeId, event) {
@@ -1322,7 +1418,6 @@ async function viewRecipe(id) {
         </div>
     `;
 
-    // THE VISUAL ENGINE INJECTION: Display live photo, pending banner, or the "Add Photo" placeholder.
     let imageHTML = '';
     if (data.image_url) {
         imageHTML = `<img src="${data.image_url}" style="width: 100%; height: 350px; object-fit: cover; border: 2px solid var(--border); margin-bottom: 20px; display: block;">`;
@@ -1783,8 +1878,8 @@ function buildAdminQuery(context, status) {
     let query = myDatabase.from('meals').select('id, title, category, country, meal_type, created_at').eq('status', status).order('created_at', { ascending: false });
     
     const t1 = document.getElementById(`${context}-tier1`).value;
-    const t2 = document.getElementById(`${context}-tier2`) ? document.getElementById(`${context}-tier2`).value : 'all';
-    const t3 = document.getElementById(`${context}-tier3`) ? document.getElementById(`${context}-tier3`).value : 'all';
+    const t2 = document.getElementById(`${context}-tier2`) ? document.getElementById(`${context}-tier2`) : { value: 'all' };
+    const t3 = document.getElementById(`${context}-tier3`) ? document.getElementById(`${context}-tier3`) : { value: 'all' };
 
     if (context === 'library') {
         const term = document.getElementById('library-search').value.trim();
@@ -1795,10 +1890,10 @@ function buildAdminQuery(context, status) {
     }
 
     if (t1 === 'global') {
-        if (t3 !== 'all') {
-            query = query.eq('category', t3);
-        } else if (t2 !== 'all') {
-            query = query.eq('parent_category', t2);
+        if (t3.value !== 'all') {
+            query = query.eq('category', t3.value);
+        } else if (t2.value !== 'all') {
+            query = query.eq('parent_category', t2.value);
         } else {
             let allGlobalSubcats = [];
             Object.keys(categories).forEach(c => {
@@ -1810,15 +1905,15 @@ function buildAdminQuery(context, status) {
         }
     } else if (t1 === 'budget') {
         query = query.eq('category', 'budget');
-        if (t2 !== 'all') query = query.eq('country', t2);
-        if (t3 !== 'all') query = query.eq('meal_type', t3);
+        if (t2.value !== 'all') query = query.eq('country', t2.value);
+        if (t3.value !== 'all') query = query.eq('meal_type', t3.value);
     } else if (t1 === 'special') {
         query = query.eq('category', 'special');
-        if (t2 !== 'all') query = query.eq('country', t2);
+        if (t2.value !== 'all') query = query.eq('country', t2.value);
     } else if (t1 === 'plan') {
         query = query.eq('category', '7-Day Meal Plans');
     } else if (t1 === 'pet') {
-        if (t2 !== 'all') { query = query.eq('category', t2); } 
+        if (t2.value !== 'all') { query = query.eq('category', t2.value); } 
         else { query = query.eq('parent_category', 'Pet Food & Treats'); }
     }
     return query;
@@ -2393,7 +2488,6 @@ async function saveFamilyMember(event) {
     }
 }
 
-// [FIXED]: Added move logic for Admin UI
 async function loadAdminFamilyList() {
     const listDiv = document.getElementById('admin-family-list');
     if (!listDiv) return;
@@ -2449,7 +2543,6 @@ async function loadAdminFamilyList() {
     listDiv.innerHTML = html;
 }
 
-// [FIXED]: Swapping Logic
 async function moveFamilyMember(id, direction) {
     const listDiv = document.getElementById('admin-family-list');
     listDiv.innerHTML = "<p>Updating order...</p>";
@@ -2613,7 +2706,6 @@ async function renderFamilyPage() {
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Opening the front door...</h1></div>`;
 
-    // Fetch the family members, ordered by the index you set in the Admin panel
     const { data, error } = await myDatabase.from('family_members').select('*').order('order_index', { ascending: true });
 
     if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><p>Error: ${error.message}</p></div>`; return; }
@@ -2633,7 +2725,6 @@ async function renderFamilyPage() {
             const isPet = member.type === 'pet';
             const badge = isPet ? '🐾 Family Pet' : '👤 The Team';
             
-            // Compact, horizontal layout with a circular portrait. Locked flex-wrap to prevent dropping.
             html += `
                 <div class="window-box" style="padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: nowrap; background: #fff; margin-bottom: 0;">
                     <img src="${member.image_url}" style="width: 100px; height: 100px; min-width: 100px; border-radius: 50%; border: 3px solid var(--border); object-fit: cover; flex-shrink: 0; background: #fdf6e3;">
@@ -2689,41 +2780,56 @@ function renderShoutbox() {
     loadShoutboxMessages();
 }
 
+// [UPGRADED]: Uses SWR Caching
 async function loadShoutboxMessages() {
     const container = document.getElementById('shoutbox-messages');
     if (!container) return;
 
-    const { data, error } = await myDatabase.from('global_chat')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50); // Keep it fast, last 50 messages
+    const cacheKey = 'cache_shoutbox_messages';
 
-    if (error) { container.innerHTML = `<p>Error loading chat: ${error.message}</p>`; return; }
-    if (data.length === 0) { container.innerHTML = `<p style="text-align: center; color: #666; font-style: italic;">The campfire is quiet. Be the first to speak!</p>`; return; }
+    const renderList = (data) => {
+        if (data.length === 0) { container.innerHTML = `<p style="text-align: center; color: #666; font-style: italic;">The campfire is quiet. Be the first to speak!</p>`; return; }
 
-    let html = '';
-    data.forEach(msg => {
-        const isAdminPost = msg.user_name.includes('Anton') || msg.user_name.includes('Jenny') || msg.user_name.includes('👑');
-        const nameStyle = isAdminPost ? 'color: #d9534f; font-weight: 900;' : 'color: #333; font-weight: bold;';
-        const timeStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
-        // The Flag button (only for members)
-        let reportBtn = currentUser ? `<span style="cursor:pointer; font-size: 0.8rem; opacity: 0.5;" onclick="reportShoutbox('${msg.id}', '${msg.message.replace(/'/g, "\\'")}')" title="Report Message">🚩</span>` : '';
+        let html = '';
+        data.forEach(msg => {
+            const isAdminPost = msg.user_name.includes('Anton') || msg.user_name.includes('Jenny') || msg.user_name.includes('👑');
+            const nameStyle = isAdminPost ? 'color: #d9534f; font-weight: 900;' : 'color: #333; font-weight: bold;';
+            const timeStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            let reportBtn = currentUser ? `<span style="cursor:pointer; font-size: 0.8rem; opacity: 0.5;" onclick="reportShoutbox('${msg.id}', '${msg.message.replace(/'/g, "\\'")}')" title="Report Message">🚩</span>` : '';
 
-        html += `
-            <div style="background: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 4px; display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; align-items: center;">
-                    <div>
-                        <span style="${nameStyle}">${msg.user_name}</span>
-                        <span style="font-size: 0.75rem; color: #888; margin-left: 8px;">${timeStr}</span>
+            html += `
+                <div style="background: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 4px; display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px; align-items: center;">
+                        <div>
+                            <span style="${nameStyle}">${msg.user_name}</span>
+                            <span style="font-size: 0.75rem; color: #888; margin-left: 8px;">${timeStr}</span>
+                        </div>
+                        ${reportBtn}
                     </div>
-                    ${reportBtn}
+                    <div style="font-size: 0.95rem; line-height: 1.4; word-wrap: break-word;">${msg.message}</div>
                 </div>
-                <div style="font-size: 0.95rem; line-height: 1.4; word-wrap: break-word;">${msg.message}</div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
+            `;
+        });
+        container.innerHTML = html;
+    };
+
+    if (!localStorage.getItem(cacheKey)) {
+        container.innerHTML = '<p>Loading messages...</p>';
+    }
+
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            const { data, error } = await myDatabase.from('global_chat')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50);
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
 }
 
 async function postShoutboxMessage() {
@@ -2734,7 +2840,6 @@ async function postShoutboxMessage() {
 
     input.disabled = true;
     
-    // Set the name that will appear in chat
     let displayName = currentUser.email.split('@')[0];
     if (isAdmin) displayName = "Anton & Jenny 👑";
 
@@ -2763,7 +2868,6 @@ async function reportShoutbox(id, text) {
         reported_by: currentUser.id
     }]);
     
-    // Also send it to the inbox so you see it right away
     await myDatabase.from('messages').insert([{ 
         name: "🚩 REPORTED CHAT", 
         email: reporter, 
@@ -2792,39 +2896,53 @@ function renderPublicBroadcasts() {
         </div>
     `;
     
-    // Hide the red badge on the left menu when they view the page
     const badge = document.getElementById('new-broadcast-badge');
     if (badge) badge.style.display = 'none';
     
-    // Save the time they looked at this so we know they are caught up
     localStorage.setItem('last_broadcast_view', Date.now().toString());
 
     loadPublicBroadcasts();
 }
 
+// [UPGRADED]: Uses SWR Caching
 async function loadPublicBroadcasts() {
     const container = document.getElementById('public-broadcast-list');
     if (!container) return;
 
-    const { data, error } = await myDatabase.from('community_updates')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const cacheKey = 'cache_public_broadcasts';
 
-    if (error) { container.innerHTML = `<p>Error loading updates: ${error.message}</p>`; return; }
-    if (data.length === 0) { container.innerHTML = `<div class="window-box"><p>No recent announcements.</p></div>`; return; }
+    const renderList = (data) => {
+        if (data.length === 0) { container.innerHTML = `<div class="window-box"><p>No recent announcements.</p></div>`; return; }
 
-    let html = '';
-    data.forEach(update => {
-        const dateStr = new Date(update.created_at).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        html += `
-            <div class="window-box" style="background: #fff; margin-bottom: 0; border-left: 5px solid #007bff; padding: 20px;">
-                <p style="font-size: 0.85rem; color: #666; margin: 0 0 10px 0; font-weight: bold; text-transform: uppercase;">${dateStr}</p>
-                <p style="margin: 0 0 15px 0; font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap;">${update.message}</p>
-                <p style="margin: 0; font-weight: bold; color: #007bff; font-family: 'Georgia', serif; font-size: 1.1rem;">${update.author_signature}</p>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
+        let html = '';
+        data.forEach(update => {
+            const dateStr = new Date(update.created_at).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            html += `
+                <div class="window-box" style="background: #fff; margin-bottom: 0; border-left: 5px solid #007bff; padding: 20px;">
+                    <p style="font-size: 0.85rem; color: #666; margin: 0 0 10px 0; font-weight: bold; text-transform: uppercase;">${dateStr}</p>
+                    <p style="margin: 0 0 15px 0; font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap;">${update.message}</p>
+                    <p style="margin: 0; font-weight: bold; color: #007bff; font-family: 'Georgia', serif; font-size: 1.1rem;">${update.author_signature}</p>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    };
+
+    if (!localStorage.getItem(cacheKey)) {
+        container.innerHTML = '<p>Loading updates...</p>';
+    }
+
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            const { data, error } = await myDatabase.from('community_updates')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
 }
 
 async function checkNewBroadcasts() {
