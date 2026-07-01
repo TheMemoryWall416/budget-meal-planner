@@ -356,7 +356,7 @@ function showPage(page) {
     `;
     } else if (page === 'profile') {
         view.innerHTML = `
-            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
                 <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">MY PROFILE</h1>
             </div>
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; text-align: center;">
@@ -418,11 +418,9 @@ function showPage(page) {
                 .admin-tab-btn { flex: 1; min-width: 140px; text-align: center; margin: 0; }
             </style>
             
-            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1 style="margin: 0; font-size: 1.8rem;">Command Center</h1>
-                    <p style="margin: 0; font-size: 1rem; color: #555;">Authorized personnel only.</p>
-                </div>
+            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
+                <h1 style="margin: 0; font-size: 1.8rem;">Command Center</h1>
+                <p style="margin: 0; font-size: 1rem; color: #555;">Authorized personnel only.</p>
             </div>
             
             <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
@@ -447,7 +445,7 @@ function showPage(page) {
     } else if (page === 'add-budget-meal') {
         view.innerHTML = `
             <button onclick="showPage('creator-hub')" style="margin-bottom: 15px;">← Back</button>
-            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
                 <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">ADD BUDGET MEAL</h1>
                 <p style="margin: 0; font-size: 1.1rem; color: #555; margin-top: 5px;">Posting for: <strong>${selectedCountry}</strong></p>
             </div>
@@ -499,7 +497,7 @@ function showPage(page) {
 function renderFindHub() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">FIND RECIPES</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">What are you looking for today?</p>
         </div>
@@ -531,7 +529,7 @@ function renderFindHub() {
 function renderCreatorHub() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">ADD YOUR OWN</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">What would you like to share with the community today?</p>
         </div>
@@ -628,7 +626,7 @@ async function executeSearch() {
     const term = document.getElementById('search-input').value.trim();
     if (!term) return;
     const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box"><h1>Searching for "${term}"...</h1></div>`;
+    view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Searching for "${term}"...</h1></div>`;
 
     const { data, error } = await myDatabase.from('meals')
         .select('id, title, category, parent_category, author, created_at, meal_type')
@@ -636,13 +634,13 @@ async function executeSearch() {
         .order('created_at', { ascending: false });
 
     if (error) {
-        view.innerHTML = `<button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button><div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`;
+        view.innerHTML = `<button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button><div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>${error.message}</p></div>`;
         return;
     }
 
     let html = `
         <button onclick="renderCategoryList('find')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin: 0; font-size: 1.8rem;">Search Results</h1>
         </div>
     `;
@@ -676,7 +674,7 @@ function renderCategoryList(context) {
 
     let html = `
         <button onclick="${context === 'find' ? "showPage('find-recipes')" : "showPage('creator-hub')"}" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">${title}</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 5px;">${subtitle}</p>
         </div>
@@ -715,7 +713,7 @@ function renderSubcategoryList(mainCategory, context) {
     
     let html = `
         <button onclick="renderCategoryList('${context}')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 900px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">${mainCategory}</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Select a specific subcategory.</p>
         </div>
@@ -760,7 +758,7 @@ function renderAddMealPlanForm() {
 
     view.innerHTML = `
         <button onclick="showPage('creator-hub')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">ADD 7-DAY MEAL PLAN</h1>
         </div>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
@@ -810,16 +808,16 @@ async function loadSpecials() {
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Loading Local Specials...</h1></div>`;
 
-    if (!selectedCountry) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>Please select a country first.</p></div>`; return; }
+    if (!selectedCountry) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>Please select a country first.</p></div>`; return; }
 
     const now = new Date().toISOString();
     const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
 
-    if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
+    if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>${error.message}</p></div>`; return; }
 
     let html = `
         <button onclick="showPage('find-recipes')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin: 0; font-size: 1.8rem;">Local Specials in ${selectedCountry}</h1>
         </div>
     `;
@@ -854,7 +852,7 @@ function renderAddSpecialForm() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
         <button onclick="showPage('creator-hub')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; font-size: 1.8rem; margin-bottom: 0;">SHARE A LOCAL SPECIAL</h1>
         </div>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
@@ -922,11 +920,11 @@ async function loadBudgetMeals(filter = 'all') {
     if (filter !== 'all') { query = query.eq('meal_type', filter); }
 
     const { data, error } = await query;
-    if (error) { view.innerHTML = `<div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; return; }
+    if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>${error.message}</p></div>`; return; }
 
     let html = `
         <button onclick="showPage('find-recipes')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin: 0; font-size: 1.8rem;">Budget Meals in ${selectedCountry}</h1>
         </div>
     `;
@@ -1050,7 +1048,7 @@ async function viewBudgetMeal(id) {
 
     view.innerHTML = `
         <button onclick="showPage('find-budget-meals')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
@@ -1218,7 +1216,7 @@ async function reportComment(commentId, commentText) {
 
 async function loadSubcategory(subcategory, parentCategory) {
     const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box"><h1>Loading ${subcategory}...</h1></div>`;
+    view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Loading ${subcategory}...</h1></div>`;
 
     const { data, error } = await myDatabase.from('meals')
         .select('id, title, category, parent_category, author, created_at')
@@ -1227,13 +1225,13 @@ async function loadSubcategory(subcategory, parentCategory) {
         .order('created_at', { ascending: false });
 
     if (error) { 
-        view.innerHTML = `<button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin-bottom: 15px;">← Back</button><div class="window-box"><h1>Error</h1><p>${error.message}</p></div>`; 
+        view.innerHTML = `<button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin-bottom: 15px;">← Back</button><div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>${error.message}</p></div>`; 
         return; 
     }
 
     let html = `
         <button onclick="renderSubcategoryList('${parentCategory}', 'find')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin: 0; font-size: 1.8rem;">${subcategory}</h1>
         </div>
     `;
@@ -1342,7 +1340,7 @@ async function viewRecipe(id) {
 
     view.innerHTML = `
         <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
             <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date}</p>
         </div>
@@ -1445,7 +1443,7 @@ function showForm(subcategory, parentCategory) {
     
     view.innerHTML = `
         <button onclick="renderSubcategoryList('${parentCategory}', 'add')" style="margin-bottom: 15px;">← Back</button>
-        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">Adding to: ${subcategory}</h1>
         </div>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
@@ -2560,15 +2558,15 @@ async function adminDeleteCampfireMessage(id) {
 
 async function renderFamilyPage() {
     const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box"><h1>Opening the front door...</h1></div>`;
+    view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Opening the front door...</h1></div>`;
 
     // Fetch the family members, ordered by the index you set in the Admin panel
     const { data, error } = await myDatabase.from('family_members').select('*').order('order_index', { ascending: true });
 
-    if (error) { view.innerHTML = `<div class="window-box"><p>Error: ${error.message}</p></div>`; return; }
+    if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><p>Error: ${error.message}</p></div>`; return; }
 
     let html = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">🏡 MEET THE FAMILY</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Welcome to our personal sanctuary. Get to know the humans and pets behind the platform!</p>
         </div>
@@ -2626,7 +2624,7 @@ function renderShoutbox() {
     }
 
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">🔥 THE CAMPFIRE</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Pull up a log. This is our global community shoutbox. Say hi, share what you're cooking, and connect with everyday cooks from all over the world!</p>
         </div>
@@ -2734,7 +2732,7 @@ async function reportShoutbox(id, text) {
 function renderPublicBroadcasts() {
     const view = document.getElementById('main-view');
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px;">
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">📣 COMMUNITY UPDATES</h1>
             <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">The latest news, announcements, and updates straight from Anton & Jenny.</p>
         </div>
