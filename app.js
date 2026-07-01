@@ -2393,6 +2393,7 @@ async function saveFamilyMember(event) {
     }
 }
 
+// [FIXED]: Added move logic for Admin UI
 async function loadAdminFamilyList() {
     const listDiv = document.getElementById('admin-family-list');
     if (!listDiv) return;
@@ -2415,20 +2416,60 @@ async function loadAdminFamilyList() {
     }
 
     let html = "";
-    data.forEach(member => {
+    data.forEach((member, index) => {
+        let sortButtons = '';
+        if (data.length > 1) {
+            if (index > 0) {
+                sortButtons += `<button style="background: #e2d9f3; margin: 0; padding: 4px 8px; flex: 1; border: 2px solid var(--border); font-size: 0.8rem;" onclick="moveFamilyMember('${member.id}', 'up')">⬆️</button>`;
+            }
+            if (index < data.length - 1) {
+                sortButtons += `<button style="background: #e2d9f3; margin: 0; padding: 4px 8px; flex: 1; border: 2px solid var(--border); font-size: 0.8rem;" onclick="moveFamilyMember('${member.id}', 'down')">⬇️</button>`;
+            }
+        }
+
         html += `
-            <div style="display: flex; gap: 15px; border: 1px solid var(--border); padding: 15px; background: #fff; align-items: center;">
-                <img src="${member.image_url}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%;">
-                <div style="flex: 1;">
-                    <h4 style="margin: 0 0 5px 0; font-size: 1.1rem;">${member.name} <span style="font-size: 0.8rem; color: #666; font-weight: normal;">(${member.type.toUpperCase()}) - Order: ${member.order_index}</span></h4>
-                    <p style="margin: 0; font-size: 0.9rem; color: #555; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${member.story}</p>
+            <div style="display: flex; gap: 15px; border: 1px solid var(--border); padding: 15px; background: #fff; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 15px; flex: 1; align-items: center;">
+                    <img src="${member.image_url}" style="width: 80px; height: 80px; min-width: 80px; object-fit: cover; border-radius: 50%;">
+                    <div>
+                        <h4 style="margin: 0 0 5px 0; font-size: 1.1rem;">${member.name} <span style="font-size: 0.8rem; color: #666; font-weight: normal;">(${member.type.toUpperCase()}) - Order: ${member.order_index}</span></h4>
+                        <p style="margin: 0; font-size: 0.9rem; color: #555; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${member.story}</p>
+                    </div>
                 </div>
-                <button style="background: #f8d7da; margin: 0; height: fit-content; cursor: pointer;" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
+                <div style="display: flex; flex-direction: column; gap: 5px; min-width: 80px;">
+                    <div style="display: flex; gap: 5px; width: 100%;">
+                        ${sortButtons}
+                    </div>
+                    <button style="background: #f8d7da; margin: 0; width: 100%; padding: 6px; cursor: pointer; border: 2px solid var(--border);" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
+                </div>
             </div>
         `;
     });
 
     listDiv.innerHTML = html;
+}
+
+// [FIXED]: Swapping Logic
+async function moveFamilyMember(id, direction) {
+    const listDiv = document.getElementById('admin-family-list');
+    listDiv.innerHTML = "<p>Updating order...</p>";
+
+    const { data, error } = await myDatabase.from('family_members').select('id, order_index').order('order_index', { ascending: true });
+    if (error || !data) return alert("Error loading order.");
+
+    const currentIndex = data.findIndex(m => m.id == id);
+    if (currentIndex === -1) return;
+
+    let swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (swapIndex < 0 || swapIndex >= data.length) return; 
+
+    const currentItem = data[currentIndex];
+    const swapItem = data[swapIndex];
+
+    await myDatabase.from('family_members').update({ order_index: swapItem.order_index }).eq('id', currentItem.id);
+    await myDatabase.from('family_members').update({ order_index: currentItem.order_index }).eq('id', swapItem.id);
+
+    loadAdminFamilyList(); 
 }
 
 async function deleteFamilyMember(id, imageUrl) {
@@ -2580,7 +2621,7 @@ async function renderFamilyPage() {
             const isPet = member.type === 'pet';
             const badge = isPet ? '🐾 Family Pet' : '👤 The Team';
             
-            // [FIXED]: Compact, horizontal layout with a circular portrait. Locked flex-wrap to prevent dropping.
+            // Compact, horizontal layout with a circular portrait. Locked flex-wrap to prevent dropping.
             html += `
                 <div class="window-box" style="padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: nowrap; background: #fff; margin-bottom: 0;">
                     <img src="${member.image_url}" style="width: 100px; height: 100px; min-width: 100px; border-radius: 50%; border: 3px solid var(--border); object-fit: cover; flex-shrink: 0; background: #fdf6e3;">
