@@ -2616,22 +2616,22 @@ function renderShoutbox() {
         inputArea = `
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <input type="text" id="shoutbox-input" placeholder="Say hello to the community..." style="flex: 1; margin: 0;" onkeyup="if(event.key === 'Enter') postShoutboxMessage()">
-                <button onclick="postShoutboxMessage()" style="margin: 0; background: var(--nav-color);">Send 🔥</button>
+                <button onclick="postShoutboxMessage()" style="margin: 0;">Send 🔥</button>
             </div>
         `;
     } else {
         inputArea = `
             <div style="background: #f0f0f0; border: 2px dashed var(--border); padding: 15px; text-align: center; margin-bottom: 20px;">
-                <p style="margin-top: 0; font-weight: bold;">Want to join the conversation around the fire?</p>
+                <p style="margin-top: 0; font-weight: bold; color: #000000;">Want to join the conversation around the fire?</p>
                 <button onclick="openAuthModal()" style="margin: 0;">Sign In to Chat</button>
             </div>
         `;
     }
 
     view.innerHTML = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 20px; border-width: 3px; border-color: #8b4513;">
-            <h1 style="margin: 0 0 10px 0; font-size: 2.2rem; font-family: 'Georgia', serif; color: #5c3a21;">🔥 The Campfire</h1>
-            <p style="margin: 0; font-size: 1.1rem; color: #333; line-height: 1.5;">Pull up a log. This is our community shoutbox. Say hi, share what you're cooking, or just hang out.</p>
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 20px; border-width: 3px; border-color: #000000;">
+            <h1 style="margin: 0 0 10px 0; font-size: 2.2rem; font-family: 'Georgia', serif; color: #000000;">🔥 The Campfire</h1>
+            <p style="margin: 0; font-size: 1.1rem; color: #000000; line-height: 1.5;">Pull up a log. This is our global community shoutbox. Say hi, share what you're cooking, and connect with everyday cooks from all over the world!</p>
         </div>
         <div style="width: 100%; max-width: 800px; box-sizing: border-box;">
             ${inputArea}
