@@ -418,6 +418,7 @@ function showPage(page) {
                 .badge-pending { background: #ffeeba; }
                 .badge-approved { background: #d4edda; }
                 .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #ffffff; padding: 20px; border: 2px solid var(--border); }
+                .admin-tab-btn { flex: 1; min-width: 140px; text-align: center; margin: 0; }
             </style>
             
             <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
@@ -428,13 +429,14 @@ function showPage(page) {
             </div>
             
             <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
-                <button id="tab-inbox" onclick="switchAdminTab('inbox')" style="margin:0;">📥 Inbox & Reports</button>
-                <button id="tab-review" onclick="switchAdminTab('review')" style="margin:0;">⏳ New Recipe Queue</button>
-                <button id="tab-photo" onclick="switchAdminTab('photo')" style="margin:0;">📸 Photo Moderation</button>
-                <button id="tab-library" onclick="switchAdminTab('library')" style="margin:0;">📚 Manage Library</button>
-                <button id="tab-settings" onclick="switchAdminTab('settings')" style="margin:0;">⚙️ Site Settings</button>
-                <button id="tab-family" onclick="switchAdminTab('family')" style="margin:0;">🏡 Family Hub</button>
-                <button id="tab-broadcasts" onclick="switchAdminTab('broadcasts')" style="margin:0;">📣 Broadcasts</button>
+                <button id="tab-inbox" class="admin-tab-btn" onclick="switchAdminTab('inbox')">📥 Inbox & Reports</button>
+                <button id="tab-review" class="admin-tab-btn" onclick="switchAdminTab('review')">⏳ New Recipe Queue</button>
+                <button id="tab-photo" class="admin-tab-btn" onclick="switchAdminTab('photo')">📸 Photo Moderation</button>
+                <button id="tab-library" class="admin-tab-btn" onclick="switchAdminTab('library')">📚 Manage Library</button>
+                <button id="tab-settings" class="admin-tab-btn" onclick="switchAdminTab('settings')">⚙️ Site Settings</button>
+                <button id="tab-family" class="admin-tab-btn" onclick="switchAdminTab('family')">🏡 Family Hub</button>
+                <button id="tab-broadcasts" class="admin-tab-btn" onclick="switchAdminTab('broadcasts')">📣 Broadcasts</button>
+                <button id="tab-campfire" class="admin-tab-btn" onclick="switchAdminTab('campfire')">🔥 Campfire Logs</button>
             </div>
             
             <div id="admin-content-area" style="width: 100%; max-width: 1000px;"></div>
@@ -1524,7 +1526,7 @@ async function saveRecipe() {
 }
 
 function switchAdminTab(tab) {
-    ['inbox', 'review', 'photo', 'library', 'settings', 'family', 'broadcasts'].forEach(t => {
+    ['inbox', 'review', 'photo', 'library', 'settings', 'family', 'broadcasts', 'campfire'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
     });
@@ -1654,6 +1656,17 @@ function switchAdminTab(tab) {
             </div>
         `;
         if (typeof loadAdminBroadcasts === 'function') loadAdminBroadcasts();
+    } else if (tab === 'campfire') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0;">🔥 Campfire Logs (Moderation)</h2>
+                <p style="color: #555;">Live feed of the public shoutbox. Delete inappropriate messages instantly.</p>
+                <div id="admin-campfire-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                    <p><i>Loading logs...</i></p>
+                </div>
+            </div>
+        `;
+        if (typeof loadAdminCampfire === 'function') loadAdminCampfire();
     }
 }
 
@@ -2503,6 +2516,45 @@ async function deleteBroadcast(id) {
     const { error } = await myDatabase.from('community_updates').delete().eq('id', id);
     if (error) alert("Error deleting: " + error.message);
     else loadAdminBroadcasts();
+}
+
+// ==========================================
+//        CAMPFIRE LOGS (ADMIN)
+// ==========================================
+
+async function loadAdminCampfire() {
+    const listDiv = document.getElementById('admin-campfire-list');
+    if (!listDiv) return;
+
+    const { data, error } = await myDatabase.from('global_chat')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+    if (error) { listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { listDiv.innerHTML = "<p>No messages in the campfire.</p>"; return; }
+
+    let html = "";
+    data.forEach(msg => {
+        const dateStr = new Date(msg.created_at).toLocaleString();
+        html += `
+            <div style="border: 1px solid var(--border); padding: 10px; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
+                <div style="flex: 1;">
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem; color: #666;"><strong>${msg.user_name}</strong> - ${dateStr}</p>
+                    <p style="margin: 0; font-size: 1rem; word-wrap: break-word;">${msg.message}</p>
+                </div>
+                <button style="background: #f8d7da; margin: 0; padding: 6px 12px; cursor: pointer;" onclick="adminDeleteCampfireMessage('${msg.id}')">Delete</button>
+            </div>
+        `;
+    });
+    listDiv.innerHTML = html;
+}
+
+async function adminDeleteCampfireMessage(id) {
+    if (!confirm("Permanently delete this message from the public campfire?")) return;
+    const { error } = await myDatabase.from('global_chat').delete().eq('id', id);
+    if (error) alert("Error deleting message: " + error.message);
+    else loadAdminCampfire();
 }
 
 // ==========================================
