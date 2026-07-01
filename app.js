@@ -2580,11 +2580,11 @@ async function renderFamilyPage() {
             const isPet = member.type === 'pet';
             const badge = isPet ? '🐾 Family Pet' : '👤 The Team';
             
-            // This builds the beautiful farmhouse-style card for each member
+            // [FIXED]: Removed max-width on image container and border-right on image for perfect mobile stacking
             html += `
                 <div class="window-box" style="padding: 0; overflow: hidden; display: flex; flex-wrap: wrap; background: #fff; margin-bottom: 0; border-width: 2px;">
-                    <div style="flex: 1; min-width: 300px; max-width: 350px;">
-                        <img src="${member.image_url}" style="width: 100%; height: 100%; min-height: 300px; object-fit: cover; display: block; border-right: 2px solid var(--border);">
+                    <div style="flex: 1; min-width: 300px;">
+                        <img src="${member.image_url}" style="width: 100%; height: 100%; min-height: 300px; object-fit: cover; display: block;">
                     </div>
                     <div style="flex: 2; min-width: 300px; padding: 30px; display: flex; flex-direction: column; justify-content: center; background: #fdf6e3;">
                         <span style="display: inline-block; padding: 5px 12px; background: #8b4513; color: white; font-size: 0.8rem; font-weight: bold; border-radius: 15px; margin-bottom: 15px; width: fit-content; box-shadow: 2px 2px 0px rgba(0,0,0,0.2);">${badge}</span>
