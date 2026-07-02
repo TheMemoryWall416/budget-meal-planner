@@ -12,10 +12,10 @@ let dynamicBudgetTips = [];
 let currentUser = null; 
 let isLoginMode = false; 
 let isAdmin = false;
-let userRole = 'user'; // 'user', 'admin', 'developer'
+let userRole = 'user'; // 'user', 'moderator', 'admin', 'developer'
 
 // ==========================================
-//        THE SWR CACHE ENGINE 
+//        THE SWR CACHE ENGINE
 // ==========================================
 async function fetchWithSWR(cacheKey, dbQueryFunction, renderFunction) {
     const cachedDataString = localStorage.getItem(cacheKey);
@@ -88,8 +88,9 @@ async function adminDeleteContent(table, id, btnElement) {
     if (error) alert("Error: " + error.message);
     else {
         if (btnElement) {
-            const box = btnElement.closest('.window-box') || btnElement.closest('.admin-card') || btnElement.parentElement.parentElement;
+            const box = btnElement.closest('.window-box');
             if (box) box.remove();
+            else btnElement.parentElement.remove();
         }
     }
 }
@@ -205,7 +206,7 @@ async function handleAuthSubmit() {
     
     if (!email || !password) return alert("Please enter both email and password.");
     if (password.length < 6) return alert("Password must be at least 6 characters.");
-    if (!isLoginMode && !nickname) return alert("Please choose a nickname so the community knows who you are!");
+    if (!isLoginMode && !nickname) return alert("Please choose a public nickname.");
 
     const btn = document.getElementById('auth-primary-btn');
     const originalText = btn.innerText;
@@ -469,12 +470,12 @@ function showPage(page) {
                     <label style="font-weight: bold; font-size: 0.9rem;">Change Public Nickname</label>
                     <div style="display: flex; gap: 10px; margin-top: 5px;">
                         <input type="text" id="update-nickname-input" placeholder="New Nickname" value="${currentName}" style="flex: 1; margin: 0;">
-                        <button onclick="updateUserNickname()" style="margin: 0; background: #e2d9f3;">Update</button>
+                        <button onclick="updateUserNickname()" style="margin: 0;">Update</button>
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
-                    <button onclick="toggleCookbook()" style="background: var(--btn-grey);">📖 My Cookbook</button>
+                    <button onclick="toggleCookbook()">📖 My Cookbook</button>
                     <button onclick="logoutUser()">🚪 Sign Out</button>
                 </div>
             </div>
@@ -518,32 +519,18 @@ function showPage(page) {
         let developerWarning = '';
         if (userRole === 'developer') {
             developerTabs = `
-                <button id="tab-family" class="admin-tab-btn" onclick="switchAdminTab('family')">🏡 Family Hub</button>
-                <button id="tab-broadcasts" class="admin-tab-btn" onclick="switchAdminTab('broadcasts')">📣 Broadcasts</button>
-                <button id="tab-settings" class="admin-tab-btn" onclick="switchAdminTab('settings')">⚙️ Site Settings</button>
-                <button id="tab-jail" class="admin-tab-btn" onclick="switchAdminTab('jail')">🛑 Holding Cell</button>
-                <button id="tab-audit" class="admin-tab-btn" onclick="switchAdminTab('audit')">👁️ Audit Logs</button>
-                <button id="tab-users" class="admin-tab-btn" onclick="switchAdminTab('users')">👥 User Directory</button>
+                <button id="tab-family" onclick="switchAdminTab('family')" style="flex: 1; min-width: 140px; margin: 0;">🏡 Family Hub</button>
+                <button id="tab-broadcasts" onclick="switchAdminTab('broadcasts')" style="flex: 1; min-width: 140px; margin: 0;">📣 Broadcasts</button>
+                <button id="tab-settings" onclick="switchAdminTab('settings')" style="flex: 1; min-width: 140px; margin: 0;">⚙️ Site Settings</button>
+                <button id="tab-jail" onclick="switchAdminTab('jail')" style="flex: 1; min-width: 140px; margin: 0;">🛑 Holding Cell</button>
+                <button id="tab-audit" onclick="switchAdminTab('audit')" style="flex: 1; min-width: 140px; margin: 0;">👁️ Audit Logs</button>
+                <button id="tab-users" onclick="switchAdminTab('users')" style="flex: 1; min-width: 140px; margin: 0;">👥 User Directory</button>
             `;
         } else {
-            developerWarning = `<div style="background: #fff3cd; color: #856404; padding: 10px; border: 1px solid #ffeeba; margin-bottom: 15px; font-size: 0.9rem; text-align: left;"><strong>Notice:</strong> You are currently logged in with 'admin' clearance. To see your Developer tabs (Settings, Jail, Broadcasts), change your role to 'developer' in the Supabase admin_whitelist table.</div>`;
+            developerWarning = `<div class="window-box" style="margin-bottom: 15px;"><p style="margin:0; font-size: 0.95rem;"><strong>Notice:</strong> You are currently logged in with 'admin' clearance. To see your Developer tabs, change your role to 'developer' in the Supabase admin_whitelist table.</p></div>`;
         }
 
         view.innerHTML = `
-            <style>
-                .admin-card { border: 2px solid var(--border); padding: 20px; margin-bottom: 15px; background: #ffffff; display: flex; justify-content: space-between; align-items: center; }
-                .admin-card-content { flex-grow: 1; }
-                .admin-card-actions { display: flex; gap: 10px; margin-left: 15px; flex-wrap: wrap; justify-content: flex-end;}
-                .admin-badge { padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: 2px solid var(--border); margin-left: 10px; background: #fff; display: inline-block; margin-bottom: 5px;}
-                .badge-special { background: #fff3cd; }
-                .badge-plan { background: #cce5ff; }
-                .badge-pet { background: #e2d9f3; }
-                .badge-pending { background: #ffeeba; }
-                .badge-approved { background: #d4edda; }
-                .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #ffffff; padding: 20px; border: 2px solid var(--border); }
-                .admin-tab-btn { flex: 1; min-width: 140px; text-align: center; margin: 0; }
-            </style>
-            
             <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
                 <h1 style="margin: 0; font-size: 1.8rem;">Command Center</h1>
                 <p style="margin: 0; font-size: 1rem; color: #555;">Clearance: <strong>${userRole.toUpperCase()}</strong></p>
@@ -551,12 +538,12 @@ function showPage(page) {
             
             ${developerWarning}
 
-            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
-                <button id="tab-inbox" class="admin-tab-btn" onclick="switchAdminTab('inbox')">📥 Inbox & Reports</button>
-                <button id="tab-review" class="admin-tab-btn" onclick="switchAdminTab('review')">⏳ New Recipe Queue</button>
-                <button id="tab-photo" class="admin-tab-btn" onclick="switchAdminTab('photo')">📸 Photo Moderation</button>
-                <button id="tab-library" class="admin-tab-btn" onclick="switchAdminTab('library')">📚 Manage Library</button>
-                <button id="tab-campfire" class="admin-tab-btn" onclick="switchAdminTab('campfire')">🔥 Campfire Logs</button>
+            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 20px;">
+                <button id="tab-inbox" onclick="switchAdminTab('inbox')" style="flex: 1; min-width: 140px; margin: 0;">📥 Inbox & Reports</button>
+                <button id="tab-review" onclick="switchAdminTab('review')" style="flex: 1; min-width: 140px; margin: 0;">⏳ New Recipe Queue</button>
+                <button id="tab-photo" onclick="switchAdminTab('photo')" style="flex: 1; min-width: 140px; margin: 0;">📸 Photo Moderation</button>
+                <button id="tab-library" onclick="switchAdminTab('library')" style="flex: 1; min-width: 140px; margin: 0;">📚 Manage Library</button>
+                <button id="tab-campfire" onclick="switchAdminTab('campfire')" style="flex: 1; min-width: 140px; margin: 0;">🔥 Campfire Logs</button>
                 ${developerTabs}
             </div>
             
@@ -898,7 +885,7 @@ async function executeSearch() {
         data.forEach(meal => {
             const author = meal.author || "Community";
             const isBudget = meal.category === 'budget';
-            const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
+            const clickAction = isBudget ? `viewBudgetMeal('${meal.id}')` : `viewRecipe('${meal.id}')`;
             const badge = isBudget ? ` - BUDGET` : '';
 
             html += `<div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0;">
@@ -1075,7 +1062,7 @@ async function loadSpecials() {
                 
                 let adminControls = '';
                 if (isAdmin) {
-                    adminControls = `<button onclick="adminDeleteContent('meals', ${meal.id}, this)" style="background: #dc3545; color: white; border:none; padding: 5px 10px; font-size: 0.8rem; margin: 0 0 10px 0;">🗑️ Delete Post</button>`;
+                    adminControls = `<button onclick="adminDeleteContent('meals', '${meal.id}', this)" style="margin: 0 0 10px 0;">Delete Post</button>`;
                 }
 
                 html += `
@@ -1091,7 +1078,7 @@ async function loadSpecials() {
                     </div>
                     <div style="font-size: 1rem; line-height: 1.5; white-space: pre-wrap;">${meal.recipe}</div>
                     <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc;">
-                        <button onclick="reportRecipe('${meal.title.replace(/'/g, "\\'")}', ${meal.id})">⚠️ Report Fake/Expired Deal</button>
+                        <button onclick="reportRecipe('${meal.title.replace(/'/g, "\\'")}', '${meal.id}')">⚠️ Report Fake/Expired Deal</button>
                     </div>
                 </div>`;
             });
@@ -1214,11 +1201,11 @@ async function loadBudgetMeals(filter = 'all') {
                 
                 let adminControls = '';
                 if (isAdmin) {
-                    adminControls = `<button onclick="adminDeleteContent('meals', ${meal.id}, this); event.stopPropagation();" style="background: #dc3545; color: white; border:none; padding: 5px 10px; font-size: 0.8rem; margin: 0 0 10px 0;">🗑️ Delete Post</button>`;
+                    adminControls = `<button onclick="adminDeleteContent('meals', '${meal.id}', this); event.stopPropagation();" style="margin: 0 0 10px 0;">Delete Post</button>`;
                 }
 
                 html += `
-                <div class="window-box" onclick="viewBudgetMeal(${meal.id})" style="cursor: pointer; margin-bottom: 0;">
+                <div class="window-box" onclick="viewBudgetMeal('${meal.id}')" style="cursor: pointer; margin-bottom: 0;">
                     ${adminControls}
                     <div style="margin-bottom: 8px;">
                         <span style="font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">${badgeText}</span>
@@ -1298,7 +1285,7 @@ async function viewBudgetMeal(id) {
         commentFormHTML = `
             <div style="margin-bottom: 20px;">
                 <textarea id="new-comment-text" rows="3" placeholder="Share your thoughts or variations..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;"></textarea>
-                <button onclick="postComment(${data.id})" style="background: var(--btn-grey);">Post Comment</button>
+                <button onclick="postComment('${data.id}')">Post Comment</button>
             </div>
         `;
     } else {
@@ -1325,11 +1312,11 @@ async function viewBudgetMeal(id) {
         imageHTML = `<div style="width: 100%; padding: 20px; box-sizing: border-box; background: #fff3cd; border: 2px solid var(--border); text-align: center; margin-bottom: 20px;">📸 A photo has been submitted and is waiting for Anton & Jenny to approve it!</div>`;
     } else {
         imageHTML = `
-        <div style="width: 100%; height: 250px; background: #fdf6e3; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; transition: background 0.2s;" onclick="triggerPhotoUpload(${data.id})" onmouseover="this.style.background='#f4ecd8'" onmouseout="this.style.background='#fdf6e3'">
+        <div style="width: 100%; height: 250px; background: #fdf6e3; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; transition: background 0.2s;" onclick="triggerPhotoUpload('${data.id}')" onmouseover="this.style.background='#f4ecd8'" onmouseout="this.style.background='#fdf6e3'">
             <span style="font-size: 2.5rem; margin-bottom: 10px;">📸</span>
             <strong style="color: #333; font-size: 1.1rem;">Made this? Add a photo!</strong>
             <span style="font-size: 0.9rem; color: #666; margin-top: 5px;">(Click to upload)</span>
-            <input type="file" id="recipe-photo-upload-${data.id}" accept="image/*" style="display: none;" onchange="submitPendingPhoto(${data.id}, event)">
+            <input type="file" id="recipe-photo-upload-${data.id}" accept="image/*" style="display: none;" onchange="submitPendingPhoto('${data.id}', event)">
         </div>`;
     }
 
@@ -1340,6 +1327,7 @@ async function viewBudgetMeal(id) {
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
             </div>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 10px; margin-bottom:0;">Posted by: ${data.author || 'Community'}</p>
         </div>
         
         <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
@@ -1349,11 +1337,11 @@ async function viewBudgetMeal(id) {
         ${contentHTML}
         
         <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
-            <button onclick="likeMeal(${data.id}, this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
-            <button id="fav-btn-${data.id}" onclick="toggleFavorite(${data.id})">⭐ Save to Favorites</button>
+            <button onclick="likeMeal('${data.id}', this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+            <button id="fav-btn-${data.id}" onclick="toggleFavorite('${data.id}')">⭐ Save to Favorites</button>
             <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
             <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
-            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})">⚠️ Report Recipe</button>
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', '${data.id}')">⚠️ Report Recipe</button>
         </div>
 
         ${commentsSectionHTML}
@@ -1425,20 +1413,20 @@ async function loadComments(recipeId) {
             
             let adminControls = '';
             if (isAdmin) {
-                nameHTML = `<span style="font-weight: bold; font-size: 0.9rem; color: #007bff; cursor: pointer;" onclick="openModMenu('${comment.user_id}', '${comment.email}', '${displayName}', event)">${displayName} ⚙️</span>`;
-                adminControls = `<button onclick="adminDeleteContent('comments', ${comment.id}, this)" style="background: #dc3545; color: white; border:none; padding: 4px 8px; font-size: 0.7rem; margin-left: 10px;">Delete</button>`;
+                nameHTML = `<span style="font-weight: bold; font-size: 0.9rem; cursor: pointer;" onclick="openModMenu('${comment.user_id}', '${comment.email}', '${displayName}', event)">${displayName} ⚙️</span>`;
+                adminControls = `<button onclick="adminDeleteContent('comments', '${comment.id}', this)" style="padding: 4px 8px; font-size: 0.7rem; margin-left: 10px;">Delete</button>`;
             }
 
             html += `
-                <div style="background: #fff; border: 1px solid var(--border); padding: 15px; border-radius: 4px;">
+                <div class="window-box" style="padding: 15px; margin-bottom: 0;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                         <div>${nameHTML}</div>
                         <span style="font-size: 0.8rem; color: #666;">${dateStr}</span>
                     </div>
                     <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 0.95rem;">${comment.comment_text}</p>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button onclick="likeComment(${comment.id}, this)" style="padding: 4px 8px; font-size: 0.8rem; background: #f9f9f9; margin: 0;">👍 Like (<span class="comment-like-count">${comment.likes || 0}</span>)</button>
-                        <button onclick="reportComment(${comment.id}, '${safeText}')" style="padding: 4px 8px; font-size: 0.8rem; background: #fff3cd; margin: 0;">⚠️ Report</button>
+                        <button onclick="likeComment('${comment.id}', this)" style="padding: 4px 8px; font-size: 0.8rem; margin: 0;">👍 Like (<span class="comment-like-count">${comment.likes || 0}</span>)</button>
+                        <button onclick="reportComment('${comment.id}', '${safeText}')" style="padding: 4px 8px; font-size: 0.8rem; margin: 0;">⚠️ Report</button>
                         ${adminControls}
                     </div>
                 </div>
@@ -1479,9 +1467,9 @@ function openModMenu(userId, email, nickname, event) {
     menu.id = 'mod-context-menu';
     menu.style.cssText = `
         position: absolute;
-        background: #fff;
+        background: #f0f0f0;
         border: 2px solid var(--border);
-        box-shadow: 4px 4px 0px rgba(0,0,0,1);
+        box-shadow: 4px 4px 0px rgba(0,0,0,0.15);
         padding: 10px;
         z-index: 9999;
         display: flex;
@@ -1495,8 +1483,8 @@ function openModMenu(userId, email, nickname, event) {
     menu.innerHTML = `
         <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Mod: ${nickname}</div>
         <button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="modDirectMessage('${email}')">✉️ Send DM</button>
-        <button style="margin: 0; font-size: 0.85rem; padding: 5px; background: #f8d7da;" onclick="modSoftBlock('${userId}', '${email}')">🛑 Block User</button>
-        <button style="margin: 0; font-size: 0.85rem; padding: 5px; background: #e0e0e0;" onclick="this.parentElement.remove()">Cancel</button>
+        <button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="modSoftBlock('${userId}', '${email}')">🛑 Block User</button>
+        <button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="this.parentElement.remove()">Cancel</button>
     `;
 
     document.body.appendChild(menu);
@@ -1631,12 +1619,12 @@ async function loadSubcategory(subcategory, parentCategory) {
                 
                 let adminControls = '';
                 if (isAdmin) {
-                    adminControls = `<button onclick="adminDeleteContent('meals', ${meal.id}, this); event.stopPropagation();" style="background: #dc3545; color: white; border:none; padding: 4px 8px; font-size: 0.7rem; float: right;">Delete Post</button>`;
+                    adminControls = `<button onclick="adminDeleteContent('meals', '${meal.id}', this); event.stopPropagation();" style="padding: 4px 8px; font-size: 0.7rem; float: right;">Delete Post</button>`;
                 }
 
                 html += `<div class="window-box" style="cursor: pointer; margin-bottom: 0;">
                             ${adminControls}
-                            <div onclick="viewRecipe(${meal.id})">
+                            <div onclick="viewRecipe('${meal.id}')">
                                 <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}</div>
                                 <div style="font-size: 0.85rem; color: #666;">By ${author} • ${date}</div>
                             </div>
@@ -1715,7 +1703,7 @@ async function viewRecipe(id) {
         commentFormHTML = `
             <div style="margin-bottom: 20px;">
                 <textarea id="new-comment-text" rows="3" placeholder="Share your thoughts or variations..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;"></textarea>
-                <button onclick="postComment(${data.id})" style="background: var(--btn-grey);">Post Comment</button>
+                <button onclick="postComment('${data.id}')">Post Comment</button>
             </div>
         `;
     } else {
@@ -1742,11 +1730,11 @@ async function viewRecipe(id) {
         imageHTML = `<div style="width: 100%; padding: 20px; box-sizing: border-box; background: #fff3cd; border: 2px solid var(--border); text-align: center; margin-bottom: 20px;">📸 A photo has been submitted and is waiting for Anton & Jenny to approve it!</div>`;
     } else {
         imageHTML = `
-        <div style="width: 100%; height: 250px; background: #fdf6e3; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; transition: background 0.2s;" onclick="triggerPhotoUpload(${data.id})" onmouseover="this.style.background='#f4ecd8'" onmouseout="this.style.background='#fdf6e3'">
+        <div style="width: 100%; height: 250px; background: #fdf6e3; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; transition: background 0.2s;" onclick="triggerPhotoUpload('${data.id}')" onmouseover="this.style.background='#f4ecd8'" onmouseout="this.style.background='#fdf6e3'">
             <span style="font-size: 2.5rem; margin-bottom: 10px;">📸</span>
             <strong style="color: #333; font-size: 1.1rem;">Made this? Add a photo!</strong>
             <span style="font-size: 0.9rem; color: #666; margin-top: 5px;">(Click to upload)</span>
-            <input type="file" id="recipe-photo-upload-${data.id}" accept="image/*" style="display: none;" onchange="submitPendingPhoto(${data.id}, event)">
+            <input type="file" id="recipe-photo-upload-${data.id}" accept="image/*" style="display: none;" onchange="submitPendingPhoto('${data.id}', event)">
         </div>`;
     }
 
@@ -1792,11 +1780,11 @@ async function viewRecipe(id) {
         </div>
         
         <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
-            <button onclick="likeMeal(${data.id}, this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
-            <button id="fav-btn-${data.id}" onclick="toggleFavorite(${data.id})">⭐ Save to Favorites</button>
+            <button onclick="likeMeal('${data.id}', this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
+            <button id="fav-btn-${data.id}" onclick="toggleFavorite('${data.id}')">⭐ Save to Favorites</button>
             <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
             <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
-            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', ${data.id})">⚠️ Report Recipe</button>
+            <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', '${data.id}')">⚠️ Report Recipe</button>
         </div>
 
         ${commentsSectionHTML}
@@ -1934,7 +1922,10 @@ async function saveRecipe() {
 function switchAdminTab(tab) {
     ['inbox', 'review', 'photo', 'library', 'settings', 'family', 'broadcasts', 'campfire', 'jail', 'audit', 'users'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
-        if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
+        if (btn) {
+            btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
+            btn.style.borderBottom = (t === tab) ? '4px solid var(--border)' : '2px solid var(--border)';
+        }
     });
 
     const area = document.getElementById('admin-content-area');
@@ -1951,7 +1942,7 @@ function switchAdminTab(tab) {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
                 <h2 style="margin-top: 0;">Needs Approval</h2>
-                <div class="search-box">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <select id="review-tier1" onchange="updateTier2('review')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
                     <select id="review-tier2" onchange="updateTier3('review')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
                     <select id="review-tier3" onchange="loadReviewQueue()" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
@@ -1973,7 +1964,7 @@ function switchAdminTab(tab) {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
                 <h2 style="margin-top: 0;">Approved Content</h2>
-                <div class="search-box">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <input type="text" id="library-search" placeholder="Search title or ingredient..." style="flex-basis: 100%; margin-bottom: 10px;" onkeyup="if(event.key === 'Enter') loadLibrary()">
                     <select id="library-tier1" onchange="updateTier2('library')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
                     <select id="library-tier2" onchange="updateTier3('library')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
@@ -1988,15 +1979,15 @@ function switchAdminTab(tab) {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
                 <h2 style="margin-top: 0;">Site Settings</h2>
-                <div class="admin-card" style="flex-direction: column; align-items: flex-start;">
+                <div class="window-box" style="margin-bottom: 20px;">
                     <h3 style="margin-top: 0;">📸 Update Team Photo</h3>
                     <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
-                    <button style="background: #d4edda;" onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
+                    <button onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
                 </div>
-                <div class="admin-card" style="flex-direction: column; align-items: flex-start; margin-top: 20px;">
+                <div class="window-box" style="margin-bottom: 0;">
                     <h3 style="margin-top: 0;">🖼️ Update Website Background</h3>
                     <input type="file" id="bg-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
-                    <button style="background: #d4edda;" onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
+                    <button onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
                 </div>
             </div>`;
     } else if (tab === 'family') {
@@ -2005,7 +1996,7 @@ function switchAdminTab(tab) {
                 <h2 style="margin-top: 0;">🏡 The Family Hub</h2>
                 <p style="color: #555;">Add a new family member or pet to the Sanctuary page.</p>
 
-                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 500px; background: #fdf6e3; padding: 20px; border: 2px solid var(--border); margin-bottom: 30px;">
+                <div class="window-box" style="display: flex; flex-direction: column; gap: 15px; max-width: 500px; margin-bottom: 30px;">
                     <input type="text" id="family-name" placeholder="Name (e.g., Buster, Anton)" required style="margin-bottom: 0;">
                     
                     <select id="family-type" style="margin-bottom: 0;">
@@ -2021,7 +2012,7 @@ function switchAdminTab(tab) {
                     <label style="font-weight: bold; font-size: 0.9rem;">Display Order (1 shows up first):</label>
                     <input type="number" id="family-order" value="1" min="1" style="margin-bottom: 0;">
                     
-                    <button onclick="saveFamilyMember(event)" style="padding: 10px; background-color: #d4edda; border: 2px solid var(--border); font-weight: bold; cursor: pointer;">
+                    <button onclick="saveFamilyMember(event)" style="margin: 0; padding: 10px;">
                         Add to Family Hub
                     </button>
                 </div>
@@ -2039,7 +2030,7 @@ function switchAdminTab(tab) {
                 <h2 style="margin-top: 0;">📣 Community Broadcasts</h2>
                 <p style="color: #555;">Post an update directly to the user sidebar. Everyone will see it.</p>
 
-                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 700px; background: #e6f7ff; padding: 20px; border: 2px solid var(--border); margin-bottom: 30px;">
+                <div class="window-box" style="display: flex; flex-direction: column; gap: 15px; max-width: 700px; margin-bottom: 30px;">
                     <textarea id="broadcast-message" placeholder="Type your announcement here... (e.g., Hey everyone, we are looking for moderators!)" rows="4" required style="margin-bottom: 0; font-family: inherit;"></textarea>
                     
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -2049,7 +2040,7 @@ function switchAdminTab(tab) {
                             <option value="Jenny">— Jenny</option>
                             <option value="Anton & Jenny">— Anton & Jenny</option>
                         </select>
-                        <button onclick="postBroadcast(event)" style="padding: 10px 20px; background-color: #007bff; color: white; border: 2px solid var(--border); font-weight: bold; cursor: pointer; margin: 0;">
+                        <button onclick="postBroadcast(event)" style="padding: 10px 20px; margin: 0;">
                             Send Broadcast 📢
                         </button>
                     </div>
@@ -2075,8 +2066,8 @@ function switchAdminTab(tab) {
         if (typeof loadAdminCampfire === 'function') loadAdminCampfire();
     } else if (tab === 'jail') {
         area.innerHTML = `
-            <div class="window-box" style="width: 100%; box-sizing: border-box; background: #fff0f0;">
-                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; color: #dc3545;">🛑 Holding Cell (Soft Blocks)</h2>
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🛑 Holding Cell (Soft Blocks)</h2>
                 <p style="color: #555;">Users currently restricted from posting. Review and Reinstate.</p>
                 <div id="admin-jail-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                     <p><i>Loading restricted users...</i></p>
@@ -2086,7 +2077,7 @@ function switchAdminTab(tab) {
         loadHoldingCell();
     } else if (tab === 'audit') {
         area.innerHTML = `
-            <div class="window-box" style="width: 100%; box-sizing: border-box; background: #fdf6e3;">
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
                 <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👁️ Live Audit Logs</h2>
                 <p style="color: #555;">Immutable record of all administrative and moderation actions.</p>
                 <div id="admin-audit-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
@@ -2101,9 +2092,9 @@ function switchAdminTab(tab) {
                 <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👥 User Directory</h2>
                 <p style="color: #555;">Search the public mirror profile database to moderate users.</p>
                 
-                <div class="search-box" style="background: #e6f7ff;">
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <input type="text" id="directory-search" placeholder="Search by email or nickname..." style="flex: 1; margin: 0;" onkeyup="if(event.key === 'Enter') searchUserDirectory()">
-                    <button style="background: #007bff; color: white; margin: 0;" onclick="searchUserDirectory()">Search</button>
+                    <button style="margin: 0;" onclick="searchUserDirectory()">Search</button>
                 </div>
 
                 <div id="admin-directory-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
@@ -2135,20 +2126,18 @@ async function searchUserDirectory() {
     let html = '';
     data.forEach(user => {
         let nameToDisplay = user.nickname || "No Nickname Set";
-        let promoteBtn = userRole === 'developer' ? `<button style="background: #e2d9f3; margin: 0;" onclick="promoteUser('${user.email}')">Promote Role</button>` : '';
+        let promoteBtn = userRole === 'developer' ? `<button style="margin: 0;" onclick="promoteUser('${user.email}')">Promote Role</button>` : '';
 
         html += `
-            <div class="admin-card" style="align-items: flex-start; flex-direction: column;">
-                <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
-                    <div>
-                        <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${nameToDisplay}</p>
-                        <p style="font-size: 0.85rem; color: #666; margin: 0;">Email: ${user.email} | ID: <span style="font-family: monospace;">${user.id}</span></p>
-                    </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
-                        ${promoteBtn}
-                        <button style="background: #fff3cd; margin: 0;" onclick="modDirectMessage('${user.email}')">Message</button>
-                        <button style="background: #f8d7da; margin: 0;" onclick="modSoftBlock('${user.id}', '${user.email}')">Soft Block</button>
-                    </div>
+            <div class="window-box" style="padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="border-bottom: 1px solid #ccc; padding-bottom: 10px;">
+                    <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${nameToDisplay}</p>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">Email: ${user.email} | ID: <span style="font-family: monospace;">${user.id}</span></p>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    ${promoteBtn}
+                    <button style="margin: 0;" onclick="modDirectMessage('${user.email}')">Message</button>
+                    <button style="margin: 0;" onclick="modSoftBlock('${user.id}', '${user.email}')">Soft Block</button>
                 </div>
             </div>
         `;
@@ -2191,15 +2180,11 @@ async function loadHoldingCell() {
     data.forEach(inmate => {
         const dateStr = new Date(inmate.banned_at).toLocaleString();
         html += `
-            <div class="admin-card" style="background: #fff; border-left: 5px solid #dc3545;">
-                <div class="admin-card-content">
-                    <p style="font-weight: bold; font-size: 1.1rem; margin: 0 0 5px 0;">${inmate.user_email}</p>
-                    <p style="margin: 0 0 5px 0; font-size: 0.95rem;"><strong>Reason:</strong> ${inmate.reason}</p>
-                    <p style="margin: 0; font-size: 0.8rem; color: #666;">Banned by ${inmate.banned_by} on ${dateStr}</p>
-                </div>
-                <div class="admin-card-actions">
-                    <button style="background: #d4edda;" onclick="unblockUser('${inmate.id}', '${inmate.user_email}')">✅ Unblock</button>
-                </div>
+            <div class="window-box" style="padding: 15px; margin-bottom: 15px;">
+                <p style="font-weight: bold; font-size: 1.1rem; margin: 0 0 5px 0;">${inmate.user_email}</p>
+                <p style="margin: 0 0 5px 0; font-size: 0.95rem;"><strong>Reason:</strong> ${inmate.reason}</p>
+                <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #666;">Banned by ${inmate.banned_by} on ${dateStr}</p>
+                <button onclick="unblockUser('${inmate.id}', '${inmate.user_email}')">✅ Unblock</button>
             </div>
         `;
     });
@@ -2227,13 +2212,13 @@ async function loadAuditLogs() {
     const renderList = (data) => {
         if (data.length === 0) { listDiv.innerHTML = "<p>No logs found.</p>"; return; }
 
-        let html = '<table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">';
-        html += '<tr style="border-bottom: 2px solid var(--border); background: #eee;"><th style="padding: 8px;">Time</th><th style="padding: 8px;">Actor</th><th style="padding: 8px;">Action</th><th style="padding: 8px;">Target/Context</th></tr>';
+        let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">';
+        html += '<tr style="border-bottom: 2px solid var(--border);"><th style="padding: 8px;">Time</th><th style="padding: 8px;">Actor</th><th style="padding: 8px;">Action</th><th style="padding: 8px;">Target/Context</th></tr>';
         
         data.forEach(log => {
             const dateStr = new Date(log.created_at).toLocaleString();
             html += `
-                <tr style="border-bottom: 1px solid #ddd;">
+                <tr style="border-bottom: 1px solid #ccc;">
                     <td style="padding: 8px; color: #666;">${dateStr}</td>
                     <td style="padding: 8px; font-weight: bold;">${log.actor_email}</td>
                     <td style="padding: 8px;"><span style="background: #e0e0e0; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${log.action_type}</span></td>
@@ -2241,7 +2226,7 @@ async function loadAuditLogs() {
                 </tr>
             `;
         });
-        html += '</table>';
+        html += '</table></div>';
         listDiv.innerHTML = html;
     };
 
@@ -2279,8 +2264,8 @@ async function loadPhotoQueue() {
                 <h3 style="margin: 0 0 5px 0;">${meal.title}</h3>
                 <p style="margin: 0 0 15px 0; font-size: 0.85rem; color: #666;">Submitted by Community</p>
                 <div style="display: flex; gap: 10px;">
-                    <button style="background: #d4edda; flex: 1; margin: 0;" onclick="approvePhoto(${meal.id}, '${meal.pending_image_url}')">✅ Approve</button>
-                    <button style="background: #f8d7da; flex: 1; margin: 0;" onclick="declinePhoto(${meal.id}, '${meal.pending_image_url}')">❌ Decline</button>
+                    <button style="flex: 1; margin: 0;" onclick="approvePhoto('${meal.id}', '${meal.pending_image_url}')">✅ Approve</button>
+                    <button style="flex: 1; margin: 0;" onclick="declinePhoto('${meal.id}', '${meal.pending_image_url}')">❌ Decline</button>
                 </div>
             </div>
         </div>`;
@@ -2422,7 +2407,7 @@ async function loadReviewQueue() {
     list.innerHTML = "Checking for new submissions...";
     const { data, error } = await buildAdminQuery('review', 'pending');
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-    if (data.length === 0) { list.innerHTML = `<p>Queue is empty for this filter! You are all caught up.</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<div class="window-box"><p>Queue is empty for this filter! You are all caught up.</p></div>`; return; }
     renderAdminItems(data, list, 'review');
 }
 
@@ -2431,42 +2416,38 @@ async function loadLibrary() {
     list.innerHTML = "Loading library...";
     const { data, error } = await buildAdminQuery('library', 'approved');
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-    if (data.length === 0) { list.innerHTML = `<p>No approved content found matching this filter.</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<div class="window-box"><p>No approved content found matching this filter.</p></div>`; return; }
     renderAdminItems(data, list, 'library');
 }
 
 function renderAdminItems(data, container, contextPrefix) {
     let html = '';
     data.forEach(meal => {
-        let badgeStyle = '';
-        let statusBadge = contextPrefix === 'review' 
-            ? `<span class="admin-badge badge-pending">PENDING</span>` 
-            : `<span class="admin-badge badge-approved">APPROVED</span>`;
-        
+        let statusBadge = contextPrefix === 'review' ? `(PENDING)` : `(APPROVED)`;
         let typeInfo = `Global Recipe (${meal.category})`;
         
         if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country}) - ${meal.meal_type || 'Unknown'}`; } 
-        else if (meal.category === 'special') { badgeStyle = 'badge-special'; typeInfo = `Local Special (${meal.country})`; } 
-        else if (meal.category === '7-Day Meal Plans') { badgeStyle = 'badge-plan'; typeInfo = `Meal Plan (Global)`; } 
-        else if (categories['Pet Food & Treats'].includes(meal.category)) { badgeStyle = 'badge-pet'; typeInfo = `Pet Food (${meal.category})`; }
+        else if (meal.category === 'special') { typeInfo = `Local Special (${meal.country})`; } 
+        else if (meal.category === '7-Day Meal Plans') { typeInfo = `Meal Plan (Global)`; } 
+        else if (categories['Pet Food & Treats'].includes(meal.category)) { typeInfo = `Pet Food (${meal.category})`; }
 
         html += `
-        <div class="admin-card" id="${contextPrefix}-${meal.id}">
-            <div class="admin-card-content">
+        <div class="window-box" id="${contextPrefix}-${meal.id}" style="padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="border-bottom: 1px solid #ccc; padding-bottom: 10px;">
                 <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${meal.title} ${statusBadge}</p>
                 <p style="font-size: 0.85rem; color: #666; margin: 0;">Type: ${typeInfo} | ID: ${meal.id} | Date: ${new Date(meal.created_at).toLocaleDateString()}</p>
             </div>
-            <div class="admin-card-actions">`;
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">`;
         
         if (contextPrefix === 'review') {
-            html += `<button style="background: #d4edda;" onclick="approveRecipe(${meal.id})">Approve</button>`;
+            html += `<button onclick="approveRecipe('${meal.id}')">Approve</button>`;
         } else if (contextPrefix === 'library') {
-            html += `<button style="background: #e2d9f3;" onclick="moderateComments(${meal.id}, '${meal.title.replace(/'/g, "\\'")}')">Moderate Comments</button>`;
+            html += `<button onclick="moderateComments('${meal.id}', '${meal.title.replace(/'/g, "\\'")}')">Moderate Comments</button>`;
         }
         
         html += `
-                <button style="background: #fff3cd;" onclick="openEdit(${meal.id})">Edit</button>
-                <button style="background: #f8d7da;" onclick="deleteRecord('meals', ${meal.id})">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
+                <button onclick="openEdit('${meal.id}')">Edit</button>
+                <button onclick="deleteRecord('meals', '${meal.id}')">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
             </div>
         </div>`;
     });
@@ -2491,21 +2472,19 @@ async function moderateComments(recipeId, recipeTitle) {
     if (data.length === 0) {
         html += `<p>No comments on this recipe.</p>`;
     } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+        html += `<div style="display: flex; flex-direction: column; gap: 15px;">`;
         data.forEach(comment => {
             let displayName = comment.nickname || comment.email;
             html += `
-                <div class="admin-card" style="align-items: flex-start;">
-                    <div class="admin-card-content">
-                        <p style="font-weight: bold; margin: 0 0 5px 0;">
-                            <span style="color:#007bff; cursor:pointer;" onclick="openModMenu('${comment.user_id}', '${comment.email}', '${displayName}', event)">${displayName} ⚙️</span> 
-                            <span style="font-size: 0.8rem; font-weight: normal; color: #666;">(${new Date(comment.created_at).toLocaleString()})</span>
-                        </p>
-                        <p style="margin: 0; white-space: pre-wrap;">${comment.comment_text}</p>
-                        <p style="font-size: 0.8rem; color: #666; margin: 5px 0 0 0;">Likes: ${comment.likes || 0} | Comment ID: ${comment.id}</p>
-                    </div>
-                    <div class="admin-card-actions">
-                        <button style="background: #f8d7da;" onclick="deleteRecord('comments', ${comment.id}, ${recipeId}, '${recipeTitle.replace(/'/g, "\\'")}')">Delete Comment</button>
+                <div class="window-box" style="padding: 15px; margin-bottom: 0;">
+                    <p style="font-weight: bold; margin: 0 0 5px 0;">
+                        <span style="color:#007bff; cursor:pointer;" onclick="openModMenu('${comment.user_id}', '${comment.email}', '${displayName}', event)">${displayName} ⚙️</span> 
+                        <span style="font-size: 0.8rem; font-weight: normal; color: #666;">(${new Date(comment.created_at).toLocaleString()})</span>
+                    </p>
+                    <p style="margin: 0 0 10px 0; white-space: pre-wrap;">${comment.comment_text}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p style="font-size: 0.8rem; color: #666; margin: 0;">Likes: ${comment.likes || 0} | Comment ID: ${comment.id}</p>
+                        <button onclick="deleteRecord('comments', '${comment.id}', '${recipeId}', '${recipeTitle.replace(/'/g, "\\'")}')" style="margin: 0;">Delete Comment</button>
                     </div>
                 </div>
             `;
@@ -2528,7 +2507,7 @@ async function loadMessages() {
     const { data, error } = await myDatabase.from('messages').select('*').order('created_at', { ascending: false });
     
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-    if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<div class="window-box"><p>Inbox is empty.</p></div>`; return; }
     
     const unreadAdminIds = data.filter(m => m.recipient_email === 'admin' && m.is_read === false).map(m => m.id);
     if (unreadAdminIds.length > 0) {
@@ -2539,28 +2518,28 @@ async function loadMessages() {
     data.forEach(msg => {
         const isReport = msg.name.startsWith("REPORTED") || msg.name.startsWith("🚩 REPORTED");
         const isAdminReply = (msg.email === currentUser.email) || (msg.recipient_email !== 'admin');
-        const unreadBadge = (!isAdminReply && !msg.is_read) ? '<span class="admin-badge badge-pending">UNREAD</span>' : '';
+        const unreadText = (!isAdminReply && !msg.is_read) ? ' (UNREAD)' : '';
         const safeEmailId = (msg.email || '').replace(/[^a-zA-Z0-9]/g, '');
 
         html += `
-        <div class="admin-card" style="background: ${isReport ? '#fff0f0' : (isAdminReply ? '#f9f9f9' : '#ffffff')}; border: ${isReport ? '2px solid #dc3545' : '2px solid var(--border)'}; flex-direction: column; align-items: flex-start;">
-            <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+        <div class="window-box" style="padding: 15px; margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
                 <div>
                     <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">
-                        ${isAdminReply ? 'Admin Reply To:' : msg.name} <span style="font-size: 0.85rem; color: #666;">(${isAdminReply ? msg.recipient_email : msg.email})</span> ${unreadBadge}
+                        ${isAdminReply ? 'Admin Reply To:' : msg.name} <span style="font-size: 0.85rem; color: #666;">(${isAdminReply ? msg.recipient_email : msg.email})</span><strong style="color: #dc3545;">${unreadText}</strong>
                     </p>
                     <p style="font-size: 0.85rem; color: #666; margin: 0;">${new Date(msg.created_at).toLocaleString()}</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    ${!isAdminReply && !isReport ? `<button style="background: #d4edda;" onclick="openAdminReply('${safeEmailId}')">Reply</button>` : ''}
-                    <button style="background: #f8d7da;" onclick="deleteRecord('messages', ${msg.id})">Delete</button>
+                    ${!isAdminReply && !isReport ? `<button onclick="openAdminReply('${safeEmailId}')" style="margin: 0;">Reply</button>` : ''}
+                    <button onclick="deleteRecord('messages', '${msg.id}')" style="margin: 0;">Delete</button>
                 </div>
             </div>
             <p style="white-space: pre-wrap; margin: 0;">${msg.message}</p>
             
             <div id="reply-box-${safeEmailId}" style="display:none; width: 100%; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
                 <textarea id="reply-text-${safeEmailId}" rows="3" placeholder="Type your reply to ${msg.email}..." style="width: 100%; margin-bottom: 10px;"></textarea>
-                <button style="background: #d4edda;" onclick="sendAdminReply('${msg.email}', '${safeEmailId}')">Send Reply</button>
+                <button onclick="sendAdminReply('${msg.email}', '${safeEmailId}')">Send Reply</button>
             </div>
         </div>`;
     });
@@ -2644,7 +2623,7 @@ async function openEdit(id) {
             <div style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--border); background: #fdf6e3; display: inline-block;">
                 <p style="margin: 0 0 10px 0; font-size: 0.9rem; font-weight: bold;">Currently Live Photo:</p>
                 <img src="${data.image_url}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 10px;">
-                <button style="background: #f8d7da; padding: 4px 8px; font-size: 0.8rem; margin: 0;" onclick="adminRemovePhoto(${data.id}, '${data.image_url}')">🗑️ Remove Photo</button>
+                <button onclick="adminRemovePhoto('${data.id}', '${data.image_url}')" style="margin: 0;">🗑️ Remove Photo</button>
             </div>
         `;
     } else {
@@ -2658,13 +2637,13 @@ async function openEdit(id) {
                 <button onclick="switchAdminTab('library')">Cancel & Return</button>
             </div>
             
-            <div class="admin-card" style="flex-direction: column; align-items: flex-start; margin-bottom: 20px;">
+            <div class="window-box" style="margin-bottom: 20px;">
                 <h3 style="margin-top: 0;">🖼️ Recipe Photo Management</h3>
                 ${currentPhotoHTML}
                 <label style="font-size: 0.85rem; color: #555; display: block; border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px; width: 100%;">Upload / Replace Live Photo (Bypasses moderation queue):</label>
                 <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
                     <input type="file" id="admin-recipe-photo-${data.id}" accept="image/*" style="margin: 0;">
-                    <button onclick="adminUploadRecipePhoto(${data.id})" style="background: #e2d9f3; padding: 6px 12px; font-size: 0.9rem; margin: 0;">Upload & Set Live</button>
+                    <button onclick="adminUploadRecipePhoto('${data.id}')" style="margin: 0;">Upload & Set Live</button>
                 </div>
             </div>
 
@@ -2672,14 +2651,14 @@ async function openEdit(id) {
             <label style="font-weight: bold; font-size: 0.9rem;">Recipe Title</label>
             <input type="text" id="edit-title" placeholder="Recipe Title" value="${(data.title || '').replace(/"/g, '&quot;')}">
             
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
                     <label style="font-weight: bold; font-size: 0.9rem;">Category</label>
                     <select id="edit-category" onchange="toggleAdminFields()" style="width: 100%; box-sizing: border-box;">
                         ${categoryOptionsHTML}
                     </select>
                 </div>
-                <div style="flex: 1;">
+                <div style="flex: 1; min-width: 250px;">
                     <label style="font-weight: bold; font-size: 0.9rem;">Country</label>
                     <select id="edit-country" style="width: 100%; box-sizing: border-box;">
                         ${countryOptionsHTML}
@@ -2694,12 +2673,12 @@ async function openEdit(id) {
                 <option value="takeaway" ${data.meal_type === 'takeaway' ? 'selected' : ''}>Takeaway (No Ingredients)</option>
             </select>
             
-            <div id="edit-budget-fields" style="display:none; gap: 10px; margin-bottom: 15px;">
-                <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Total Cost</label><input type="number" id="edit-cost" placeholder="Cost" step="any" value="${data.cost || ''}"></div>
-                <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Servings</label><input type="number" id="edit-servings" placeholder="Servings" value="${data.servings || ''}"></div>
+            <div id="edit-budget-fields" style="display:none; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <div style="flex:1; min-width: 150px;"><label style="font-weight: bold; font-size: 0.9rem;">Total Cost</label><input type="number" id="edit-cost" placeholder="Cost" step="any" value="${data.cost || ''}"></div>
+                <div style="flex:1; min-width: 150px;"><label style="font-weight: bold; font-size: 0.9rem;">Servings</label><input type="number" id="edit-servings" placeholder="Servings" value="${data.servings || ''}"></div>
             </div>
             
-            <div id="edit-ingredients-container" style="background: #ffffff; border: 2px solid var(--border); padding: 20px; margin-bottom: 20px;">
+            <div id="edit-ingredients-container" class="window-box" style="margin-bottom: 20px;">
                 <h3 style="margin-top: 0;">Ingredients</h3>
                 <div id="edit-ingredients-list"></div>
                 <button onclick="adminAddIngredientRow()" style="margin-top: 15px;">+ Add Ingredient Row</button>
@@ -2708,7 +2687,7 @@ async function openEdit(id) {
             <label style="font-weight: bold; font-size: 0.9rem;">Instructions / What is Included</label>
             <textarea id="edit-instructions" rows="8" placeholder="Instructions...">${(data.recipe || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
             
-            <button style="background: #d4edda; width: 100%; font-size: 1.1rem; padding: 15px;" onclick="saveEdit()">💾 Save Changes to Database</button>
+            <button style="width: 100%; font-size: 1.1rem; padding: 15px;" onclick="saveEdit()">💾 Save Changes to Database</button>
         </div>
     `;
 
@@ -2766,7 +2745,7 @@ function adminAddIngredientRow(name = '', qty = '', unit = '') {
         <input type="text" class="ing-name" placeholder="Item Name" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0;">
         <input type="number" step="any" class="ing-qty" placeholder="Qty" value="${safeQty}" style="flex: 1; margin: 0;">
         <input type="text" class="ing-unit" placeholder="Unit" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0;">
-        <button style="background: #f8d7da; margin: 0; padding: 0 15px;" onclick="this.parentElement.remove()">X</button>
+        <button style="margin: 0; padding: 0 15px;" onclick="this.parentElement.remove()">X</button>
     `;
     list.appendChild(row);
 }
@@ -2822,11 +2801,9 @@ async function checkFavoriteStatus(recipeId) {
         
     if (data) {
         btn.innerHTML = '⭐ Saved to Favorites';
-        btn.style.background = '#d4edda';
         btn.dataset.saved = 'true';
     } else {
         btn.innerHTML = '⭐ Save to Favorites';
-        btn.style.background = '';
         btn.dataset.saved = 'false';
     }
 }
@@ -2848,7 +2825,6 @@ async function toggleFavorite(recipeId) {
             .eq('recipe_id', recipeId);
         if (!error) {
             btn.innerHTML = '⭐ Save to Favorites';
-            btn.style.background = '';
             btn.dataset.saved = 'false';
         }
     } else {
@@ -2858,7 +2834,6 @@ async function toggleFavorite(recipeId) {
         }]);
         if (!error) {
             btn.innerHTML = '⭐ Saved to Favorites';
-            btn.style.background = '#d4edda';
             btn.dataset.saved = 'true';
         }
     }
@@ -2907,17 +2882,17 @@ async function loadCookbook() {
         const meal = meals.find(m => m.id === fav.recipe_id);
         if (meal) {
             const isBudget = meal.category === 'budget';
-            const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
+            const clickAction = isBudget ? `viewBudgetMeal('${meal.id}')` : `viewRecipe('${meal.id}')`;
             const badge = isBudget ? ` - BUDGET (${meal.country})` : '';
             const author = meal.author || 'Community';
             
             html += `
-                <div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
                     <div>
                         <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
                         <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
                     </div>
-                    <button onclick="removeFromCookbook(${meal.id}, event)" style="margin: 0; padding: 6px 12px; background: #f8d7da; border-color: #dc3545; color: #721c24; font-size: 0.8rem; white-space: nowrap;">❌ Remove</button>
+                    <button onclick="removeFromCookbook('${meal.id}', event)" style="margin: 0; white-space: nowrap;">❌ Remove</button>
                 </div>
             `;
         }
@@ -3020,15 +2995,15 @@ async function loadAdminFamilyList() {
         let sortButtons = '';
         if (data.length > 1) {
             if (index > 0) {
-                sortButtons += `<button style="background: #e2d9f3; margin: 0; padding: 4px 8px; flex: 1; border: 2px solid var(--border); font-size: 0.8rem;" onclick="moveFamilyMember('${member.id}', 'up')">⬆️</button>`;
+                sortButtons += `<button style="margin: 0; padding: 4px 8px; flex: 1;" onclick="moveFamilyMember('${member.id}', 'up')">⬆️</button>`;
             }
             if (index < data.length - 1) {
-                sortButtons += `<button style="background: #e2d9f3; margin: 0; padding: 4px 8px; flex: 1; border: 2px solid var(--border); font-size: 0.8rem;" onclick="moveFamilyMember('${member.id}', 'down')">⬇️</button>`;
+                sortButtons += `<button style="margin: 0; padding: 4px 8px; flex: 1;" onclick="moveFamilyMember('${member.id}', 'down')">⬇️</button>`;
             }
         }
 
         html += `
-            <div style="display: flex; gap: 15px; border: 1px solid var(--border); padding: 15px; background: #fff; align-items: center; justify-content: space-between;">
+            <div class="window-box" style="display: flex; gap: 15px; padding: 15px; margin-bottom: 0; align-items: center; justify-content: space-between; flex-wrap: wrap;">
                 <div style="display: flex; gap: 15px; flex: 1; align-items: center;">
                     <img src="${member.image_url}" style="width: 80px; height: 80px; min-width: 80px; object-fit: cover; border-radius: 50%;">
                     <div>
@@ -3040,7 +3015,7 @@ async function loadAdminFamilyList() {
                     <div style="display: flex; gap: 5px; width: 100%;">
                         ${sortButtons}
                     </div>
-                    <button style="background: #f8d7da; margin: 0; width: 100%; padding: 6px; cursor: pointer; border: 2px solid var(--border);" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
+                    <button style="margin: 0; width: 100%; padding: 6px;" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
                 </div>
             </div>
         `;
@@ -3139,12 +3114,12 @@ async function loadAdminBroadcasts() {
     data.forEach(update => {
         const dateStr = new Date(update.created_at).toLocaleString();
         html += `
-            <div style="border: 1px solid var(--border); padding: 15px; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
+            <div class="window-box" style="padding: 15px; margin-bottom: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
                 <div style="flex: 1;">
                     <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 1rem;">${update.message}</p>
                     <p style="margin: 0; font-size: 0.85rem; font-weight: bold; color: #007bff;">${update.author_signature} <span style="font-weight: normal; color: #666;">(${dateStr})</span></p>
                 </div>
-                <button style="background: #f8d7da; margin: 0; padding: 6px 12px; cursor: pointer;" onclick="deleteBroadcast('${update.id}')">Delete</button>
+                <button style="margin: 0; padding: 6px 12px;" onclick="deleteBroadcast('${update.id}')">Delete</button>
             </div>
         `;
     });
@@ -3179,14 +3154,14 @@ async function loadAdminCampfire() {
     data.forEach(msg => {
         const dateStr = new Date(msg.created_at).toLocaleString();
         html += `
-            <div style="border: 1px solid var(--border); padding: 10px; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
+            <div class="window-box" style="padding: 15px; margin-bottom: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
                 <div style="flex: 1;">
                     <p style="margin: 0 0 5px 0; font-size: 0.85rem; color: #666;">
                         <span style="color:#007bff; font-weight:bold; cursor:pointer;" onclick="openModMenu('${msg.user_id}', 'Unknown', '${msg.user_name}', event)">${msg.user_name} ⚙️</span> - ${dateStr}
                     </p>
                     <p style="margin: 0; font-size: 1rem; word-wrap: break-word;">${msg.message}</p>
                 </div>
-                <button style="background: #f8d7da; margin: 0; padding: 6px 12px; cursor: pointer;" onclick="adminDeleteCampfireMessage('${msg.id}', this)">Delete</button>
+                <button style="margin: 0; padding: 6px 12px;" onclick="adminDeleteCampfireMessage('${msg.id}', this)">Delete</button>
             </div>
         `;
     });
@@ -3199,7 +3174,7 @@ async function adminDeleteCampfireMessage(id, btnElement) {
     const { error } = await myDatabase.from('global_chat').delete().eq('id', id);
     if (error) alert("Error deleting message: " + error.message);
     else {
-        if (btnElement) btnElement.parentElement.remove();
+        if (btnElement) btnElement.closest('.window-box').remove();
     }
 }
 
@@ -3306,11 +3281,11 @@ async function loadShoutboxMessages() {
             let adminControls = '';
             if (isAdmin) {
                 nameHTML = `<span style="${nameStyle} cursor: pointer; color: #007bff;" onclick="openModMenu('${msg.user_id}', 'Unknown', '${msg.user_name}', event)">${msg.user_name} ⚙️</span>`;
-                adminControls = `<button onclick="adminDeleteContent('global_chat', ${msg.id}, this)" style="background: #dc3545; color: white; border:none; padding: 4px 8px; font-size: 0.7rem; margin-left: 10px;">Delete</button>`;
+                adminControls = `<button onclick="adminDeleteContent('global_chat', '${msg.id}', this)" style="padding: 4px 8px; font-size: 0.7rem; margin-left: 10px;">Delete</button>`;
             }
 
             html += `
-                <div style="background: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 4px; display: flex; flex-direction: column;">
+                <div class="window-box" style="padding: 10px; margin-bottom: 0; display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px; align-items: center;">
                         <div>
                             ${nameHTML}
