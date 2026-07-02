@@ -71,9 +71,19 @@ async function isUserBanned() {
     return false;
 }
 
+// ==========================================
+//        THE MASTER DISPLAY NAME ENGINE
+// ==========================================
 function getUserDisplayName() {
     if (!currentUser) return "Guest";
-    return currentUser.user_metadata?.nickname || currentUser.email.split('@')[0];
+    const rawName = currentUser.user_metadata?.nickname || currentUser.email.split('@')[0];
+    
+    let roleTag = "(Member)";
+    if (userRole === 'developer') roleTag = "(Founder)";
+    else if (userRole === 'admin') roleTag = "(Admin)";
+    else if (userRole === 'moderator') roleTag = "(Moderator)";
+    
+    return `${rawName} ${roleTag}`;
 }
 
 // ==========================================
@@ -470,7 +480,7 @@ function showPage(page) {
                     <label style="font-weight: bold; font-size: 0.9rem;">Change Public Nickname</label>
                     <div style="display: flex; gap: 10px; margin-top: 5px;">
                         <input type="text" id="update-nickname-input" placeholder="New Nickname" value="${currentName}" style="flex: 1; margin: 0;">
-                        <button onclick="updateUserNickname()" style="margin: 0;">Update</button>
+                        <button onclick="updateUserNickname()" style="margin: 0; background: #e2d9f3;">Update</button>
                     </div>
                 </div>
 
@@ -607,7 +617,6 @@ function showPage(page) {
     }
 }
 
-// [NEW] API Hook to update Nickname
 async function updateUserNickname() {
     if (!currentUser) return;
     const newName = document.getElementById('update-nickname-input').value.trim();
@@ -625,7 +634,6 @@ async function updateUserNickname() {
     }
 }
 
-// [RESTORED] Missing Photo Handlers
 async function uploadTeamPhoto(event) {
     const file = document.getElementById('team-photo-upload').files[0];
     if (!file) return alert("Select an image first.");
@@ -665,7 +673,6 @@ async function uploadBackgroundPhoto(event) {
     alert("Background updated!");
 }
 
-// [RESTORED] Missing Budget Meal Saver
 async function saveBudgetMeal() {
     if(await isUserBanned()) return; 
     const title = document.getElementById('budget-title').value.trim();
@@ -885,7 +892,7 @@ async function executeSearch() {
         data.forEach(meal => {
             const author = meal.author || "Community";
             const isBudget = meal.category === 'budget';
-            const clickAction = isBudget ? `viewBudgetMeal('${meal.id}')` : `viewRecipe('${meal.id}')`;
+            const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
             const badge = isBudget ? ` - BUDGET` : '';
 
             html += `<div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0;">
@@ -2067,7 +2074,7 @@ function switchAdminTab(tab) {
     } else if (tab === 'jail') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🛑 Holding Cell (Soft Blocks)</h2>
+                <h2 style="margin-top: 0;">🛑 Holding Cell (Soft Blocks)</h2>
                 <p style="color: #555;">Users currently restricted from posting. Review and Reinstate.</p>
                 <div id="admin-jail-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                     <p><i>Loading restricted users...</i></p>
@@ -2078,7 +2085,7 @@ function switchAdminTab(tab) {
     } else if (tab === 'audit') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👁️ Live Audit Logs</h2>
+                <h2 style="margin-top: 0;">👁️ Live Audit Logs</h2>
                 <p style="color: #555;">Immutable record of all administrative and moderation actions.</p>
                 <div id="admin-audit-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                     <p><i>Pulling security tapes...</i></p>
@@ -2089,7 +2096,7 @@ function switchAdminTab(tab) {
     } else if (tab === 'users') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👥 User Directory</h2>
+                <h2 style="margin-top: 0;">👥 User Directory</h2>
                 <p style="color: #555;">Search the public mirror profile database to moderate users.</p>
                 
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
@@ -3271,8 +3278,8 @@ async function loadShoutboxMessages() {
 
         let html = '';
         data.forEach(msg => {
-            const isFounder = msg.user_name.includes('Anton') || msg.user_name.includes('Jenny') || msg.user_name.includes('👑');
-            const nameStyle = isFounder ? 'color: #d9534f; font-weight: 900;' : 'color: #333; font-weight: bold;';
+            const isStaff = msg.user_name.includes('(Founder)') || msg.user_name.includes('(Admin)') || msg.user_name.includes('(Moderator)');
+            const nameStyle = isStaff ? 'color: #d9534f; font-weight: 900;' : 'color: #333; font-weight: bold;';
             const timeStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             
             let nameHTML = `<span style="${nameStyle}">${msg.user_name}</span>`;
@@ -3332,7 +3339,6 @@ async function postShoutboxMessage() {
     input.disabled = true;
     
     let displayName = getUserDisplayName();
-    if (userRole === 'developer') displayName += " 👑";
 
     const { error } = await myDatabase.from('global_chat').insert([{
         user_id: currentUser.id,
