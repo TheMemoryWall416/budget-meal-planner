@@ -9,12 +9,15 @@ let totalApprovedRecipes = 0;
 let totalVisitors = 10000;
 let teamPhotoUrl = localStorage.getItem('cached_team_photo') || 'https://via.placeholder.com/300';
 let dynamicBudgetTips = [];
+
+// USER STATE & ROLES
 let currentUser = null; 
 let isLoginMode = false; 
 let isAdmin = false;
+let userRole = 'user'; // 'user', 'moderator', 'admin', 'developer'
 
 // ==========================================
-//        THE SWR CACHE ENGINE (NEW TOOL)
+//        THE SWR CACHE ENGINE
 // ==========================================
 async function fetchWithSWR(cacheKey, dbQueryFunction, renderFunction) {
     const cachedDataString = localStorage.getItem(cacheKey);
@@ -44,7 +47,36 @@ async function fetchWithSWR(cacheKey, dbQueryFunction, renderFunction) {
     }
 }
 
-// [FIXED]: Unified Interceptor Function - Defined only once.
+// ==========================================
+//        SECURITY: AUDIT LOG DOUBLE-TAP
+// ==========================================
+async function logAction(actionType, targetInfo, contextMsg) {
+    if (!currentUser) return;
+    await myDatabase.from('audit_logs').insert([{
+        actor_email: currentUser.email,
+        action_type: actionType,
+        target_info: targetInfo,
+        context: contextMsg
+    }]);
+}
+
+// ==========================================
+//        SECURITY: CHECK BANNED STATUS
+// ==========================================
+async function isUserBanned() {
+    if (!currentUser) return false;
+    const { data } = await myDatabase.from('banned_users').select('id').eq('user_id', currentUser.id).single();
+    if (data) {
+        alert("Your account is currently restricted from posting. Please check your Private Inbox on your profile for details.");
+        return true;
+    }
+    return false;
+}
+
+
+// ==========================================
+//        CORE UTILITIES
+// ==========================================
 function triggerPhotoUpload(recipeId) {
     if (!currentUser) { 
         alert("Please log in or sign up to share a photo of your meal!"); 
@@ -66,7 +98,14 @@ async function initAuth() {
 
 async function checkAdminStatus(email) {
     const { data, error } = await myDatabase.from('admin_whitelist').select('*').eq('email', email).single();
-    isAdmin = !!data; 
+    
+    if (data) {
+        isAdmin = true;
+        userRole = data.role || 'admin'; 
+    } else {
+        isAdmin = false;
+        userRole = 'user';
+    }
     updateAuthUI();
 }
 
@@ -120,6 +159,7 @@ function toggleAuthMode() {
     const btn = document.getElementById('auth-primary-btn');
     const toggleText = document.getElementById('auth-toggle-text');
     const toggleLink = document.getElementById('auth-toggle-link');
+    const nicknameContainer = document.getElementById('nickname-container');
 
     if (isLoginMode) {
         title.innerText = 'Welcome Back';
@@ -127,21 +167,26 @@ function toggleAuthMode() {
         btn.innerText = 'Sign In';
         toggleText.innerText = 'Need an account?';
         toggleLink.innerText = 'Join for Free';
+        if(nicknameContainer) nicknameContainer.style.display = 'none'; 
     } else {
         title.innerText = 'Join the Community';
         desc.innerText = 'Create a free member account to save recipes, participate in community discussions, and track your kitchen contributions!';
         btn.innerText = 'Join for Free';
         toggleText.innerText = 'Already a member?';
         toggleLink.innerText = 'Sign In';
+        if(nicknameContainer) nicknameContainer.style.display = 'block'; 
     }
 }
 
 async function handleAuthSubmit() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
+    const nicknameInput = document.getElementById('auth-nickname');
+    const nickname = nicknameInput ? nicknameInput.value.trim() : '';
     
     if (!email || !password) return alert("Please enter both email and password.");
     if (password.length < 6) return alert("Password must be at least 6 characters.");
+    if (!isLoginMode && !nickname) return alert("Please choose a nickname so the community knows who you are!");
 
     const btn = document.getElementById('auth-primary-btn');
     const originalText = btn.innerText;
@@ -155,7 +200,11 @@ async function handleAuthSubmit() {
         const res = await myDatabase.auth.signInWithPassword({ email, password });
         error = res.error; data = res.data;
     } else {
-        const res = await myDatabase.auth.signUp({ email, password });
+        const res = await myDatabase.auth.signUp({ 
+            email, 
+            password,
+            options: { data: { nickname: nickname } } 
+        });
         error = res.error; data = res.data;
     }
 
@@ -189,6 +238,7 @@ async function logoutUser() {
     await myDatabase.auth.signOut();
     currentUser = null; 
     isAdmin = false;
+    userRole = 'user';
     updateAuthUI(); 
     showPage('home');
 }
@@ -279,6 +329,11 @@ function updateHack() {
         const randomIndex = Math.floor(Math.random() * dynamicBudgetTips.length);
         element.innerText = dynamicBudgetTips[randomIndex];
     }
+}
+
+function getUserDisplayName() {
+    if (!currentUser) return "Guest";
+    return currentUser.user_metadata?.nickname || currentUser.email.split('@')[0];
 }
 
 window.onload = function() {
@@ -386,14 +441,25 @@ function showPage(page) {
         </div>
     `;
     } else if (page === 'profile') {
+        const currentName = currentUser?.user_metadata?.nickname || '';
         view.innerHTML = `
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
                 <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">MY PROFILE</h1>
             </div>
+            
             <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; text-align: center;">
-                <h2 style="margin-top:0;">Welcome!</h2>
-                <p>You are signed in as: <strong style="font-size:1.1rem; display:block; margin-top: 5px;">${currentUser ? currentUser.email : 'Unknown'}</strong></p>
-                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+                <h2 style="margin-top:0;">Welcome, ${getUserDisplayName()}!</h2>
+                <p>Email: <strong style="font-size:1.1rem;">${currentUser ? currentUser.email : 'Unknown'}</strong></p>
+                
+                <div style="background: #fdf6e3; padding: 15px; border: 2px dashed var(--border); margin-top: 15px; text-align: left;">
+                    <label style="font-weight: bold; font-size: 0.9rem;">Change Public Nickname</label>
+                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                        <input type="text" id="update-nickname-input" placeholder="New Nickname" value="${currentName}" style="flex: 1; margin: 0;">
+                        <button onclick="updateUserNickname()" style="margin: 0; background: #e2d9f3;">Update</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
                     <button onclick="toggleCookbook()" style="background: var(--btn-grey);">📖 My Cookbook</button>
                     <button onclick="logoutUser()">🚪 Sign Out</button>
                 </div>
@@ -436,33 +502,44 @@ function showPage(page) {
         
         view.innerHTML = `
             <style>
-                .admin-card { border: 2px solid var(--border); padding: 20px; margin-bottom: 15px; background: #ffffff; display: flex; justify-content: space-between; align-items: center; }
+                .admin-card { border: 2px solid var(--border); padding: 20px; margin-bottom: 15px; background: #ffffff; display: flex; justify-content: space-between; align-items: center; box-shadow: 4px 4px 0px rgba(0,0,0,1); }
                 .admin-card-content { flex-grow: 1; }
                 .admin-card-actions { display: flex; gap: 10px; margin-left: 15px; flex-wrap: wrap; justify-content: flex-end;}
-                .admin-badge { padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: 2px solid var(--border); margin-left: 10px; background: #fff; display: inline-block; margin-bottom: 5px;}
+                .admin-badge { padding: 4px 8px; font-size: 0.75rem; font-weight: bold; border: 2px solid var(--border); margin-left: 10px; background: #fff; display: inline-block; margin-bottom: 5px; box-shadow: 2px 2px 0px rgba(0,0,0,1); }
                 .badge-special { background: #fff3cd; }
                 .badge-plan { background: #cce5ff; }
                 .badge-pet { background: #e2d9f3; }
                 .badge-pending { background: #ffeeba; }
                 .badge-approved { background: #d4edda; }
-                .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #ffffff; padding: 20px; border: 2px solid var(--border); }
-                .admin-tab-btn { flex: 1; min-width: 140px; text-align: center; margin: 0; }
+                .badge-jail { background: #dc3545; color: white; }
+                .search-box { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: #fdf6e3; padding: 20px; border: 2px solid var(--border); box-shadow: 4px 4px 0px rgba(0,0,0,1); }
+                .admin-tab-btn { flex: 1; min-width: 140px; text-align: center; margin: 0; box-shadow: 2px 2px 0px rgba(0,0,0,1); border: 2px solid var(--border); font-weight: bold; }
+                .admin-btn-action { margin: 0; padding: 6px 12px; font-size: 0.9rem; font-weight: bold; box-shadow: 2px 2px 0px rgba(0,0,0,1); border: 2px solid var(--border); }
             </style>
             
             <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
                 <h1 style="margin: 0; font-size: 1.8rem;">Command Center</h1>
-                <p style="margin: 0; font-size: 1rem; color: #555;">Authorized personnel only.</p>
+                <p style="margin: 0; font-size: 1rem; color: #555;">Clearance Level: <strong>${userRole.toUpperCase()}</strong></p>
             </div>
             
-            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
-                <button id="tab-inbox" class="admin-tab-btn" onclick="switchAdminTab('inbox')">📥 Inbox & Reports</button>
-                <button id="tab-review" class="admin-tab-btn" onclick="switchAdminTab('review')">⏳ New Recipe Queue</button>
-                <button id="tab-photo" class="admin-tab-btn" onclick="switchAdminTab('photo')">📸 Photo Moderation</button>
-                <button id="tab-library" class="admin-tab-btn" onclick="switchAdminTab('library')">📚 Manage Library</button>
-                <button id="tab-settings" class="admin-tab-btn" onclick="switchAdminTab('settings')">⚙️ Site Settings</button>
-                <button id="tab-family" class="admin-tab-btn" onclick="switchAdminTab('family')">🏡 Family Hub</button>
-                <button id="tab-broadcasts" class="admin-tab-btn" onclick="switchAdminTab('broadcasts')">📣 Broadcasts</button>
+            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 20px; background: #e0e0e0;">
+                <button id="tab-inbox" class="admin-tab-btn" onclick="switchAdminTab('inbox')">📥 Inbox</button>
+                <button id="tab-review" class="admin-tab-btn" onclick="switchAdminTab('review')">⏳ Content Queue</button>
+                <button id="tab-library" class="admin-tab-btn" onclick="switchAdminTab('library')">📚 Library</button>
                 <button id="tab-campfire" class="admin-tab-btn" onclick="switchAdminTab('campfire')">🔥 Campfire Logs</button>
+                
+                ${userRole === 'admin' || userRole === 'developer' ? `
+                    <button id="tab-photo" class="admin-tab-btn" onclick="switchAdminTab('photo')">📸 Photos</button>
+                    <button id="tab-users" class="admin-tab-btn" onclick="switchAdminTab('users')">👥 Directory</button>
+                ` : ''}
+
+                ${userRole === 'developer' ? `
+                    <button id="tab-family" class="admin-tab-btn" onclick="switchAdminTab('family')">🏡 Family</button>
+                    <button id="tab-broadcasts" class="admin-tab-btn" onclick="switchAdminTab('broadcasts')">📣 Broadcasts</button>
+                    <button id="tab-jail" class="admin-tab-btn" onclick="switchAdminTab('jail')" style="background: #f8d7da;">🛑 Holding Cell</button>
+                    <button id="tab-audit" class="admin-tab-btn" onclick="switchAdminTab('audit')" style="background: #e2d9f3;">👁️ Audit Logs</button>
+                    <button id="tab-settings" class="admin-tab-btn" onclick="switchAdminTab('settings')">⚙️ Settings</button>
+                ` : ''}
             </div>
             
             <div id="admin-content-area" style="width: 100%; max-width: 1000px;"></div>
@@ -524,6 +601,24 @@ function showPage(page) {
         view.innerHTML = `<div class="window-box"><h1>${page.replace(/-/g, ' ').toUpperCase()}</h1></div>`;
     }
 }
+
+async function updateUserNickname() {
+    if (!currentUser) return;
+    const newName = document.getElementById('update-nickname-input').value.trim();
+    if (!newName) return alert("Please enter a valid nickname.");
+
+    const { data, error } = await myDatabase.auth.updateUser({
+        data: { nickname: newName }
+    });
+
+    if (error) alert("Error updating nickname: " + error.message);
+    else {
+        alert("Nickname updated successfully!");
+        currentUser = data.user; 
+        showPage('profile'); 
+    }
+}
+
 
 function renderFindHub() {
     const view = document.getElementById('main-view');
@@ -589,7 +684,6 @@ function renderCreatorHub() {
     `;
 }
 
-// [UPGRADED]: Uses SWR Caching
 async function loadMemberMessages() {
     if (!currentUser) return; 
     const container = document.getElementById('member-messages');
@@ -821,6 +915,7 @@ function renderAddMealPlanForm() {
 }
 
 async function saveMealPlan() {
+    if(await isUserBanned()) return; 
     const title = document.getElementById('plan-title').value.trim();
     if (!title) return alert("Please enter a title for your meal plan.");
 
@@ -840,6 +935,7 @@ async function saveMealPlan() {
 
     const { error } = await myDatabase.from('meals').insert([{ 
         title: title, 
+        author: getUserDisplayName(), 
         category: '7-Day Meal Plans', 
         parent_category: 'Specialized Plans', 
         recipe: finalRecipe.trim(),
@@ -850,7 +946,6 @@ async function saveMealPlan() {
     else { alert("Meal Plan posted successfully!"); loadSubcategory('7-Day Meal Plans', 'Specialized Plans'); }
 }
 
-// [UPGRADED]: Uses SWR Caching
 async function loadSpecials() {
     const view = document.getElementById('main-view');
     if (!selectedCountry) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Error</h1><p>Please select a country first.</p></div>`; return; }
@@ -871,10 +966,18 @@ async function loadSpecials() {
             html += `<div style="display: flex; flex-direction: column; gap: 15px; max-width: 600px; width: 100%;">`;
             data.forEach(meal => {
                 const expiryStr = new Date(meal.expiry_date).toLocaleDateString();
+                
+                let adminControls = '';
+                if (isAdmin) {
+                    adminControls = `<button onclick="adminDeleteContent('meals', ${meal.id})" style="background: #dc3545; color: white; border:none; padding: 5px 10px; font-size: 0.8rem; margin: 0 0 10px 0;">🗑️ Delete Post</button>`;
+                }
+
                 html += `
                 <div class="window-box" style="margin-bottom: 0;">
+                    ${adminControls}
                     <div style="margin-bottom: 8px;">
                         <span style="font-size: 0.75rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">EXPIRES: ${expiryStr}</span>
+                        <span style="font-size: 0.8rem; color: #666; margin-left: 10px;">By: ${meal.author || 'Community'}</span>
                     </div>
                     <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
                     <div style="font-size: 1.2rem; margin-bottom: 10px; font-weight: bold;">
@@ -899,7 +1002,7 @@ async function loadSpecials() {
         cacheKey,
         async () => {
             const now = new Date().toISOString();
-            const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now);
+            const { data, error } = await myDatabase.from('meals').select('*').eq('category', 'special').eq('country', selectedCountry).gt('expiry_date', now).order('created_at', {ascending: false});
             if (error) throw error;
             return data;
         },
@@ -938,6 +1041,7 @@ function renderAddSpecialForm() {
 }
 
 async function saveSpecial() {
+    if(await isUserBanned()) return; 
     const title = document.getElementById('special-title').value.trim();
     const cost = parseFloat(document.getElementById('special-cost').value);
     const duration = document.getElementById('special-duration').value;
@@ -953,7 +1057,7 @@ async function saveSpecial() {
     const expiryISO = expiryDate.toISOString();
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', parent_category: 'Specials', expiry_date: expiryISO, status: 'pending'
+        country: selectedCountry, title: title, recipe: details, cost: cost, category: 'special', parent_category: 'Specials', expiry_date: expiryISO, status: 'pending', author: getUserDisplayName()
     }]);
 
     if (error) alert("Error: " + error.message); 
@@ -971,7 +1075,6 @@ function toggleMealType() {
     }
 }
 
-// [UPGRADED]: Uses SWR Caching
 async function loadBudgetMeals(filter = 'all') {
     const view = document.getElementById('main-view');
     const cacheKey = `cache_budget_${selectedCountry}_${filter}`;
@@ -1003,10 +1106,17 @@ async function loadBudgetMeals(filter = 'all') {
                 const costPerPerson = (meal.cost / meal.servings).toFixed(2);
                 const badgeText = meal.meal_type === 'takeaway' ? 'TAKEAWAY' : 'HOME-COOKED';
                 
+                let adminControls = '';
+                if (isAdmin) {
+                    adminControls = `<button onclick="adminDeleteContent('meals', ${meal.id})" style="background: #dc3545; color: white; border:none; padding: 5px 10px; font-size: 0.8rem; margin: 0 0 10px 0;">🗑️ Delete Post</button>`;
+                }
+
                 html += `
                 <div class="window-box" onclick="viewBudgetMeal(${meal.id})" style="cursor: pointer; margin-bottom: 0;">
+                    ${adminControls}
                     <div style="margin-bottom: 8px;">
                         <span style="font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">${badgeText}</span>
+                        <span style="font-size: 0.8rem; color: #666; margin-left: 10px;">By: ${meal.author || 'Community'}</span>
                     </div>
                     <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
                     <div style="font-size: 1.1rem;">
@@ -1036,6 +1146,20 @@ async function loadBudgetMeals(filter = 'all') {
         renderList
     );
 }
+
+async function adminDeleteContent(table, id) {
+    if (!confirm("ADMIN ACTION: Permanently delete this content from the live site?")) return;
+    
+    await logAction(`DELETE_${table.toUpperCase()}`, `ID: ${id}`, "Deleted via frontend quick-button.");
+
+    const { error } = await myDatabase.from(table).delete().eq('id', id);
+    if (error) alert("Error: " + error.message);
+    else {
+        alert("Content wiped successfully.");
+        location.reload(); 
+    }
+}
+
 
 async function viewBudgetMeal(id) {
     const view = document.getElementById('main-view');
@@ -1124,6 +1248,7 @@ async function viewBudgetMeal(id) {
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
             </div>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 10px; margin-bottom:0;">Posted by: ${data.author || 'Community'}</p>
         </div>
         
         <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
@@ -1187,7 +1312,6 @@ async function reportRecipe(title, id) {
     else alert("Report submitted successfully. Thank you!");
 }
 
-// [UPGRADED]: Uses SWR Caching
 async function loadComments(recipeId) {
     const list = document.getElementById('recipe-comments-list');
     if (!list) return;
@@ -1204,16 +1328,27 @@ async function loadComments(recipeId) {
         data.forEach(comment => {
             const dateStr = new Date(comment.created_at).toLocaleDateString();
             const safeText = comment.comment_text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            
+            let displayName = comment.nickname || comment.email.split('@')[0];
+            let nameHTML = `<span style="font-weight: bold; font-size: 0.9rem;">${displayName}</span>`;
+            
+            let adminControls = '';
+            if (isAdmin) {
+                nameHTML = `<span style="font-weight: bold; font-size: 0.9rem; color: #007bff; cursor: pointer;" onclick="openModMenu('${comment.user_id}', '${comment.email}', '${displayName}', event)">${displayName} ⚙️</span>`;
+                adminControls = `<button onclick="adminDeleteContent('comments', ${comment.id})" style="background: #dc3545; color: white; border:none; padding: 4px 8px; font-size: 0.7rem; margin-left: 10px;">Delete</button>`;
+            }
+
             html += `
-                <div style="background: #fff; border: 1px solid var(--border); padding: 15px;">
+                <div style="background: #fff; border: 1px solid var(--border); padding: 15px; border-radius: 4px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="font-weight: bold; font-size: 0.9rem;">${comment.email.split('@')[0]}</span>
+                        <div>${nameHTML}</div>
                         <span style="font-size: 0.8rem; color: #666;">${dateStr}</span>
                     </div>
                     <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 0.95rem;">${comment.comment_text}</p>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="likeComment(${comment.id}, this)" style="padding: 4px 8px; font-size: 0.8rem; background: #f9f9f9;">👍 Like (<span class="comment-like-count">${comment.likes || 0}</span>)</button>
-                        <button onclick="reportComment(${comment.id}, '${safeText}')" style="padding: 4px 8px; font-size: 0.8rem; background: #fff3cd;">⚠️ Report</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button onclick="likeComment(${comment.id}, this)" style="padding: 4px 8px; font-size: 0.8rem; background: #f9f9f9; margin: 0;">👍 Like (<span class="comment-like-count">${comment.likes || 0}</span>)</button>
+                        <button onclick="reportComment(${comment.id}, '${safeText}')" style="padding: 4px 8px; font-size: 0.8rem; background: #fff3cd; margin: 0;">⚠️ Report</button>
+                        ${adminControls}
                     </div>
                 </div>
             `;
@@ -1241,8 +1376,89 @@ async function loadComments(recipeId) {
     );
 }
 
+function openModMenu(userId, email, nickname, event) {
+    if (!isAdmin) return;
+    
+    let existing = document.getElementById('mod-context-menu');
+    if (existing) existing.remove();
+
+    if (!userId) return alert("System ID missing for this user. Cannot perform moderation.");
+
+    const menu = document.createElement('div');
+    menu.id = 'mod-context-menu';
+    menu.style.cssText = `
+        position: absolute;
+        background: #fff;
+        border: 2px solid var(--border);
+        box-shadow: 4px 4px 0px rgba(0,0,0,1);
+        padding: 10px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    `;
+    
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+
+    menu.innerHTML = `
+        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Mod: ${nickname}</div>
+        <button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="modDirectMessage('${email}')">✉️ Send DM</button>
+        <button style="margin: 0; font-size: 0.85rem; padding: 5px; background: #f8d7da;" onclick="modSoftBlock('${userId}', '${email}')">🛑 Block User</button>
+        <button style="margin: 0; font-size: 0.85rem; padding: 5px; background: #e0e0e0;" onclick="this.parentElement.remove()">Cancel</button>
+    `;
+
+    document.body.appendChild(menu);
+}
+
+function modDirectMessage(email) {
+    const existing = document.getElementById('mod-context-menu');
+    if (existing) existing.remove();
+
+    const msg = prompt(`Direct message to ${email}:\n(This goes to their profile inbox)`);
+    if (!msg) return;
+
+    myDatabase.from('messages').insert([{
+        name: 'MODERATOR MESSAGE',
+        email: currentUser.email,
+        recipient_email: email,
+        message: msg,
+        is_read: false
+    }]).then(({error}) => {
+        if(error) alert("Failed to send: " + error.message);
+        else {
+            logAction('MOD_DM_SENT', `To: ${email}`, `Sent warning DM.`);
+            alert("Message sent securely.");
+        }
+    });
+}
+
+async function modSoftBlock(userId, email) {
+    const existing = document.getElementById('mod-context-menu');
+    if (existing) existing.remove();
+
+    const reason = prompt(`CRITICAL: Enter reason for blocking ${email}.\nThis places them in the Holding Cell.`);
+    if (!reason) return alert("Block cancelled. Reason required.");
+
+    const { error } = await myDatabase.from('banned_users').insert([{
+        user_id: userId,
+        user_email: email,
+        reason: reason,
+        banned_by: currentUser.email
+    }]);
+
+    if (error) alert("Error placing block: " + error.message);
+    else {
+        await logAction('USER_BLOCKED', `Target: ${email}`, `Reason: ${reason}`);
+        alert(`${email} has been restricted and sent to the Holding Cell.`);
+    }
+}
+
+
 async function postComment(recipeId) {
     if (!currentUser) return alert("Please log in to comment.");
+    if(await isUserBanned()) return; 
+
     const input = document.getElementById('new-comment-text');
     const text = input.value.trim();
     
@@ -1253,7 +1469,9 @@ async function postComment(recipeId) {
 
     const { error } = await myDatabase.from('comments').insert([{
         recipe_id: recipeId,
+        user_id: currentUser.id, 
         email: currentUser.email,
+        nickname: getUserDisplayName(), 
         comment_text: text
     }]);
 
@@ -1300,7 +1518,6 @@ async function reportComment(commentId, commentText) {
     else alert("Comment reported successfully. Thank you for keeping the community safe!");
 }
 
-// [UPGRADED]: Uses SWR Caching
 async function loadSubcategory(subcategory, parentCategory) {
     const view = document.getElementById('main-view');
     const cacheKey = `cache_category_${subcategory}`;
@@ -1320,9 +1537,18 @@ async function loadSubcategory(subcategory, parentCategory) {
             data.forEach(meal => {
                 const author = meal.author || "Home Cook";
                 const date = meal.created_at ? new Date(meal.created_at).toLocaleDateString() : "Unknown Date";
-                html += `<div class="window-box" onclick="viewRecipe(${meal.id})" style="cursor: pointer; margin-bottom: 0;">
-                            <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}</div>
-                            <div style="font-size: 0.85rem; color: #666;">By ${author} • ${date}</div>
+                
+                let adminControls = '';
+                if (isAdmin) {
+                    adminControls = `<button onclick="adminDeleteContent('meals', ${meal.id})" style="background: #dc3545; color: white; border:none; padding: 4px 8px; font-size: 0.7rem; float: right;">Delete Post</button>`;
+                }
+
+                html += `<div class="window-box" style="cursor: pointer; margin-bottom: 0;">
+                            ${adminControls}
+                            <div onclick="viewRecipe(${meal.id})">
+                                <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}</div>
+                                <div style="font-size: 0.85rem; color: #666;">By ${author} • ${date}</div>
+                            </div>
                          </div>`;
             });
             html += `</div>`;
@@ -1543,7 +1769,6 @@ function showForm(subcategory, parentCategory) {
         </div>
         <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
             <input type="text" id="recipe-name" placeholder="Recipe Title">
-            <input type="text" id="author-name" placeholder="Your Name (Optional)">
             <div id="ingredients-container" style="width: 100%; max-width: 450px; background: #f0f0f0; border: 2px solid var(--border); padding: 15px; margin-bottom: 15px; box-sizing: border-box;">
                 <h3 style="margin-top: 0;">Ingredients</h3>
                 <div id="ingredients-list"></div>
@@ -1591,8 +1816,8 @@ function addIngredientRow() {
 }
 
 async function saveRecipe() {
+    if(await isUserBanned()) return; 
     const title = document.getElementById('recipe-name').value.trim();
-    const author = document.getElementById('author-name').value.trim() || "Home Cook";
     const instructions = document.getElementById('recipe-instructions').value.trim();
     
     const ingredientRows = document.querySelectorAll('.ingredient-row');
@@ -1608,7 +1833,7 @@ async function saveRecipe() {
     if (!title || !instructions) return alert("Please enter a title and instructions.");
 
     const { error } = await myDatabase.from('meals').insert([{ 
-        title: title, author: author, category: selectedSubcategory, parent_category: selectedParentCategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString(), status: 'pending'
+        title: title, author: getUserDisplayName(), category: selectedSubcategory, parent_category: selectedParentCategory, ingredients: structuredIngredients, recipe: instructions, created_at: new Date().toISOString(), status: 'pending'
     }]);
     
     if (error) alert("Error: " + error.message);
@@ -1616,9 +1841,16 @@ async function saveRecipe() {
 }
 
 function switchAdminTab(tab) {
-    ['inbox', 'review', 'photo', 'library', 'settings', 'family', 'broadcasts', 'campfire'].forEach(t => {
+    ['inbox', 'review', 'photo', 'library', 'settings', 'family', 'broadcasts', 'campfire', 'jail', 'audit', 'users'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
-        if (btn) btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
+        if (btn) {
+            if (t === 'jail') btn.style.boxShadow = (t === tab) ? 'inset 2px 2px 0px rgba(0,0,0,1)' : '2px 2px 0px rgba(0,0,0,1)';
+            else if (t === 'audit') btn.style.boxShadow = (t === tab) ? 'inset 2px 2px 0px rgba(0,0,0,1)' : '2px 2px 0px rgba(0,0,0,1)';
+            else {
+                btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
+                btn.style.boxShadow = (t === tab) ? 'inset 2px 2px 0px rgba(0,0,0,1)' : '2px 2px 0px rgba(0,0,0,1)';
+            }
+        }
     });
 
     const area = document.getElementById('admin-content-area');
@@ -1626,7 +1858,7 @@ function switchAdminTab(tab) {
     if (tab === 'inbox') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">User Messages & Reports</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">📥 User Messages & Reports</h2>
                 <div id="messages-list">Loading...</div>
             </div>`;
         loadMessages();
@@ -1634,7 +1866,7 @@ function switchAdminTab(tab) {
     else if (tab === 'review') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">Needs Approval</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">⏳ Needs Approval</h2>
                 <div class="search-box">
                     <select id="review-tier1" onchange="updateTier2('review')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
                     <select id="review-tier2" onchange="updateTier3('review')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
@@ -1647,7 +1879,7 @@ function switchAdminTab(tab) {
     else if (tab === 'photo') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">Pending Photo Submissions</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">📸 Pending Photo Submissions</h2>
                 <p style="color: #555;">Approve user-submitted photos to send them live, or decline to delete them.</p>
                 <div id="photo-list" style="margin-top: 20px;">Loading...</div>
             </div>`;
@@ -1656,13 +1888,13 @@ function switchAdminTab(tab) {
     else if (tab === 'library') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">Approved Content</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">📚 Approved Content</h2>
                 <div class="search-box">
                     <input type="text" id="library-search" placeholder="Search title or ingredient..." style="flex-basis: 100%; margin-bottom: 10px;" onkeyup="if(event.key === 'Enter') loadLibrary()">
                     <select id="library-tier1" onchange="updateTier2('library')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
                     <select id="library-tier2" onchange="updateTier3('library')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
                     <select id="library-tier3" onchange="loadLibrary()" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
-                    <button onclick="loadLibrary()" style="flex-basis: 100%; margin-top: 10px;">🔍 Search / Apply Filters</button>
+                    <button class="admin-btn-action" style="background: #e6f7ff; flex-basis: 100%; margin-top: 10px;" onclick="loadLibrary()">🔍 Search / Apply Filters</button>
                 </div>
                 <div id="library-list" style="margin-top: 20px;">Loading...</div>
             </div>`;
@@ -1671,25 +1903,25 @@ function switchAdminTab(tab) {
     else if (tab === 'settings') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">Site Settings</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">⚙️ Site Settings</h2>
                 <div class="admin-card" style="flex-direction: column; align-items: flex-start;">
                     <h3 style="margin-top: 0;">📸 Update Team Photo</h3>
                     <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
-                    <button style="background: #d4edda;" onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
+                    <button class="admin-btn-action" style="background: #d4edda;" onclick="uploadTeamPhoto(event)">Upload & Save Image</button>
                 </div>
                 <div class="admin-card" style="flex-direction: column; align-items: flex-start; margin-top: 20px;">
                     <h3 style="margin-top: 0;">🖼️ Update Website Background</h3>
                     <input type="file" id="bg-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
-                    <button style="background: #d4edda;" onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
+                    <button class="admin-btn-action" style="background: #d4edda;" onclick="uploadBackgroundPhoto(event)">Upload & Save Background</button>
                 </div>
             </div>`;
     } else if (tab === 'family') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">🏡 The Family Hub</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🏡 The Family Hub</h2>
                 <p style="color: #555;">Add a new family member or pet to the Sanctuary page.</p>
 
-                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 500px; background: #fdf6e3; padding: 20px; border: 2px solid var(--border); margin-bottom: 30px;">
+                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 500px; background: #fdf6e3; padding: 20px; border: 2px solid var(--border); box-shadow: 4px 4px 0px rgba(0,0,0,1); margin-bottom: 30px;">
                     <input type="text" id="family-name" placeholder="Name (e.g., Buster, Anton)" required style="margin-bottom: 0;">
                     
                     <select id="family-type" style="margin-bottom: 0;">
@@ -1705,7 +1937,7 @@ function switchAdminTab(tab) {
                     <label style="font-weight: bold; font-size: 0.9rem;">Display Order (1 shows up first):</label>
                     <input type="number" id="family-order" value="1" min="1" style="margin-bottom: 0;">
                     
-                    <button onclick="saveFamilyMember(event)" style="padding: 10px; background-color: #d4edda; border: 2px solid var(--border); font-weight: bold; cursor: pointer;">
+                    <button class="admin-btn-action" onclick="saveFamilyMember(event)" style="padding: 10px; background-color: #d4edda; font-weight: bold; cursor: pointer;">
                         Add to Family Hub
                     </button>
                 </div>
@@ -1720,10 +1952,10 @@ function switchAdminTab(tab) {
     } else if (tab === 'broadcasts') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">📣 Community Broadcasts</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">📣 Community Broadcasts</h2>
                 <p style="color: #555;">Post an update directly to the user sidebar. Everyone will see it.</p>
 
-                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 700px; background: #e6f7ff; padding: 20px; border: 2px solid var(--border); margin-bottom: 30px;">
+                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 700px; background: #e6f7ff; padding: 20px; border: 2px solid var(--border); box-shadow: 4px 4px 0px rgba(0,0,0,1); margin-bottom: 30px;">
                     <textarea id="broadcast-message" placeholder="Type your announcement here... (e.g., Hey everyone, we are looking for moderators!)" rows="4" required style="margin-bottom: 0; font-family: inherit;"></textarea>
                     
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -1733,7 +1965,7 @@ function switchAdminTab(tab) {
                             <option value="Jenny">— Jenny</option>
                             <option value="Anton & Jenny">— Anton & Jenny</option>
                         </select>
-                        <button onclick="postBroadcast(event)" style="padding: 10px 20px; background-color: #007bff; color: white; border: 2px solid var(--border); font-weight: bold; cursor: pointer; margin: 0;">
+                        <button class="admin-btn-action" onclick="postBroadcast(event)" style="padding: 10px 20px; background-color: #007bff; color: white; margin: 0;">
                             Send Broadcast 📢
                         </button>
                     </div>
@@ -1749,7 +1981,7 @@ function switchAdminTab(tab) {
     } else if (tab === 'campfire') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">🔥 Campfire Logs (Moderation)</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🔥 Campfire Logs (Moderation)</h2>
                 <p style="color: #555;">Live feed of the public shoutbox. Delete inappropriate messages instantly.</p>
                 <div id="admin-campfire-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                     <p><i>Loading logs...</i></p>
@@ -1757,8 +1989,194 @@ function switchAdminTab(tab) {
             </div>
         `;
         if (typeof loadAdminCampfire === 'function') loadAdminCampfire();
+    } else if (tab === 'jail') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box; background: #fff0f0;">
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; color: #dc3545;">🛑 Holding Cell (Soft Blocks)</h2>
+                <p style="color: #555;">Users currently restricted from posting. Review and Reinstate.</p>
+                <div id="admin-jail-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                    <p><i>Loading restricted users...</i></p>
+                </div>
+            </div>
+        `;
+        loadHoldingCell();
+    } else if (tab === 'audit') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box; background: #fdf6e3;">
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👁️ Live Audit Logs</h2>
+                <p style="color: #555;">Immutable record of all administrative and moderation actions.</p>
+                <div id="admin-audit-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                    <p><i>Pulling security tapes...</i></p>
+                </div>
+            </div>
+        `;
+        loadAuditLogs();
+    } else if (tab === 'users') {
+        area.innerHTML = `
+            <div class="window-box" style="width: 100%; box-sizing: border-box;">
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👥 User Directory</h2>
+                <p style="color: #555;">Search the public mirror profile database to moderate users.</p>
+                
+                <div class="search-box" style="background: #e6f7ff;">
+                    <input type="text" id="directory-search" placeholder="Search by email or nickname..." style="flex: 1; margin: 0;" onkeyup="if(event.key === 'Enter') searchUserDirectory()">
+                    <button class="admin-btn-action" style="background: #007bff; color: white; margin: 0;" onclick="searchUserDirectory()">Search</button>
+                </div>
+
+                <div id="admin-directory-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                    <p><i>Enter a search term above...</i></p>
+                </div>
+            </div>
+        `;
     }
 }
+
+// ==========================================
+//        PHASE 5: MIRROR DIRECTORY SEARCH
+// ==========================================
+async function searchUserDirectory() {
+    const term = document.getElementById('directory-search').value.trim();
+    if(!term) return;
+
+    const listDiv = document.getElementById('admin-directory-list');
+    listDiv.innerHTML = "<p>Searching vault...</p>";
+
+    const { data, error } = await myDatabase.from('public_profiles')
+        .select('*')
+        .or(`email.ilike.%${term}%,nickname.ilike.%${term}%`)
+        .limit(20);
+
+    if (error) { listDiv.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { listDiv.innerHTML = "<p>No matching users found.</p>"; return; }
+
+    let html = '';
+    data.forEach(user => {
+        let nameToDisplay = user.nickname || "No Nickname Set";
+        
+        let promoteBtn = userRole === 'developer' ? `<button class="admin-btn-action" style="background: #e2d9f3; margin: 0;" onclick="promoteUser('${user.email}')">Promote Role</button>` : '';
+
+        html += `
+            <div class="admin-card" style="align-items: flex-start; flex-direction: column;">
+                <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                    <div>
+                        <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${nameToDisplay}</p>
+                        <p style="font-size: 0.85rem; color: #666; margin: 0;">Email: ${user.email} | ID: <span style="font-family: monospace;">${user.id}</span></p>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
+                        ${promoteBtn}
+                        <button class="admin-btn-action" style="background: #fff3cd; margin: 0;" onclick="modDirectMessage('${user.email}')">Message</button>
+                        <button class="admin-btn-action" style="background: #f8d7da; margin: 0;" onclick="modSoftBlock('${user.id}', '${user.email}')">Soft Block</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    listDiv.innerHTML = html;
+}
+
+async function promoteUser(email) {
+    const newRole = prompt(`Promote ${email} to what role?\nOptions: 'moderator', 'admin', 'user'`);
+    if (!newRole || !['moderator', 'admin', 'user'].includes(newRole.toLowerCase())) {
+        return alert("Invalid role. Cancelled.");
+    }
+
+    const { error } = await myDatabase.from('admin_whitelist').upsert({
+        email: email,
+        role: newRole.toLowerCase()
+    }, { onConflict: 'email' });
+
+    if(error) alert("Error: " + error.message);
+    else {
+        await logAction('ROLE_CHANGED', `Target: ${email}`, `Promoted to ${newRole}`);
+        alert(`${email} is now a ${newRole}.`);
+    }
+}
+
+
+// ==========================================
+//        PHASE 4: THE HOLDING CELL (JAIL)
+// ==========================================
+async function loadHoldingCell() {
+    const listDiv = document.getElementById('admin-jail-list');
+    
+    const { data, error } = await myDatabase.from('banned_users')
+        .select('*')
+        .order('banned_at', { ascending: false });
+
+    if (error) { listDiv.innerHTML = `<p>Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { listDiv.innerHTML = "<p>The Holding Cell is currently empty.</p>"; return; }
+
+    let html = "";
+    data.forEach(inmate => {
+        const dateStr = new Date(inmate.banned_at).toLocaleString();
+        html += `
+            <div class="admin-card" style="background: #fff; border-left: 5px solid #dc3545;">
+                <div class="admin-card-content">
+                    <p style="font-weight: bold; font-size: 1.1rem; margin: 0 0 5px 0;">${inmate.user_email}</p>
+                    <p style="margin: 0 0 5px 0; font-size: 0.95rem;"><strong>Reason:</strong> ${inmate.reason}</p>
+                    <p style="margin: 0; font-size: 0.8rem; color: #666;">Banned by ${inmate.banned_by} on ${dateStr}</p>
+                </div>
+                <div class="admin-card-actions">
+                    <button class="admin-btn-action" style="background: #d4edda;" onclick="unblockUser('${inmate.id}', '${inmate.user_email}')">✅ Unblock</button>
+                </div>
+            </div>
+        `;
+    });
+    listDiv.innerHTML = html;
+}
+
+async function unblockUser(recordId, email) {
+    if (!confirm(`Are you sure you want to reinstate ${email}?`)) return;
+
+    const { error } = await myDatabase.from('banned_users').delete().eq('id', recordId);
+    if (error) alert("Error unblocking: " + error.message);
+    else {
+        await logAction('USER_UNBLOCKED', `Target: ${email}`, `Reinstated from holding cell.`);
+        alert("User unblocked successfully.");
+        loadHoldingCell();
+    }
+}
+
+// ==========================================
+//        PHASE 4: AUDIT LOGS
+// ==========================================
+async function loadAuditLogs() {
+    const listDiv = document.getElementById('admin-audit-list');
+
+    const renderList = (data) => {
+        if (data.length === 0) { listDiv.innerHTML = "<p>No logs found.</p>"; return; }
+
+        let html = '<table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">';
+        html += '<tr style="border-bottom: 2px solid var(--border); background: #eee;"><th style="padding: 8px;">Time</th><th style="padding: 8px;">Actor</th><th style="padding: 8px;">Action</th><th style="padding: 8px;">Target/Context</th></tr>';
+        
+        data.forEach(log => {
+            const dateStr = new Date(log.created_at).toLocaleString();
+            html += `
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px; color: #666;">${dateStr}</td>
+                    <td style="padding: 8px; font-weight: bold;">${log.actor_email}</td>
+                    <td style="padding: 8px;"><span style="background: #e0e0e0; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${log.action_type}</span></td>
+                    <td style="padding: 8px;">${log.target_info} <br><i style="color: #666; font-size: 0.8rem;">${log.context}</i></td>
+                </tr>
+            `;
+        });
+        html += '</table>';
+        listDiv.innerHTML = html;
+    };
+
+    await fetchWithSWR(
+        'cache_audit_logs',
+        async () => {
+            const { data, error } = await myDatabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100);
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
+}
+
+// ==========================================
+//        EXISTING ADMIN FUNCTIONS (STYLED)
+// ==========================================
 
 async function loadPhotoQueue() {
     const area = document.getElementById('photo-list');
@@ -1770,7 +2188,7 @@ async function loadPhotoQueue() {
         
     if (error) { area.innerHTML = `<p>Error: ${error.message}</p>`; return; }
     if (data.length === 0) { 
-        area.innerHTML = `<div style="text-align:center; padding: 40px;"><h2 style="margin:0;">All caught up!</h2><p style="color:#666;">No pending photos to review.</p></div>`; 
+        area.innerHTML = `<div class="window-box" style="text-align:center; padding: 40px;"><h2 style="margin:0;">All caught up!</h2><p style="color:#666;">No pending photos to review.</p></div>`; 
         return; 
     }
     
@@ -1783,8 +2201,8 @@ async function loadPhotoQueue() {
                 <h3 style="margin: 0 0 5px 0;">${meal.title}</h3>
                 <p style="margin: 0 0 15px 0; font-size: 0.85rem; color: #666;">Submitted by Community</p>
                 <div style="display: flex; gap: 10px;">
-                    <button style="background: #d4edda; flex: 1; padding: 10px 0; margin: 0;" onclick="approvePhoto(${meal.id}, '${meal.pending_image_url}')">✅ Approve</button>
-                    <button style="background: #f8d7da; flex: 1; padding: 10px 0; margin: 0;" onclick="declinePhoto(${meal.id}, '${meal.pending_image_url}')">❌ Decline</button>
+                    <button class="admin-btn-action" style="background: #d4edda; flex: 1; margin: 0;" onclick="approvePhoto(${meal.id}, '${meal.pending_image_url}')">✅ Approve</button>
+                    <button class="admin-btn-action" style="background: #f8d7da; flex: 1; margin: 0;" onclick="declinePhoto(${meal.id}, '${meal.pending_image_url}')">❌ Decline</button>
                 </div>
             </div>
         </div>`;
@@ -1794,6 +2212,7 @@ async function loadPhotoQueue() {
 }
 
 async function approvePhoto(id, url) {
+    await logAction('APPROVE_PHOTO', `Recipe ID: ${id}`, `Approved user submitted photo.`);
     const { error } = await myDatabase.from('meals').update({ image_url: url, pending_image_url: null }).eq('id', id);
     if (error) alert("Error approving photo: " + error.message);
     else loadPhotoQueue();
@@ -1801,6 +2220,7 @@ async function approvePhoto(id, url) {
 
 async function declinePhoto(id, url) {
     if(!confirm("Decline and permanently delete this photo?")) return;
+    await logAction('DECLINE_PHOTO', `Recipe ID: ${id}`, `Declined & deleted photo.`);
     const fileName = url.split('/').pop();
     await myDatabase.storage.from('recipe_images').remove([fileName]);
     const { error } = await myDatabase.from('meals').update({ pending_image_url: null }).eq('id', id);
@@ -1924,7 +2344,7 @@ async function loadReviewQueue() {
     list.innerHTML = "Checking for new submissions...";
     const { data, error } = await buildAdminQuery('review', 'pending');
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-    if (data.length === 0) { list.innerHTML = `<p>Queue is empty for this filter! You are all caught up.</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<div class="window-box"><p>Queue is empty for this filter! You are all caught up.</p></div>`; return; }
     renderAdminItems(data, list, 'review');
 }
 
@@ -1933,7 +2353,7 @@ async function loadLibrary() {
     list.innerHTML = "Loading library...";
     const { data, error } = await buildAdminQuery('library', 'approved');
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-    if (data.length === 0) { list.innerHTML = `<p>No approved content found matching this filter.</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<div class="window-box"><p>No approved content found matching this filter.</p></div>`; return; }
     renderAdminItems(data, list, 'library');
 }
 
@@ -1961,14 +2381,14 @@ function renderAdminItems(data, container, contextPrefix) {
             <div class="admin-card-actions">`;
         
         if (contextPrefix === 'review') {
-            html += `<button style="background: #d4edda;" onclick="approveRecipe(${meal.id})">Approve</button>`;
+            html += `<button class="admin-btn-action" style="background: #d4edda;" onclick="approveRecipe(${meal.id})">Approve</button>`;
         } else if (contextPrefix === 'library') {
-            html += `<button style="background: #e2d9f3;" onclick="moderateComments(${meal.id}, '${meal.title.replace(/'/g, "\\'")}')">Moderate Comments</button>`;
+            html += `<button class="admin-btn-action" style="background: #e2d9f3;" onclick="moderateComments(${meal.id}, '${meal.title.replace(/'/g, "\\'")}')">Comments</button>`;
         }
         
         html += `
-                <button style="background: #fff3cd;" onclick="openEdit(${meal.id})">Edit</button>
-                <button style="background: #f8d7da;" onclick="deleteRecord('meals', ${meal.id})">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
+                <button class="admin-btn-action" style="background: #fff3cd;" onclick="openEdit(${meal.id})">Edit</button>
+                <button class="admin-btn-action" style="background: #f8d7da;" onclick="deleteRecord('meals', ${meal.id})">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
             </div>
         </div>`;
     });
@@ -1986,7 +2406,7 @@ async function moderateComments(recipeId, recipeTitle) {
         <div class="window-box" style="width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin: 0;">Moderating: ${recipeTitle}</h2>
-                <button onclick="switchAdminTab('library')">← Back to Library</button>
+                <button class="admin-btn-action" onclick="switchAdminTab('library')">← Back to Library</button>
             </div>
     `;
 
@@ -1995,15 +2415,19 @@ async function moderateComments(recipeId, recipeTitle) {
     } else {
         html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
         data.forEach(comment => {
+            let displayName = comment.nickname || comment.email;
             html += `
                 <div class="admin-card" style="align-items: flex-start;">
                     <div class="admin-card-content">
-                        <p style="font-weight: bold; margin: 0 0 5px 0;">${comment.email} <span style="font-size: 0.8rem; font-weight: normal; color: #666;">(${new Date(comment.created_at).toLocaleString()})</span></p>
+                        <p style="font-weight: bold; margin: 0 0 5px 0;">
+                            <span style="color:#007bff; cursor:pointer;" onclick="openModMenu('${comment.user_id}', '${comment.email}', '${displayName}', event)">${displayName} ⚙️</span> 
+                            <span style="font-size: 0.8rem; font-weight: normal; color: #666;">(${new Date(comment.created_at).toLocaleString()})</span>
+                        </p>
                         <p style="margin: 0; white-space: pre-wrap;">${comment.comment_text}</p>
                         <p style="font-size: 0.8rem; color: #666; margin: 5px 0 0 0;">Likes: ${comment.likes || 0} | Comment ID: ${comment.id}</p>
                     </div>
                     <div class="admin-card-actions">
-                        <button style="background: #f8d7da;" onclick="deleteRecord('comments', ${comment.id}, ${recipeId}, '${recipeTitle.replace(/'/g, "\\'")}')">Delete Comment</button>
+                        <button class="admin-btn-action" style="background: #f8d7da;" onclick="deleteRecord('comments', ${comment.id}, ${recipeId}, '${recipeTitle.replace(/'/g, "\\'")}')">Delete Comment</button>
                     </div>
                 </div>
             `;
@@ -2015,6 +2439,7 @@ async function moderateComments(recipeId, recipeTitle) {
 }
 
 async function approveRecipe(id) {
+    await logAction('APPROVE_RECIPE', `ID: ${id}`, `Approved post from queue.`);
     const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
     if (error) alert("Error approving: " + error.message); 
     else loadReviewQueue(); 
@@ -2025,7 +2450,7 @@ async function loadMessages() {
     const { data, error } = await myDatabase.from('messages').select('*').order('created_at', { ascending: false });
     
     if (error) { list.innerHTML = `<p>Error: ${error.message}</p>`; return; }
-    if (data.length === 0) { list.innerHTML = `<p>Inbox is empty.</p>`; return; }
+    if (data.length === 0) { list.innerHTML = `<div class="window-box"><p>Inbox is empty.</p></div>`; return; }
     
     const unreadAdminIds = data.filter(m => m.recipient_email === 'admin' && m.is_read === false).map(m => m.id);
     if (unreadAdminIds.length > 0) {
@@ -2049,15 +2474,15 @@ async function loadMessages() {
                     <p style="font-size: 0.85rem; color: #666; margin: 0;">${new Date(msg.created_at).toLocaleString()}</p>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    ${!isAdminReply && !isReport ? `<button style="background: #d4edda;" onclick="openAdminReply('${safeEmailId}')">Reply</button>` : ''}
-                    <button style="background: #f8d7da;" onclick="deleteRecord('messages', ${msg.id})">Delete</button>
+                    ${!isAdminReply && !isReport ? `<button class="admin-btn-action" style="background: #d4edda;" onclick="openAdminReply('${safeEmailId}')">Reply</button>` : ''}
+                    <button class="admin-btn-action" style="background: #f8d7da;" onclick="deleteRecord('messages', ${msg.id})">Delete</button>
                 </div>
             </div>
             <p style="white-space: pre-wrap; margin: 0;">${msg.message}</p>
             
             <div id="reply-box-${safeEmailId}" style="display:none; width: 100%; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
                 <textarea id="reply-text-${safeEmailId}" rows="3" placeholder="Type your reply to ${msg.email}..." style="width: 100%; margin-bottom: 10px;"></textarea>
-                <button style="background: #d4edda;" onclick="sendAdminReply('${msg.email}', '${safeEmailId}')">Send Reply</button>
+                <button class="admin-btn-action" style="background: #d4edda;" onclick="sendAdminReply('${msg.email}', '${safeEmailId}')">Send Reply</button>
             </div>
         </div>`;
     });
@@ -2073,6 +2498,7 @@ async function sendAdminReply(recipientEmail, safeId) {
     const text = document.getElementById('reply-text-' + safeId).value.trim();
     if (!text) return;
     
+    await logAction('ADMIN_REPLY', `To: ${recipientEmail}`, `Sent reply from inbox.`);
     const { error } = await myDatabase.from('messages').insert([{
         name: 'Admin Support',
         email: currentUser.email,
@@ -2090,6 +2516,9 @@ async function sendAdminReply(recipientEmail, safeId) {
 
 async function deleteRecord(table, id, fallbackId = null, fallbackTitle = null) {
     if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
+    
+    await logAction(`DELETE_${table.toUpperCase()}`, `ID: ${id}`, `Deleted from admin panel.`);
+    
     const { error } = await myDatabase.from(table).delete().eq('id', id);
     if (error) alert("Error deleting: " + error.message);
     else {
@@ -2138,7 +2567,7 @@ async function openEdit(id) {
             <div style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--border); background: #fdf6e3; display: inline-block;">
                 <p style="margin: 0 0 10px 0; font-size: 0.9rem; font-weight: bold;">Currently Live Photo:</p>
                 <img src="${data.image_url}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 10px;">
-                <button style="background: #f8d7da; padding: 4px 8px; font-size: 0.8rem; margin: 0;" onclick="adminRemovePhoto(${data.id}, '${data.image_url}')">🗑️ Remove Photo</button>
+                <button class="admin-btn-action" style="background: #f8d7da; margin: 0;" onclick="adminRemovePhoto(${data.id}, '${data.image_url}')">🗑️ Remove Photo</button>
             </div>
         `;
     } else {
@@ -2149,7 +2578,7 @@ async function openEdit(id) {
         <div class="window-box" style="width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin: 0;">Edit Record</h2>
-                <button onclick="switchAdminTab('library')">Cancel & Return</button>
+                <button class="admin-btn-action" onclick="switchAdminTab('library')">Cancel & Return</button>
             </div>
             
             <div class="admin-card" style="flex-direction: column; align-items: flex-start; margin-bottom: 20px;">
@@ -2158,7 +2587,7 @@ async function openEdit(id) {
                 <label style="font-size: 0.85rem; color: #555; display: block; border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px; width: 100%;">Upload / Replace Live Photo (Bypasses moderation queue):</label>
                 <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
                     <input type="file" id="admin-recipe-photo-${data.id}" accept="image/*" style="margin: 0;">
-                    <button onclick="adminUploadRecipePhoto(${data.id})" style="background: #e2d9f3; padding: 6px 12px; font-size: 0.9rem; margin: 0;">Upload & Set Live</button>
+                    <button class="admin-btn-action" onclick="adminUploadRecipePhoto(${data.id})" style="background: #e2d9f3; margin: 0;">Upload & Set Live</button>
                 </div>
             </div>
 
@@ -2193,16 +2622,16 @@ async function openEdit(id) {
                 <div style="flex:1;"><label style="font-weight: bold; font-size: 0.9rem;">Servings</label><input type="number" id="edit-servings" placeholder="Servings" value="${data.servings || ''}"></div>
             </div>
             
-            <div id="edit-ingredients-container" style="background: #ffffff; border: 2px solid var(--border); padding: 20px; margin-bottom: 20px;">
+            <div id="edit-ingredients-container" style="background: #ffffff; border: 2px solid var(--border); padding: 20px; box-shadow: 4px 4px 0px rgba(0,0,0,1); margin-bottom: 20px;">
                 <h3 style="margin-top: 0;">Ingredients</h3>
                 <div id="edit-ingredients-list"></div>
-                <button onclick="adminAddIngredientRow()" style="margin-top: 15px;">+ Add Ingredient Row</button>
+                <button class="admin-btn-action" onclick="adminAddIngredientRow()" style="margin-top: 15px;">+ Add Ingredient Row</button>
             </div>
             
             <label style="font-weight: bold; font-size: 0.9rem;">Instructions / What is Included</label>
             <textarea id="edit-instructions" rows="8" placeholder="Instructions...">${(data.recipe || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
             
-            <button style="background: #d4edda; width: 100%; font-size: 1.1rem; padding: 15px;" onclick="saveEdit()">💾 Save Changes to Database</button>
+            <button class="admin-btn-action" style="background: #d4edda; width: 100%; font-size: 1.1rem; padding: 15px;" onclick="saveEdit()">💾 Save Changes to Database</button>
         </div>
     `;
 
@@ -2218,6 +2647,7 @@ async function openEdit(id) {
 
 async function adminRemovePhoto(id, url) {
     if(!confirm("Are you sure you want to remove the live photo? This will delete the file entirely.")) return;
+    await logAction('REMOVE_PHOTO', `Recipe ID: ${id}`, `Removed live photo manually.`);
     const fileName = url.split('/').pop();
     await myDatabase.storage.from('recipe_images').remove([fileName]);
     const { error } = await myDatabase.from('meals').update({ image_url: null }).eq('id', id);
@@ -2235,6 +2665,8 @@ async function adminUploadRecipePhoto(id) {
     if (err1) return alert("Upload Failed: " + err1.message);
 
     const url = myDatabase.storage.from('recipe_images').getPublicUrl(name).data.publicUrl;
+    
+    await logAction('UPLOAD_PHOTO', `Recipe ID: ${id}`, `Uploaded new live photo manually.`);
     const { error: err2 } = await myDatabase.from('meals').update({ image_url: url, pending_image_url: null }).eq('id', id);
     if (err2) alert("Database Error: " + err2.message);
     else openEdit(id);
@@ -2257,7 +2689,7 @@ function adminAddIngredientRow(name = '', qty = '', unit = '') {
         <input type="text" class="ing-name" placeholder="Item Name" value="${name.replace(/"/g, '&quot;')}" style="flex: 2; margin: 0;">
         <input type="number" step="any" class="ing-qty" placeholder="Qty" value="${safeQty}" style="flex: 1; margin: 0;">
         <input type="text" class="ing-unit" placeholder="Unit" value="${unit.replace(/"/g, '&quot;')}" style="flex: 1; margin: 0;">
-        <button style="background: #f8d7da; margin: 0; padding: 0 15px;" onclick="this.parentElement.remove()">X</button>
+        <button class="admin-btn-action" style="background: #f8d7da; margin: 0; padding: 0 15px;" onclick="this.parentElement.remove()">X</button>
     `;
     list.appendChild(row);
 }
@@ -2294,6 +2726,7 @@ async function saveEdit() {
         payload.servings = parseInt(document.getElementById('edit-servings').value);
     } else { payload.cost = null; payload.servings = null; }
 
+    await logAction('EDIT_RECIPE', `ID: ${id}`, `Edited details manually.`);
     const { error } = await myDatabase.from('meals').update(payload).eq('id', id);
     if (error) alert("Error saving: " + error.message);
     else { alert("Updated successfully!"); switchAdminTab('library'); }
@@ -2453,7 +2886,6 @@ async function saveFamilyMember(event) {
         btn.disabled = true;
     }
 
-    // 1. Upload the Image (Using your existing recipe_images bucket for simplicity)
     const fileName = `family-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
     const { error: uploadError } = await myDatabase.storage.from('recipe_images').upload(fileName, file);
     
@@ -2464,7 +2896,7 @@ async function saveFamilyMember(event) {
 
     const imageUrl = myDatabase.storage.from('recipe_images').getPublicUrl(fileName).data.publicUrl;
 
-    // 2. Save to Database
+    await logAction('ADD_FAMILY', `Name: ${name}`, `Added to Sanctuary.`);
     const { error: dbError } = await myDatabase.from('family_members').insert([{
         name: name,
         type: type,
@@ -2479,11 +2911,9 @@ async function saveFamilyMember(event) {
         alert("Database error: " + dbError.message);
     } else {
         alert("Successfully added to the Family Hub!");
-        // Clear the form
         document.getElementById('family-name').value = '';
         document.getElementById('family-story').value = '';
         fileInput.value = '';
-        // Reload the list
         loadAdminFamilyList();
     }
 }
@@ -2494,7 +2924,6 @@ async function loadAdminFamilyList() {
 
     listDiv.innerHTML = "<p>Loading family members...</p>";
 
-    // Fetch from Supabase, ordered by the number you typed in
     const { data, error } = await myDatabase.from('family_members')
         .select('*')
         .order('order_index', { ascending: true });
@@ -2514,15 +2943,15 @@ async function loadAdminFamilyList() {
         let sortButtons = '';
         if (data.length > 1) {
             if (index > 0) {
-                sortButtons += `<button style="background: #e2d9f3; margin: 0; padding: 4px 8px; flex: 1; border: 2px solid var(--border); font-size: 0.8rem;" onclick="moveFamilyMember('${member.id}', 'up')">⬆️</button>`;
+                sortButtons += `<button class="admin-btn-action" style="background: #e2d9f3; margin: 0; padding: 4px 8px; flex: 1;" onclick="moveFamilyMember('${member.id}', 'up')">⬆️</button>`;
             }
             if (index < data.length - 1) {
-                sortButtons += `<button style="background: #e2d9f3; margin: 0; padding: 4px 8px; flex: 1; border: 2px solid var(--border); font-size: 0.8rem;" onclick="moveFamilyMember('${member.id}', 'down')">⬇️</button>`;
+                sortButtons += `<button class="admin-btn-action" style="background: #e2d9f3; margin: 0; padding: 4px 8px; flex: 1;" onclick="moveFamilyMember('${member.id}', 'down')">⬇️</button>`;
             }
         }
 
         html += `
-            <div style="display: flex; gap: 15px; border: 1px solid var(--border); padding: 15px; background: #fff; align-items: center; justify-content: space-between;">
+            <div class="admin-card" style="display: flex; gap: 15px; padding: 15px; align-items: center; justify-content: space-between;">
                 <div style="display: flex; gap: 15px; flex: 1; align-items: center;">
                     <img src="${member.image_url}" style="width: 80px; height: 80px; min-width: 80px; object-fit: cover; border-radius: 50%;">
                     <div>
@@ -2534,7 +2963,7 @@ async function loadAdminFamilyList() {
                     <div style="display: flex; gap: 5px; width: 100%;">
                         ${sortButtons}
                     </div>
-                    <button style="background: #f8d7da; margin: 0; width: 100%; padding: 6px; cursor: pointer; border: 2px solid var(--border);" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
+                    <button class="admin-btn-action" style="background: #f8d7da; margin: 0; width: 100%; padding: 6px;" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
                 </div>
             </div>
         `;
@@ -2547,50 +2976,42 @@ async function moveFamilyMember(id, direction) {
     const listDiv = document.getElementById('admin-family-list');
     listDiv.innerHTML = "<p>Updating order...</p>";
 
-    // 1. Fetch the current live list
     const { data, error } = await myDatabase.from('family_members').select('id, order_index').order('order_index', { ascending: true });
     if (error || !data) {
         alert("Error loading order.");
         return loadAdminFamilyList();
     }
 
-    // 2. Find the exact item you clicked
     const currentIndex = data.findIndex(m => m.id == id);
     if (currentIndex === -1) return loadAdminFamilyList();
 
-    // 3. Figure out who they are swapping with
     let swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (swapIndex < 0 || swapIndex >= data.length) return loadAdminFamilyList();
 
-    // 4. Swap their positions in our local JavaScript array FIRST
     const temp = data[currentIndex];
     data[currentIndex] = data[swapIndex];
     data[swapIndex] = temp;
 
-    // 5. The Magic Fix: Loop through the new order and force a clean 1, 2, 3 sequence into the database
-    // This wipes out any duplicate numbers that were breaking the sorting!
     for (let i = 0; i < data.length; i++) {
         await myDatabase.from('family_members').update({ order_index: i + 1 }).eq('id', data[i].id);
     }
 
-    // 6. Reload the shiny new list
     loadAdminFamilyList(); 
 }
 
 async function deleteFamilyMember(id, imageUrl) {
     if (!confirm("Are you sure you want to remove this family member?")) return;
 
-    // Delete the image from storage to save space
+    await logAction('DELETE_FAMILY', `ID: ${id}`, `Deleted from Sanctuary.`);
     const fileName = imageUrl.split('/').pop();
     await myDatabase.storage.from('recipe_images').remove([fileName]);
 
-    // Delete from database
     const { error } = await myDatabase.from('family_members').delete().eq('id', id);
 
     if (error) {
         alert("Error deleting: " + error.message);
     } else {
-        loadAdminFamilyList(); // Refresh the visual list
+        loadAdminFamilyList();
     }
 }
 
@@ -2609,6 +3030,7 @@ async function postBroadcast(event) {
     btn.innerText = "Sending...";
     btn.disabled = true;
 
+    await logAction('BROADCAST_SENT', `Signature: ${signature}`, `Sent new public broadcast.`);
     const { error } = await myDatabase.from('community_updates').insert([{
         message: message,
         author_signature: '— ' + signature
@@ -2640,12 +3062,12 @@ async function loadAdminBroadcasts() {
     data.forEach(update => {
         const dateStr = new Date(update.created_at).toLocaleString();
         html += `
-            <div style="border: 1px solid var(--border); padding: 15px; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
+            <div class="admin-card" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; border-left: 5px solid #007bff;">
                 <div style="flex: 1;">
                     <p style="margin: 0 0 10px 0; white-space: pre-wrap; font-size: 1rem;">${update.message}</p>
                     <p style="margin: 0; font-size: 0.85rem; font-weight: bold; color: #007bff;">${update.author_signature} <span style="font-weight: normal; color: #666;">(${dateStr})</span></p>
                 </div>
-                <button style="background: #f8d7da; margin: 0; padding: 6px 12px; cursor: pointer;" onclick="deleteBroadcast('${update.id}')">Delete</button>
+                <button class="admin-btn-action" style="background: #f8d7da; margin: 0; cursor: pointer;" onclick="deleteBroadcast('${update.id}')">Delete</button>
             </div>
         `;
     });
@@ -2654,6 +3076,7 @@ async function loadAdminBroadcasts() {
 
 async function deleteBroadcast(id) {
     if (!confirm("Delete this broadcast? It will be removed from the users' feed instantly.")) return;
+    await logAction('DELETE_BROADCAST', `ID: ${id}`, `Removed broadcast from feed.`);
     const { error } = await myDatabase.from('community_updates').delete().eq('id', id);
     if (error) alert("Error deleting: " + error.message);
     else loadAdminBroadcasts();
@@ -2673,18 +3096,20 @@ async function loadAdminCampfire() {
         .limit(100);
 
     if (error) { listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`; return; }
-    if (data.length === 0) { listDiv.innerHTML = "<p>No messages in the campfire.</p>"; return; }
+    if (data.length === 0) { listDiv.innerHTML = '<div class="window-box"><p>No messages in the campfire.</p></div>'; return; }
 
     let html = "";
     data.forEach(msg => {
         const dateStr = new Date(msg.created_at).toLocaleString();
         html += `
-            <div style="border: 1px solid var(--border); padding: 10px; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
+            <div class="admin-card" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
                 <div style="flex: 1;">
-                    <p style="margin: 0 0 5px 0; font-size: 0.85rem; color: #666;"><strong>${msg.user_name}</strong> - ${dateStr}</p>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem; color: #666;">
+                        <span style="color:#007bff; font-weight:bold; cursor:pointer;" onclick="openModMenu('${msg.user_id}', 'Unknown', '${msg.user_name}', event)">${msg.user_name} ⚙️</span> - ${dateStr}
+                    </p>
                     <p style="margin: 0; font-size: 1rem; word-wrap: break-word;">${msg.message}</p>
                 </div>
-                <button style="background: #f8d7da; margin: 0; padding: 6px 12px; cursor: pointer;" onclick="adminDeleteCampfireMessage('${msg.id}')">Delete</button>
+                <button class="admin-btn-action" style="background: #f8d7da; margin: 0; cursor: pointer;" onclick="adminDeleteCampfireMessage('${msg.id}')">Delete</button>
             </div>
         `;
     });
@@ -2693,6 +3118,7 @@ async function loadAdminCampfire() {
 
 async function adminDeleteCampfireMessage(id) {
     if (!confirm("Permanently delete this message from the public campfire?")) return;
+    await logAction('DELETE_CHAT', `ID: ${id}`, `Deleted from campfire logs.`);
     const { error } = await myDatabase.from('global_chat').delete().eq('id', id);
     if (error) alert("Error deleting message: " + error.message);
     else loadAdminCampfire();
@@ -2704,41 +3130,53 @@ async function adminDeleteCampfireMessage(id) {
 
 async function renderFamilyPage() {
     const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Opening the front door...</h1></div>`;
+    const cacheKey = 'cache_family_page';
 
-    const { data, error } = await myDatabase.from('family_members').select('*').order('order_index', { ascending: true });
+    const renderList = (data) => {
+        let html = `
+            <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
+                <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">🏡 MEET THE FAMILY</h1>
+                <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Welcome to our personal sanctuary. Get to know the humans and pets behind the platform!</p>
+            </div>
+        `;
 
-    if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><p>Error: ${error.message}</p></div>`; return; }
-
-    let html = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
-            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">🏡 MEET THE FAMILY</h1>
-            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Welcome to our personal sanctuary. Get to know the humans and pets behind the platform!</p>
-        </div>
-    `;
-
-    if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 800px;"><p>The house is quiet... Anton & Jenny haven't uploaded their photos yet!</p></div>`;
-    } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px;">`;
-        data.forEach(member => {
-            const isPet = member.type === 'pet';
-            const badge = isPet ? '🐾 Family Pet' : '👤 The Team';
-            
-            html += `
-                <div class="window-box" style="padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: nowrap; background: #fff; margin-bottom: 0;">
-                    <img src="${member.image_url}" style="width: 100px; height: 100px; min-width: 100px; border-radius: 50%; border: 3px solid var(--border); object-fit: cover; flex-shrink: 0; background: #fdf6e3;">
-                    <div style="flex: 1; min-width: 0;">
-                        <span style="display: inline-block; padding: 4px 10px; background: #8b4513; color: white; font-size: 0.75rem; font-weight: bold; border-radius: 12px; margin-bottom: 8px; box-shadow: 1px 1px 0px rgba(0,0,0,0.2);">${badge}</span>
-                        <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #2b1a10; font-family: 'Georgia', serif; line-height: 1.2;">${member.name}</h2>
-                        <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #444; white-space: pre-wrap; word-wrap: break-word;">${member.story}</p>
+        if (data.length === 0) {
+            html += `<div class="window-box" style="width: 100%; max-width: 800px;"><p>The house is quiet... Anton & Jenny haven't uploaded their photos yet!</p></div>`;
+        } else {
+            html += `<div style="display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px;">`;
+            data.forEach(member => {
+                const isPet = member.type === 'pet';
+                const badge = isPet ? '🐾 Family Pet' : '👤 The Team';
+                
+                html += `
+                    <div class="window-box" style="padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: nowrap; background: #fff; margin-bottom: 0;">
+                        <img src="${member.image_url}" style="width: 100px; height: 100px; min-width: 100px; border-radius: 50%; border: 3px solid var(--border); object-fit: cover; flex-shrink: 0; background: #fdf6e3;">
+                        <div style="flex: 1; min-width: 0;">
+                            <span style="display: inline-block; padding: 4px 10px; background: #8b4513; color: white; font-size: 0.75rem; font-weight: bold; border-radius: 12px; margin-bottom: 8px; box-shadow: 1px 1px 0px rgba(0,0,0,0.2);">${badge}</span>
+                            <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #2b1a10; font-family: 'Georgia', serif; line-height: 1.2;">${member.name}</h2>
+                            <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #444; white-space: pre-wrap; word-wrap: break-word;">${member.story}</p>
+                        </div>
                     </div>
-                </div>
-            `;
-        });
-        html += `</div>`;
+                `;
+            });
+            html += `</div>`;
+        }
+        view.innerHTML = html;
+    };
+
+    if (!localStorage.getItem(cacheKey)) {
+        view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Opening the front door...</h1></div>`;
     }
-    view.innerHTML = html;
+
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            const { data, error } = await myDatabase.from('family_members').select('*').order('order_index', { ascending: true });
+            if (error) throw error;
+            return data;
+        },
+        renderList
+    );
 }
 
 // ==========================================
@@ -2780,7 +3218,6 @@ function renderShoutbox() {
     loadShoutboxMessages();
 }
 
-// [UPGRADED]: Uses SWR Caching
 async function loadShoutboxMessages() {
     const container = document.getElementById('shoutbox-messages');
     if (!container) return;
@@ -2792,20 +3229,30 @@ async function loadShoutboxMessages() {
 
         let html = '';
         data.forEach(msg => {
-            const isAdminPost = msg.user_name.includes('Anton') || msg.user_name.includes('Jenny') || msg.user_name.includes('👑');
-            const nameStyle = isAdminPost ? 'color: #d9534f; font-weight: 900;' : 'color: #333; font-weight: bold;';
+            const isFounder = msg.user_name.includes('Anton') || msg.user_name.includes('Jenny') || msg.user_name.includes('👑');
+            const nameStyle = isFounder ? 'color: #d9534f; font-weight: 900;' : 'color: #333; font-weight: bold;';
             const timeStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             
+            let nameHTML = `<span style="${nameStyle}">${msg.user_name}</span>`;
             let reportBtn = currentUser ? `<span style="cursor:pointer; font-size: 0.8rem; opacity: 0.5;" onclick="reportShoutbox('${msg.id}', '${msg.message.replace(/'/g, "\\'")}')" title="Report Message">🚩</span>` : '';
+            
+            let adminControls = '';
+            if (isAdmin) {
+                nameHTML = `<span style="${nameStyle} cursor: pointer; color: #007bff;" onclick="openModMenu('${msg.user_id}', 'Unknown', '${msg.user_name}', event)">${msg.user_name} ⚙️</span>`;
+                adminControls = `<button onclick="adminDeleteContent('global_chat', ${msg.id})" style="background: #dc3545; color: white; border:none; padding: 4px 8px; font-size: 0.7rem; margin-left: 10px;">Delete</button>`;
+            }
 
             html += `
                 <div style="background: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 4px; display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px; align-items: center;">
                         <div>
-                            <span style="${nameStyle}">${msg.user_name}</span>
+                            ${nameHTML}
                             <span style="font-size: 0.75rem; color: #888; margin-left: 8px;">${timeStr}</span>
                         </div>
-                        ${reportBtn}
+                        <div>
+                            ${reportBtn}
+                            ${adminControls}
+                        </div>
                     </div>
                     <div style="font-size: 0.95rem; line-height: 1.4; word-wrap: break-word;">${msg.message}</div>
                 </div>
@@ -2834,14 +3281,16 @@ async function loadShoutboxMessages() {
 
 async function postShoutboxMessage() {
     if (!currentUser) return openAuthModal();
+    if(await isUserBanned()) return; 
+
     const input = document.getElementById('shoutbox-input');
     const text = input.value.trim();
     if (!text) return;
 
     input.disabled = true;
     
-    let displayName = currentUser.email.split('@')[0];
-    if (isAdmin) displayName = "Anton & Jenny 👑";
+    let displayName = getUserDisplayName();
+    if (userRole === 'developer') displayName += " 👑";
 
     const { error } = await myDatabase.from('global_chat').insert([{
         user_id: currentUser.id,
@@ -2904,7 +3353,6 @@ function renderPublicBroadcasts() {
     loadPublicBroadcasts();
 }
 
-// [UPGRADED]: Uses SWR Caching
 async function loadPublicBroadcasts() {
     const container = document.getElementById('public-broadcast-list');
     if (!container) return;
