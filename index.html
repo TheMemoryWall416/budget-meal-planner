@@ -13,8 +13,9 @@
 
         :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
-        /* [ATOMIC]: The Body is now a vertical stack. */
-        body { font-family: sans-serif; display: flex; flex-direction: column; margin: 0; background-color: #eaddcf; height: 100vh; overflow: hidden; color: var(--text); }
+        /* [ATOMIC]: The Body is now a vertical stack. 
+           100dvh calculates exact screen height MINUS mobile browser toolbars. */
+        body { font-family: sans-serif; display: flex; flex-direction: column; margin: 0; background-color: #eaddcf; height: 100dvh; overflow: hidden; color: var(--text); }
         
         /* ==========================================================
            THE NEW TOP BAR (PERSONAL SPACE)
@@ -28,7 +29,7 @@
             border-radius: 4px;
             display: flex;
             align-items: center;
-            justify-content: flex-start; /* Aligns content to the far left */
+            justify-content: flex-start;
             padding: 0 20px;
             box-sizing: border-box;
             flex-shrink: 0;
@@ -54,7 +55,9 @@
 
         nav { width: 220px; padding: 15px; padding-bottom: 120px; flex-shrink: 0; border-right: 2px solid var(--border); height: 100%; overflow-y: auto; box-sizing: border-box; background: transparent; }
         .content { flex-grow: 1; padding: 15px 30px; padding-bottom: 120px; height: 100%; overflow-y: auto; box-sizing: border-box; background: transparent; }
-        aside { width: 280px; padding: 15px; padding-bottom: 120px; flex-shrink: 0; border-left: 2px solid var(--border); height: 100%; overflow-y: auto; box-sizing: border-box; background: transparent; }
+        
+        /* [ATOMIC]: Right sidebar explicitly locked. Scrollbar destroyed. */
+        aside { width: 280px; padding: 15px; padding-bottom: 120px; flex-shrink: 0; border-left: 2px solid var(--border); height: 100%; overflow: hidden; box-sizing: border-box; background: transparent; }
 
         /* ==========================================================
            STANDARD COMPONENTS
@@ -87,6 +90,21 @@
         .farmhouse-scroll::before { top: -15px; }
         .farmhouse-scroll::after { bottom: -15px; }
         .farmhouse-scroll h2 { border-bottom: 2px dashed rgba(139, 69, 19, 0.3); padding-bottom: 10px; margin-top: 0; color: #2b1a10; font-weight: normal; font-family: 'Georgia', 'Times New Roman', serif; font-size: 1.8rem; }
+
+        /* ==========================================================
+           MOBILE SQUEEZE PROTECTION
+        ========================================================== */
+        @media (max-width: 768px) {
+            header {
+                width: calc(100% - 10px);
+                margin: 5px auto;
+                height: auto;
+                min-height: 60px;
+                padding: 10px;
+                flex-wrap: wrap; /* Allows contents to stack cleanly if space is tight */
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
