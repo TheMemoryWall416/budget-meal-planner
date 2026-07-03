@@ -9,7 +9,6 @@
     <style>
         /* ==========================================================
            SECTION 1: THE CSS OBJECT MODEL (CSSOM) PHYSICS ENGINE
-           [MACRO]: Defines the absolute geometry, variables, and physics of the UI.
         ========================================================== */
 
         :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
@@ -21,63 +20,22 @@
            THE NEW TOP BAR (PERSONAL SPACE)
         ========================================================== */
         header {
-            width: 100%;
-            height: 80px;
+            width: calc(100% - 30px); /* Creates 15px space on the left and right */
+            margin: 15px auto 10px auto; /* Creates the 15px space at the top */
+            height: 60px;
             background: var(--nav-color);
-            border-bottom: 3px solid var(--border);
+            border: 2px solid var(--border);
+            border-radius: 4px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end; /* Pushes the user buttons to the far right */
             padding: 0 20px;
             box-sizing: border-box;
             flex-shrink: 0;
             z-index: 10;
         }
 
-        /* Branding / Logo Area */
-        .topbar-logo {
-            font-size: 1.5rem;
-            font-weight: 900;
-            letter-spacing: -0.5px;
-            text-decoration: none;
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            line-height: 1;
-        }
-        .topbar-logo span.sub {
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            font-weight: 700;
-        }
-
-        /* Center Action Area (Search) */
-        .topbar-center {
-            flex: 1;
-            max-width: 500px;
-            display: flex;
-            align-items: center;
-            margin: 0 20px;
-        }
-        
-        .topbar-search {
-            display: flex;
-            width: 100%;
-            gap: 5px;
-        }
-        .topbar-search input {
-            margin: 0;
-            height: 38px;
-            border-radius: 20px;
-            padding: 0 15px;
-        }
-        .topbar-search button {
-            margin: 0;
-            border-radius: 20px;
-            height: 38px;
-        }
-
-        /* The Personal User Dashboard */
+        /* The Personal User Dashboard Zone (Waiting for app.js) */
         #topbar-user-zone {
             display: flex;
             align-items: center;
@@ -87,7 +45,7 @@
         /* ==========================================================
            THE WORKSPACE (GLOBAL SPACE)
         ========================================================== */
-        /* [ATOMIC]: The main container now holds the 3 columns horizontally and takes the remaining height. */
+        /* [ATOMIC]: The main container holds the 3 columns horizontally */
         main {
             display: flex;
             flex-grow: 1;
@@ -144,18 +102,6 @@
 </div>
 
 <header>
-    <a href="/" class="topbar-logo">
-        budgetmealplanner
-        <span class="sub">.co.za</span>
-    </a>
-    
-    <div class="topbar-center">
-        <div class="topbar-search">
-            <input type="text" id="global-search-input" placeholder="Search for recipes, ingredients..." onkeyup="if(event.key === 'Enter') executeSearch('global-search-input')">
-            <button onclick="executeSearch('global-search-input')">🔍</button>
-        </div>
-    </div>
-
     <div id="topbar-user-zone"></div>
 </header>
 
@@ -167,7 +113,7 @@
                 🌍 Loading live stats...
             </div>
         </div>
-
+        
         <div class="window-box" style="padding: 15px;">
             <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Menu</h2>
             <a href="#" onclick="showPage('home')">Home</a>
