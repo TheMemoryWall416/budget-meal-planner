@@ -51,14 +51,12 @@
             font-weight: 700;
         }
 
-        /* Center Action Area (Search & Stats) */
+        /* Center Action Area (Search) */
         .topbar-center {
             flex: 1;
             max-width: 500px;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 5px;
             margin: 0 20px;
         }
         
@@ -156,9 +154,6 @@
             <input type="text" id="global-search-input" placeholder="Search for recipes, ingredients..." onkeyup="if(event.key === 'Enter') executeSearch('global-search-input')">
             <button onclick="executeSearch('global-search-input')">🔍</button>
         </div>
-        <div id="nav-counter" style="font-size: 0.75rem; font-weight: bold; color: #444;">
-            🌍 Loading live stats...
-        </div>
     </div>
 
     <div id="topbar-user-zone"></div>
@@ -166,6 +161,13 @@
 
 <main>
     <nav>
+        <div class="window-box" style="background: var(--nav-color);">
+            <h2 style="margin-top: 0; font-size: 1.1rem; margin-bottom: 15px; border-bottom: 2px dashed rgba(0,0,0,0.2); padding-bottom: 8px; text-align: center;">Community Stats</h2>
+            <div id="nav-counter" style="font-size: 0.85rem; line-height: 1.6; color: #333;">
+                🌍 Loading live stats...
+            </div>
+        </div>
+
         <div class="window-box" style="padding: 15px;">
             <h2 style="margin-top: 0; font-size: 1.2rem; margin-bottom: 15px; text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Menu</h2>
             <a href="#" onclick="showPage('home')">Home</a>
