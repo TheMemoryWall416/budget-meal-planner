@@ -3278,6 +3278,7 @@ async function loadShoutboxMessages() {
 
         let html = '';
         data.forEach(msg => {
+            // Checks for the new role tags to apply the bold red styling to staff
             const isStaff = msg.user_name.includes('(Founder)') || msg.user_name.includes('(Admin)') || msg.user_name.includes('(Moderator)');
             const nameStyle = isStaff ? 'color: #d9534f; font-weight: 900;' : 'color: #333; font-weight: bold;';
             const timeStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -3287,7 +3288,9 @@ async function loadShoutboxMessages() {
             
             let adminControls = '';
             if (isAdmin) {
+                // Adds the Moderator Context Menu gear icon
                 nameHTML = `<span style="${nameStyle} cursor: pointer; color: #007bff;" onclick="openModMenu('${msg.user_id}', 'Unknown', '${msg.user_name}', event)">${msg.user_name} ⚙️</span>`;
+                // FIX: msg.id is now wrapped in single quotes so it doesn't cause a math error!
                 adminControls = `<button onclick="adminDeleteContent('global_chat', '${msg.id}', this)" style="padding: 4px 8px; font-size: 0.7rem; margin-left: 10px;">Delete</button>`;
             }
 
@@ -3338,6 +3341,7 @@ async function postShoutboxMessage() {
 
     input.disabled = true;
     
+    // The display name now automatically includes the (Role) tag from the master function!
     let displayName = getUserDisplayName();
 
     const { error } = await myDatabase.from('global_chat').insert([{
