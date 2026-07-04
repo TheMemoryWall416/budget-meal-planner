@@ -1,0 +1,31 @@
+name: Generate Daily Sitemap
+
+# This tells the robot to run every day at midnight (UTC)
+# It also allows you to click a "Run workflow" button in GitHub manually
+on:
+  schedule:
+    - cron: '0 0 * * *' 
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Run the Sitemap Generator Script
+        run: node generate-sitemap.js
+
+      - name: Commit and Push the new Sitemap
+        run: |
+          git config --global user.name 'Sitemap Bot'
+          git config --global user.email 'bot@budgetmealplanner.co.za'
+          git add sitemap.xml
+          git commit -m "Auto-updated sitemap.xml with latest recipes" || exit 0
+          git push
