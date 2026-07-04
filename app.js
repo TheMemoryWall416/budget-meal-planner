@@ -12,7 +12,7 @@ let dynamicBudgetTips = [];
 let currentUser = null; 
 let isLoginMode = false; 
 let isAdmin = false;
-let userRole = 'user'; // 'user', 'moderator', 'admin', 'developer'
+let userRole = 'user'; 
 
 // ==========================================
 //        THE SWR CACHE ENGINE
@@ -46,7 +46,7 @@ async function fetchWithSWR(cacheKey, dbQueryFunction, renderFunction) {
 }
 
 // ==========================================
-//        SECURITY: AUDIT LOG DOUBLE-TAP
+//        SECURITY & UTILITIES
 // ==========================================
 async function logAction(actionType, targetInfo, contextMsg) {
     if (!currentUser) return;
@@ -58,9 +58,6 @@ async function logAction(actionType, targetInfo, contextMsg) {
     }]);
 }
 
-// ==========================================
-//        SECURITY: CHECK BANNED STATUS
-// ==========================================
 async function isUserBanned() {
     if (!currentUser) return false;
     const { data } = await myDatabase.from('banned_users').select('id').eq('user_id', currentUser.id).single();
@@ -71,9 +68,6 @@ async function isUserBanned() {
     return false;
 }
 
-// ==========================================
-//        THE MASTER DISPLAY NAME ENGINE
-// ==========================================
 function getUserDisplayName() {
     if (!currentUser) return "Guest";
     const rawName = currentUser.user_metadata?.nickname || currentUser.email.split('@')[0];
@@ -86,14 +80,9 @@ function getUserDisplayName() {
     return `${rawName} ${roleTag}`;
 }
 
-// ==========================================
-//        FRONTEND INSTANT GHOST DELETE
-// ==========================================
 async function adminDeleteContent(table, id, btnElement) {
     if (!confirm("ADMIN ACTION: Permanently delete this content?")) return;
-    
     await logAction(`DELETE_${table.toUpperCase()}`, `ID: ${id}`, "Deleted via frontend quick-button.");
-
     const { error } = await myDatabase.from(table).delete().eq('id', id);
     if (error) alert("Error: " + error.message);
     else {
@@ -105,9 +94,6 @@ async function adminDeleteContent(table, id, btnElement) {
     }
 }
 
-// ==========================================
-//        CORE UTILITIES
-// ==========================================
 function triggerPhotoUpload(recipeId) {
     if (!currentUser) { 
         alert("Please log in or sign up to share a photo of your meal!"); 
@@ -128,7 +114,7 @@ async function initAuth() {
 }
 
 async function checkAdminStatus(email) {
-    const { data, error } = await myDatabase.from('admin_whitelist').select('*').eq('email', email).single();
+    const { data } = await myDatabase.from('admin_whitelist').select('*').eq('email', email).single();
     if (data) {
         isAdmin = true;
         userRole = data.role || 'admin';
@@ -145,38 +131,36 @@ async function updateAuthUI() {
     if (existingAdminBtn) existingAdminBtn.remove();
 
     if (authBtn) {
-        authBtn.style.background = ''; 
         if (currentUser) {
-            authBtn.innerHTML = '👤 My Profile';
+            authBtn.innerHTML = '👤 My Profile Dashboard';
             authBtn.onclick = () => showPage('profile');
             await checkUnreadMessages();
 
             if (isAdmin) {
-                const adminBtn = document.createElement('button');
+                const adminBtn = document.createElement('a');
                 adminBtn.id = 'nav-admin-btn';
+                adminBtn.href = 'javascript:void(0)';
                 adminBtn.onclick = () => showPage('admin');
-                adminBtn.style.cssText = 'margin-top: 8px; display: block; width: 100%; box-sizing: border-box;';
+                adminBtn.style.cssText = 'display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 20px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; text-align: center;';
                 adminBtn.innerHTML = '⚙️ Command Center';
                 authBtn.parentNode.insertBefore(adminBtn, authBtn.nextSibling);
+                authBtn.style.marginBottom = '8px'; 
+            } else {
+                authBtn.style.marginBottom = '20px'; 
             }
         } else {
             authBtn.innerHTML = '🚪 Join / Sign In';
             authBtn.onclick = openAuthModal;
+            authBtn.style.marginBottom = '20px';
         }
     }
 }
 
 async function checkUnreadMessages() {
     if (!currentUser) return; 
-    const { count, error } = await myDatabase.from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('recipient_email', currentUser.email)
-        .eq('is_read', false);
-    
+    const { count } = await myDatabase.from('messages').select('*', { count: 'exact', head: true }).eq('recipient_email', currentUser.email).eq('is_read', false);
     const authBtn = document.getElementById('nav-auth-btn');
-    if (authBtn && count > 0) {
-        authBtn.innerHTML = `👤 My Profile (${count} New)`;
-    }
+    if (authBtn && count > 0) { authBtn.innerHTML = `👤 My Profile (${count} New)`; }
 }
 
 function openAuthModal() { document.getElementById('auth-modal').style.display = 'flex'; }
@@ -220,7 +204,6 @@ async function handleAuthSubmit() {
 
     const btn = document.getElementById('auth-primary-btn');
     const originalText = btn.innerText;
-    
     btn.innerText = 'Processing...';
     btn.disabled = true;
 
@@ -230,11 +213,7 @@ async function handleAuthSubmit() {
         const res = await myDatabase.auth.signInWithPassword({ email, password });
         error = res.error; data = res.data;
     } else {
-        const res = await myDatabase.auth.signUp({ 
-            email, 
-            password,
-            options: { data: { nickname: nickname } }
-        });
+        const res = await myDatabase.auth.signUp({ email, password, options: { data: { nickname: nickname } } });
         error = res.error; data = res.data;
     }
 
@@ -258,7 +237,6 @@ async function handleAuthSubmit() {
 async function handleForgotPassword() {
     const email = document.getElementById('auth-email').value.trim();
     if (!email) return alert("Please type your email address into the box first, then click 'Forgot Password?'.");
-
     const { error } = await myDatabase.auth.resetPasswordForEmail(email);
     if (error) alert("Error: " + error.message);
     else { alert("Password reset email sent! Please check your inbox."); closeAuthModal(); }
@@ -277,7 +255,6 @@ async function handleVisitorSession() {
     const now = Date.now();
     const lastVisit = localStorage.getItem('last_visit_time');
     const cooldown = 30 * 60 * 1000;
-
     if (!lastVisit || (now - parseInt(lastVisit)) > cooldown) {
         await myDatabase.rpc('increment_visitor_count');
         localStorage.setItem('last_visit_time', now.toString());
@@ -286,19 +263,15 @@ async function handleVisitorSession() {
 }
 
 async function fetchStats() {
-    const { count: liveCount, error: recipeError } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
-    if (!recipeError && liveCount !== null) { totalApprovedRecipes = liveCount; }
+    const { count: liveCount } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+    if (liveCount !== null) totalApprovedRecipes = liveCount;
 
     const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
-    if (vData) { totalVisitors = vData.visitor_count; }
+    if (vData) totalVisitors = vData.visitor_count;
 
-    let totalShared = 0;
-    let totalLikes = 0;
+    let totalShared = 0; let totalLikes = 0;
     const { data: interactionStats } = await myDatabase.rpc('get_kitchen_stats');
-    if (interactionStats) {
-        totalShared = interactionStats.total_shared;
-        totalLikes = interactionStats.total_likes;
-    }
+    if (interactionStats) { totalShared = interactionStats.total_shared; totalLikes = interactionStats.total_likes; }
 
     const { data: configData } = await myDatabase.from('site_config').select('team_photo_url, main_background_url').eq('id', 1).single();
     
@@ -307,9 +280,8 @@ async function fetchStats() {
             teamPhotoUrl = configData.team_photo_url;
             localStorage.setItem('cached_team_photo', teamPhotoUrl); 
             const homePhoto = document.getElementById('home-team-photo');
-            if (homePhoto && homePhoto.src !== teamPhotoUrl) { homePhoto.src = teamPhotoUrl; }
+            if (homePhoto && homePhoto.src !== teamPhotoUrl) homePhoto.src = teamPhotoUrl;
         }
-        
         if (configData.main_background_url) {
             document.body.style.backgroundImage = `url('${configData.main_background_url}')`;
             document.body.style.backgroundSize = 'cover';
@@ -363,9 +335,7 @@ function updateHack() {
 
 window.onload = function() {
     const s2 = document.getElementById('modal-country-select');
-    if (s2) {
-        countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); });
-    }
+    if (s2 && typeof countries !== 'undefined') { countries.forEach(c => { let o = document.createElement('option'); o.value = c; o.innerHTML = c; s2.appendChild(o); }); }
     
     initAuth();
     handleVisitorSession();
@@ -374,7 +344,6 @@ window.onload = function() {
     setInterval(updateHack, 30000); 
 
     const savedCountry = localStorage.getItem('saved_country');
-
     if (savedCountry) {
         selectedCountry = savedCountry;
         const modal = document.getElementById('country-modal');
@@ -390,6 +359,9 @@ window.onload = function() {
     }
 };
 
+// ==========================================
+//        MASTER ROUTER
+// ==========================================
 function showPage(page) {
     const view = document.getElementById('main-view');
     window.history.pushState({}, document.title, window.location.pathname);
@@ -397,120 +369,51 @@ function showPage(page) {
     if (page === 'home') {
         view.innerHTML = `
             <div class="window-box" style="text-align: center; max-width: 800px; width: 100%; box-sizing: border-box; background: var(--nav-color); padding: 30px 10px; border-width: 4px;">
-            <h1 style="margin: 0; line-height: 1.1; font-family: sans-serif;">
-                <span style="font-size: 1.0rem; display: block; margin-bottom: 5px; color: var(--text);">WELCOME TO</span>
-                
-                <a href="/" style="color: #000000; text-decoration: none; display: inline-block;">
-                    <span style="display: block; font-weight: 900; font-size: clamp(1.3rem, 3.5vw, 2.4rem); letter-spacing: -0.5px;">
-                        budgetmealplanner
-                    </span>
-                    <span style="display: block; font-weight: 700; font-size: clamp(1.0rem, 2.5vw, 1.6rem); letter-spacing: 1px; margin-top: -2px;">
-                        .co.za
-                    </span>
-                </a>
-            </h1>
-        </div>
-
-        <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
-            <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                <img id="home-team-photo" src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid var(--border); object-fit: cover;">
-                <div style="flex: 1; min-width: 300px;">
-                    <h2 style="font-size: 1.5rem; margin-top: 0; margin-bottom: 15px;">About Us</h2>
-                    <h3 style="font-size: 1.2rem; margin-top: 0; margin-bottom: 5px;">Meet the Team</h3>
-                    <p style="line-height: 1.6; margin-top: 0;">Hi! We're Anton and Jenny from South Africa, and we're the team behind this platform. <a href="javascript:void(0)" onclick="showPage('family')" style="color: #007bff; font-style: italic; font-weight: bold;">click here to meet the family</a></p>
-                    
-                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Who We Are</h3>
-                    <p style="line-height: 1.6; margin-top: 0;">This website is my very first live project. I'm a self-taught developer who wanted to build something genuinely useful for everyday people. Jenny balances her full-time job as an online teacher while also serving as our lead administrator, manually reviewing community recipes and comments to help keep the platform friendly, helpful, and welcoming.</p>
-
-                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Why We Built This</h3>
-                    <p style="line-height: 1.6; margin-top: 0;">We created this platform because we couldn't find a recipe website that truly focused on affordable, realistic meals while allowing the community to actively participate. Too many recipe sites are filled with clickbait, AI-generated content, endless ads, or recipes that require expensive or difficult-to-find ingredients.</p>
-                    <p style="line-height: 1.6;">As a family living on a budget ourselves, we wanted to create one central place where people from all over the world can discover, share, and discuss recipes and budget-friendly meals.</p>
-                    <p style="line-height: 1.6;">We believe good food shouldn't be expensive, and great recipes should be shared — not hidden behind paywalls, flooded with advertisements, or buried beneath endless clickbait.</p>
-
-                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Our Approach</h3>
-                    <p style="line-height: 1.6; margin-top: 0;">Our goal has always been to build a platform that puts people first. While technology helps us run the website, we believe the heart of this community should always be real people sharing real recipes, honest experiences, and practical advice.</p>
-
-                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Keeping It Free</h3>
-                    <p style="line-height: 1.6; margin-top: 0;">The platform is completely free to use. To help cover the running costs, we've included a small number of carefully placed advertisements. We've worked hard to make sure they're as unobtrusive as possible and don't get in the way of your experience.</p>
-                    <p style="line-height: 1.6;">As the platform continues to grow, our goal is to improve this even further — whether that means reducing or removing ads in the future, or making sure any advertisements that remain are more relevant, valuable, and genuinely useful to our community.</p>
-                    <p style="line-height: 1.6;">We believe that if ads are part of the platform, they should add value rather than simply take up space.</p>
-
-                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Join the Community</h3>
-                    <p style="line-height: 1.6; margin-top: 0;">You do not need an account to use this platform. You can browse recipes, discover budget-friendly meals, share recipes, read comments, and explore the community completely free.</p>
-                    <p style="line-height: 1.6;">Creating a free account simply allows you to become a more active part of the community. Members can join discussions, leave comments, save favourite recipes, keep track of their contributions, and help shape the platform through their ideas and feedback.</p>
-                    <p style="line-height: 1.6;">We only ask for your email address as your login ID, and you choose your own password.</p>
-                    <p style="line-height: 1.6;">Creating an account does not mean you will receive unwanted emails, and we will never sell or share your email address.</p>
-                    <p style="line-height: 1.6;">The only emails you may receive from us are:</p>
-                    <ul style="line-height: 1.6; margin-top: 0; padding-left: 20px;">
-                        <li>Replies or feedback related to something you have contacted us about, such as a suggestion, question, or report.</li>
-                        <li>Newsletter emails, but only if you specifically choose to sign up for our newsletter.</li>
-                    </ul>
-                    <p style="line-height: 1.6;">We believe your inbox belongs to you. We don't want to send emails to people who don't want them, which is why newsletters are only sent to people who actively choose to receive them.</p>
-
-                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Helping Us Improve</h3>
-                    <p style="line-height: 1.6; margin-top: 0;">Because there are only two of us running the platform, there may occasionally be something we miss. If you notice anything unusual, inappropriate, or simply not working as it should, please use the Report button or contact us directly.</p>
-                    <p style="line-height: 1.6;">Every report, suggestion, recipe, and comment helps make the platform better, and we'll always do our best to respond as quickly as we can.</p>
-
-                    <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">The Journey Ahead</h3>
-                    <p style="line-height: 1.6; margin-top: 0;">We're only just getting started. We have lots of ideas and exciting features planned for the future, and many of them will come directly from suggestions made by our community.</p>
-                    <p style="line-height: 1.6;">We'll always listen, keep improving, and build this platform together with the people who use it.</p>
-                    <p style="line-height: 1.6;">Thank you so much for visiting our website. We truly hope it's been useful, exceeded your expectations, and maybe even helped you discover your next favourite meal.</p>
-                    <p style="line-height: 1.6;">Our mission is simple: to build one of the friendliest, most useful, and completely free recipe communities on the internet — one recipe at a time.</p>
-                    
-                    <p style="line-height: 1.6; font-style: italic;">One last thing... if something breaks, don't worry — Anton was probably just "optimising" his code. Jenny will gently remind him that it was working perfectly before he started "improving" it.</p>
-                    
-                    <p style="line-height: 1.6;">We look forward to seeing the recipes, ideas, and conversations that this community will create.</p>
-                    <p style="line-height: 1.6; font-size: 1.2rem; margin-top: 20px;">Happy cooking,<br><strong>Anton & Jenny</strong></p>
-                </div>
+                <h1 style="margin: 0; line-height: 1.1; font-family: sans-serif;">
+                    <span style="font-size: 1.0rem; display: block; margin-bottom: 5px; color: var(--text);">WELCOME TO</span>
+                    <a href="/" style="color: #000000; text-decoration: none; display: inline-block;">
+                        <span style="display: block; font-weight: 900; font-size: clamp(1.3rem, 3.5vw, 2.4rem); letter-spacing: -0.5px;">budgetmealplanner</span>
+                        <span style="display: block; font-weight: 700; font-size: clamp(1.0rem, 2.5vw, 1.6rem); letter-spacing: 1px; margin-top: -2px;">.co.za</span>
+                    </a>
+                </h1>
             </div>
-        </div>
-    `;
-    } else if (page === 'profile') {
-        const currentName = currentUser?.user_metadata?.nickname || '';
-        view.innerHTML = `
-            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
-                <h1 style="margin-top: 0; margin-bottom: 0; font-size: 1.8rem;">MY PROFILE</h1>
-            </div>
-            
-            <div class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box; text-align: center;">
-                <h2 style="margin-top:0;">Welcome, ${getUserDisplayName()}!</h2>
-                <p>Email: <strong style="font-size:1.1rem; display:block; margin-top: 5px;">${currentUser ? currentUser.email : 'Unknown'}</strong></p>
-                
-                <div style="background: #fdf6e3; padding: 15px; border: 2px dashed var(--border); margin-top: 15px; text-align: left;">
-                    <label style="font-weight: bold; font-size: 0.9rem;">Change Public Nickname</label>
-                    <div style="display: flex; gap: 10px; margin-top: 5px;">
-                        <input type="text" id="update-nickname-input" placeholder="New Nickname" value="${currentName}" style="flex: 1; margin: 0;">
-                        <button onclick="updateUserNickname()" style="margin: 0; background: #e2d9f3;">Update</button>
+
+            <div class="window-box" style="max-width: 800px; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+                    <img id="home-team-photo" src="${teamPhotoUrl}" style="width: 200px; height: 200px; border-radius: 50%; border: 4px solid var(--border); object-fit: cover;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <h2 style="font-size: 1.5rem; margin-top: 0; margin-bottom: 15px;">About Us</h2>
+                        <h3 style="font-size: 1.2rem; margin-top: 0; margin-bottom: 5px;">Meet the Team</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">Hi! We're Anton and Jenny from South Africa, and we're the team behind this platform. <a href="javascript:void(0)" onclick="showPage('family')" style="color: #007bff; font-style: italic; font-weight: bold;">click here to meet the family</a></p>
+                        
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Who We Are</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">This website is my very first live project. I'm a self-taught developer who wanted to build something genuinely useful for everyday people. Jenny balances her full-time job as an online teacher while also serving as our lead administrator, manually reviewing community recipes and comments to help keep the platform friendly, helpful, and welcoming.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Why We Built This</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">We created this platform because we couldn't find a recipe website that truly focused on affordable, realistic meals while allowing the community to actively participate. Too many recipe sites are filled with clickbait, AI-generated content, endless ads, or recipes that require expensive or difficult-to-find ingredients.</p>
+                        <p style="line-height: 1.6;">As a family living on a budget ourselves, we wanted to create one central place where people from all over the world can discover, share, and discuss recipes and budget-friendly meals.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Our Approach</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">Our goal has always been to build a platform that puts people first. While technology helps us run the website, we believe the heart of this community should always be real people sharing real recipes, honest experiences, and practical advice.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">Helping Us Improve</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">Because there are only two of us running the platform, there may occasionally be something we miss. If you notice anything unusual, inappropriate, or simply not working as it should, please use the Report button or contact us directly.</p>
+
+                        <h3 style="font-size: 1.2rem; margin-top: 20px; margin-bottom: 5px;">The Journey Ahead</h3>
+                        <p style="line-height: 1.6; margin-top: 0;">We're only just getting started. We have lots of ideas and exciting features planned for the future, and many of them will come directly from suggestions made by our community.</p>
+                        
+                        <p style="line-height: 1.6; font-style: italic;">One last thing... if something breaks, don't worry — Anton was probably just "optimising" his code. Jenny will gently remind him that it was working perfectly before he started "improving" it.</p>
+                        
+                        <p style="line-height: 1.6; font-size: 1.2rem; margin-top: 20px;">Happy cooking,<br><strong>Anton & Jenny</strong></p>
                     </div>
                 </div>
-
-                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
-                    <button onclick="toggleCookbook()">📖 My Cookbook</button>
-                    <button onclick="logoutUser()">🚪 Sign Out</button>
-                </div>
-            </div>
-
-            <div id="profile-inbox-section" class="window-box" style="width: 100%; max-width: 600px; box-sizing: border-box;">
-                <h2 style="margin-top:0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Private Inbox</h2>
-                <p style="font-size: 0.9rem; color: #555; margin-top: 0;">Have a suggestion, question, or issue? Chat directly with Anton & Jenny here.</p>
-                <div id="member-messages" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px; padding: 15px; border: 2px solid var(--border); background: #fdf6e3;">Loading messages...</div>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="new-message-text" placeholder="Type your message..." style="flex: 1; margin: 0;">
-                    <button onclick="sendMessageToAdmin()" style="margin: 0;">Send</button>
-                </div>
-            </div>
-
-            <div id="profile-cookbook-section" class="window-box" style="display: none; width: 100%; max-width: 600px; box-sizing: border-box;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">
-                    <h2 style="margin:0;">My Saved Recipes</h2>
-                    <button onclick="toggleCookbook()" style="margin:0; padding: 5px 10px; font-size: 0.8rem;">Back to Inbox</button>
-                </div>
-                <div id="cookbook-list">Loading favorites...</div>
             </div>
         `;
-        loadMemberMessages(); 
-
-    } else if (page === 'family') {
+    } 
+    else if (page === 'profile') {
+        renderProfileDashboard(view);
+    } 
+    else if (page === 'family') {
         if (!currentUser) {
             alert("🏡 The Family Hub is a private sanctuary for our registered members. Please log in or join us for free to enter!");
             openAuthModal();
@@ -521,7 +424,6 @@ function showPage(page) {
         renderShoutbox();
     } else if (page === 'broadcasts') {
         renderPublicBroadcasts();
-    
     } else if (page === 'admin') {
         if (!isAdmin) { showPage('home'); return; }
         
@@ -548,7 +450,7 @@ function showPage(page) {
             
             ${developerWarning}
 
-            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 20px;">
+            <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
                 <button id="tab-inbox" onclick="switchAdminTab('inbox')" style="flex: 1; min-width: 140px; margin: 0;">📥 Inbox & Reports</button>
                 <button id="tab-review" onclick="switchAdminTab('review')" style="flex: 1; min-width: 140px; margin: 0;">⏳ New Recipe Queue</button>
                 <button id="tab-photo" onclick="switchAdminTab('photo')" style="flex: 1; min-width: 140px; margin: 0;">📸 Photo Moderation</button>
@@ -617,20 +519,130 @@ function showPage(page) {
     }
 }
 
+// ==========================================
+//        PERSONAL DASHBOARD (UPGRADED)
+// ==========================================
+function renderProfileDashboard(view) {
+    const currentName = currentUser?.user_metadata?.nickname || '';
+    const currentCountry = localStorage.getItem('saved_country') || selectedCountry;
+
+    let countryOptions = '<option value="">-- Select Country --</option>';
+    if (typeof countries !== 'undefined') {
+        countries.forEach(c => {
+            countryOptions += `<option value="${c}" ${c === currentCountry ? 'selected' : ''}>${c}</option>`;
+        });
+    }
+
+    view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div style="text-align: left;">
+                <h1 style="margin: 0; font-size: 1.8rem; font-weight: 900;">${getUserDisplayName()}</h1>
+                <p style="margin: 5px 0 0 0; font-size: 0.95rem; font-weight: bold; color: #333;">${currentUser ? currentUser.email : 'Unknown'}</p>
+            </div>
+            <button onclick="logoutUser()" style="margin: 0; background: #ffe6e6; border-color: #cc0000; color: #cc0000; box-shadow: 2px 2px 0px #cc0000;">🚪 Sign Out</button>
+        </div>
+
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
+            <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; font-size: 1.3rem;">⚙️ Account Settings</h2>
+            
+            <label style="font-weight: bold; font-size: 0.9rem;">Public Nickname</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; margin-top: 5px;">
+                <input type="text" id="update-nickname-input" placeholder="New Nickname" value="${currentName}" style="flex: 1; margin: 0;">
+                <button onclick="updateUserNickname()" style="margin: 0; padding: 0 20px;">Update</button>
+            </div>
+
+            <label style="font-weight: bold; font-size: 0.9rem;">Local Region</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; margin-top: 5px;">
+                <select id="update-country-input" style="flex: 1; margin: 0;">
+                    ${countryOptions}
+                </select>
+                <button onclick="updateUserCountry()" style="margin: 0; padding: 0 20px;">Update</button>
+            </div>
+
+            <label style="font-weight: bold; font-size: 0.9rem;">Change Password</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 5px; margin-top: 5px;">
+                <input type="password" id="update-password-input" placeholder="Enter new password (min 6 chars)" style="flex: 1; margin: 0;">
+                <button onclick="updateUserPassword(event)" style="margin: 0; padding: 0 20px;">Update</button>
+            </div>
+        </div>
+
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; display: flex; gap: 10px; padding: 10px;">
+            <button onclick="switchProfileTab('inbox')" id="prof-tab-inbox" style="flex: 1; margin: 0; background: #ffffff; border-bottom: 4px solid var(--border);">📥 Private Inbox</button>
+            <button onclick="switchProfileTab('cookbook')" id="prof-tab-cookbook" style="flex: 1; margin: 0; background: var(--btn-grey); border-bottom: 2px solid var(--border);">📖 My Cookbook</button>
+        </div>
+
+        <div id="profile-inbox-section" class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
+            <h2 style="margin-top:0; border-bottom: 2px dashed var(--border); padding-bottom: 10px; font-size: 1.3rem;">Inbox & Support</h2>
+            <p style="font-size: 0.9rem; color: #555; margin-top: 0;">Have a suggestion or issue? Chat directly with Anton & Jenny here.</p>
+            <div id="member-messages" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px; padding: 15px; border: 2px solid var(--border); background: #fdf6e3;">Loading messages...</div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="new-message-text" placeholder="Type your message..." style="flex: 1; margin: 0;">
+                <button onclick="sendMessageToAdmin()" style="margin: 0; padding: 0 20px;">Send</button>
+            </div>
+        </div>
+
+        <div id="profile-cookbook-section" class="window-box" style="display: none; width: 100%; max-width: 650px; box-sizing: border-box;">
+            <h2 style="margin-top:0; border-bottom: 2px dashed var(--border); padding-bottom: 10px; font-size: 1.3rem;">Saved Recipes</h2>
+            <div id="cookbook-list">Loading favorites...</div>
+        </div>
+    `;
+    loadMemberMessages();
+}
+
+function switchProfileTab(tab) {
+    document.getElementById('profile-inbox-section').style.display = tab === 'inbox' ? 'block' : 'none';
+    document.getElementById('profile-cookbook-section').style.display = tab === 'cookbook' ? 'block' : 'none';
+    
+    document.getElementById('prof-tab-inbox').style.background = tab === 'inbox' ? '#ffffff' : 'var(--btn-grey)';
+    document.getElementById('prof-tab-inbox').style.borderBottom = tab === 'inbox' ? '4px solid var(--border)' : '2px solid var(--border)';
+    
+    document.getElementById('prof-tab-cookbook').style.background = tab === 'cookbook' ? '#ffffff' : 'var(--btn-grey)';
+    document.getElementById('prof-tab-cookbook').style.borderBottom = tab === 'cookbook' ? '4px solid var(--border)' : '2px solid var(--border)';
+
+    if (tab === 'cookbook') loadCookbook();
+}
+
 async function updateUserNickname() {
     if (!currentUser) return;
     const newName = document.getElementById('update-nickname-input').value.trim();
     if (!newName) return alert("Please enter a valid nickname.");
 
-    const { data, error } = await myDatabase.auth.updateUser({
-        data: { nickname: newName }
-    });
+    const { data, error } = await myDatabase.auth.updateUser({ data: { nickname: newName } });
 
     if (error) alert("Error updating nickname: " + error.message);
     else {
         alert("Nickname updated successfully!");
         currentUser = data.user; 
+        updateAuthUI(); 
         showPage('profile'); 
+    }
+}
+
+function updateUserCountry() {
+    const newCountry = document.getElementById('update-country-input').value;
+    if (!newCountry) return alert("Please select a valid country.");
+    selectedCountry = newCountry;
+    localStorage.setItem('saved_country', newCountry);
+    alert("Region successfully updated to " + newCountry + "!");
+}
+
+async function updateUserPassword(event) {
+    const newPassword = document.getElementById('update-password-input').value;
+    if (!newPassword || newPassword.length < 6) return alert("Password must be at least 6 characters.");
+    
+    const btn = event.target;
+    btn.innerText = "Updating...";
+    btn.disabled = true;
+
+    const { error } = await myDatabase.auth.updateUser({ password: newPassword });
+    
+    btn.innerText = "Update";
+    btn.disabled = false;
+
+    if (error) alert("Error updating password: " + error.message);
+    else {
+        alert("Password securely updated!");
+        document.getElementById('update-password-input').value = '';
     }
 }
 
@@ -672,53 +684,6 @@ async function uploadBackgroundPhoto(event) {
     btn.innerText = "Upload & Save Background";
     alert("Background updated!");
 }
-
-async function saveBudgetMeal() {
-    if(await isUserBanned()) return; 
-    const title = document.getElementById('budget-title').value.trim();
-    const cost = parseFloat(document.getElementById('budget-cost').value);
-    const servings = parseInt(document.getElementById('budget-servings').value);
-    const mealType = document.getElementById('meal-type').value;
-
-    if (!title || !cost || !servings) return alert("Please fill in title, cost, and servings.");
-
-    let recipeText = "";
-    let structuredIngredients = [];
-
-    if (mealType === 'home') {
-        recipeText = document.getElementById('recipe-instructions').value.trim();
-        const ingredientRows = document.querySelectorAll('#home-cooked-section .ingredient-row');
-        ingredientRows.forEach(row => {
-            const name = row.querySelector('.ing-name').value.trim();
-            const qty = row.querySelector('.ing-qty').value;
-            const unit = row.querySelector('.ing-unit').value;
-            if (name !== "") structuredIngredients.push({ item: name, qty: qty ? parseFloat(qty) : null, unit: unit });
-        });
-        if (!recipeText) return alert("Please add cooking instructions.");
-    } else {
-        recipeText = document.getElementById('takeaway-included').value.trim();
-        if (!recipeText) return alert("Please describe what is included.");
-    }
-
-    const { error } = await myDatabase.from('meals').insert([{ 
-        title: title, 
-        author: getUserDisplayName(), 
-        category: 'budget', 
-        parent_category: null,
-        country: selectedCountry,
-        meal_type: mealType,
-        cost: cost,
-        servings: servings,
-        ingredients: structuredIngredients, 
-        recipe: recipeText, 
-        created_at: new Date().toISOString(), 
-        status: 'pending' 
-    }]);
-    
-    if (error) alert("Error: " + error.message);
-    else { alert("Budget meal posted successfully!"); showPage('find-budget-meals'); }
-}
-
 
 function renderFindHub() {
     const view = document.getElementById('main-view');
@@ -788,13 +753,10 @@ async function loadMemberMessages() {
     if (!currentUser) return; 
     const container = document.getElementById('member-messages');
     
-    await myDatabase.from('messages')
-        .update({ is_read: true })
-        .eq('recipient_email', currentUser.email)
-        .eq('is_read', false);
+    await myDatabase.from('messages').update({ is_read: true }).eq('recipient_email', currentUser.email).eq('is_read', false);
     
     const authBtn = document.getElementById('nav-auth-btn');
-    if (authBtn) authBtn.innerHTML = '👤 My Profile';
+    if (authBtn) authBtn.innerHTML = '👤 My Profile Dashboard';
 
     const cacheKey = `cache_member_messages_${currentUser.email}`;
 
@@ -820,9 +782,7 @@ async function loadMemberMessages() {
         container.scrollTop = container.scrollHeight; 
     };
 
-    if (!localStorage.getItem(cacheKey)) {
-        container.innerHTML = 'Loading messages...';
-    }
+    if (!localStorage.getItem(cacheKey)) container.innerHTML = 'Loading messages...';
 
     await fetchWithSWR(
         cacheKey,
@@ -844,22 +804,13 @@ async function sendMessageToAdmin() {
     if (!text || !currentUser) return;
     
     input.disabled = true; 
-    
     const { error } = await myDatabase.from('messages').insert([{
-        name: 'Member Message',
-        email: currentUser.email,
-        recipient_email: 'admin',
-        message: text,
-        is_read: false
+        name: 'Member Message', email: currentUser.email, recipient_email: 'admin', message: text, is_read: false
     }]);
-    
     input.disabled = false; 
     
     if (error) alert("Error: " + error.message);
-    else {
-        input.value = ''; 
-        loadMemberMessages();
-    }
+    else { input.value = ''; loadMemberMessages(); }
 }
 
 async function executeSearch() {
@@ -892,7 +843,7 @@ async function executeSearch() {
         data.forEach(meal => {
             const author = meal.author || "Community";
             const isBudget = meal.category === 'budget';
-            const clickAction = isBudget ? `viewBudgetMeal(${meal.id})` : `viewRecipe(${meal.id})`;
+            const clickAction = isBudget ? `viewBudgetMeal('${meal.id}')` : `viewRecipe('${meal.id}')`;
             const badge = isBudget ? ` - BUDGET` : '';
 
             html += `<div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0;">
@@ -931,18 +882,20 @@ function renderCategoryList(context) {
         
     html += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; width: 100%; max-width: 900px;">`;
 
-    Object.keys(categories).forEach(cat => {
-        if (cat === 'Specialized Plans' || cat === 'Pet Food & Treats') return;
+    if (typeof categories !== 'undefined') {
+        Object.keys(categories).forEach(cat => {
+            if (cat === 'Specialized Plans' || cat === 'Pet Food & Treats') return;
 
-        const meta = categoryMeta[cat] || { icon: "🍽️", desc: "Explore recipes in this category." };
-        html += `
-            <div class="window-box" onclick="renderSubcategoryList('${cat}', '${context}')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <div style="font-size: 2.2rem; margin-bottom: 10px;">${meta.icon}</div>
-                <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 5px;">${cat}</h3>
-                <p style="font-size: 0.9rem; color: #555; margin: 0;">${meta.desc}</p>
-            </div>
-        `;
-    });
+            const meta = categoryMeta[cat] || { icon: "🍽️", desc: "Explore recipes in this category." };
+            html += `
+                <div class="window-box" onclick="renderSubcategoryList('${cat}', '${context}')" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                    <div style="font-size: 2.2rem; margin-bottom: 10px;">${meta.icon}</div>
+                    <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 5px;">${cat}</h3>
+                    <p style="font-size: 0.9rem; color: #555; margin: 0;">${meta.desc}</p>
+                </div>
+            `;
+        });
+    }
 
     html += `</div>`;
     view.innerHTML = html;
@@ -960,24 +913,27 @@ function renderSubcategoryList(mainCategory, context) {
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; width: 100%; max-width: 900px;">
     `;
 
-    categories[mainCategory].forEach(sub => {
-        const action = context === 'find' ? `loadSubcategory('${sub}', '${mainCategory}')` : `showForm('${sub}', '${mainCategory}')`;
-        const meta = subcategoryMeta[sub] || { icon: "🍽️", desc: "Delicious homemade recipes." };
-        
-        html += `
-            <div class="window-box" onclick="${action}" style="cursor: pointer; text-align: center; margin-bottom: 0;">
-                <div style="font-size: 2.2rem; margin-bottom: 10px;">${meta.icon}</div>
-                <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 5px;">${sub}</h3>
-                <p style="font-size: 0.9rem; color: #555; margin: 0;">${meta.desc}</p>
-            </div>
-        `;
-    });
+    if (categories && categories[mainCategory]) {
+        categories[mainCategory].forEach(sub => {
+            const action = context === 'find' ? `loadSubcategory('${sub}', '${mainCategory}')` : `showForm('${sub}', '${mainCategory}')`;
+            const meta = subcategoryMeta[sub] || { icon: "🍽️", desc: "Delicious homemade recipes." };
+            
+            html += `
+                <div class="window-box" onclick="${action}" style="cursor: pointer; text-align: center; margin-bottom: 0;">
+                    <div style="font-size: 2.2rem; margin-bottom: 10px;">${meta.icon}</div>
+                    <h3 style="margin-top: 0; font-size: 1.3rem; margin-bottom: 5px;">${sub}</h3>
+                    <p style="font-size: 0.9rem; color: #555; margin: 0;">${meta.desc}</p>
+                </div>
+            `;
+        });
+    }
 
     html += `</div>`;
     view.innerHTML = html;
 }
 
 function getParentCategory(subcategoryName) {
+    if (!categories) return null;
     for (const [mainCat, subCats] of Object.entries(categories)) {
         if (subCats.includes(subcategoryName)) { return mainCat; }
     }
@@ -1926,11 +1882,14 @@ async function saveRecipe() {
     else { alert("Recipe posted successfully!"); loadSubcategory(selectedSubcategory, selectedParentCategory); }
 }
 
+// ==========================================
+//        ADMIN COMMAND CENTER LOGIC
+// ==========================================
 function switchAdminTab(tab) {
     ['inbox', 'review', 'photo', 'library', 'settings', 'family', 'broadcasts', 'campfire', 'jail', 'audit', 'users'].forEach(t => {
         const btn = document.getElementById('tab-' + t);
         if (btn) {
-            btn.style.background = (t === tab) ? '#fff' : 'var(--btn-grey)';
+            btn.style.background = (t === tab) ? '#ffffff' : 'var(--btn-grey)';
             btn.style.borderBottom = (t === tab) ? '4px solid var(--border)' : '2px solid var(--border)';
         }
     });
@@ -1940,7 +1899,7 @@ function switchAdminTab(tab) {
     if (tab === 'inbox') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">User Messages & Reports</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">User Messages & Reports</h2>
                 <div id="messages-list">Loading...</div>
             </div>`;
         loadMessages();
@@ -1948,7 +1907,7 @@ function switchAdminTab(tab) {
     else if (tab === 'review') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">Needs Approval</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Needs Approval</h2>
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <select id="review-tier1" onchange="updateTier2('review')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
                     <select id="review-tier2" onchange="updateTier3('review')" style="flex: 1; min-width: 200px; margin-bottom: 0; display: none;"></select>
@@ -1961,8 +1920,8 @@ function switchAdminTab(tab) {
     else if (tab === 'photo') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">Pending Photo Submissions</h2>
-                <p style="color: #555;">Approve user-submitted photos to send them live, or decline to delete them.</p>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Pending Photo Submissions</h2>
+                <p style="color: #555; margin-top: 0;">Approve user-submitted photos to send them live, or decline to delete them.</p>
                 <div id="photo-list" style="margin-top: 20px;">Loading...</div>
             </div>`;
         loadPhotoQueue();
@@ -1970,7 +1929,7 @@ function switchAdminTab(tab) {
     else if (tab === 'library') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">Approved Content</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Approved Content</h2>
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <input type="text" id="library-search" placeholder="Search title or ingredient..." style="flex-basis: 100%; margin-bottom: 10px;" onkeyup="if(event.key === 'Enter') loadLibrary()">
                     <select id="library-tier1" onchange="updateTier2('library')" style="flex: 1; min-width: 200px; margin-bottom: 0;"></select>
@@ -1985,7 +1944,7 @@ function switchAdminTab(tab) {
     else if (tab === 'settings') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">Site Settings</h2>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Site Settings</h2>
                 <div class="window-box" style="margin-bottom: 20px;">
                     <h3 style="margin-top: 0;">📸 Update Team Photo</h3>
                     <input type="file" id="team-photo-upload" accept="image/*" style="margin-bottom: 15px; display: block; border: none; padding: 0;">
@@ -2000,8 +1959,8 @@ function switchAdminTab(tab) {
     } else if (tab === 'family') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">🏡 The Family Hub</h2>
-                <p style="color: #555;">Add a new family member or pet to the Sanctuary page.</p>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🏡 The Family Hub</h2>
+                <p style="color: #555; margin-top: 0;">Add a new family member or pet to the Sanctuary page.</p>
 
                 <div class="window-box" style="display: flex; flex-direction: column; gap: 15px; max-width: 500px; margin-bottom: 30px;">
                     <input type="text" id="family-name" placeholder="Name (e.g., Buster, Anton)" required style="margin-bottom: 0;">
@@ -2019,9 +1978,7 @@ function switchAdminTab(tab) {
                     <label style="font-weight: bold; font-size: 0.9rem;">Display Order (1 shows up first):</label>
                     <input type="number" id="family-order" value="1" min="1" style="margin-bottom: 0;">
                     
-                    <button onclick="saveFamilyMember(event)" style="margin: 0; padding: 10px;">
-                        Add to Family Hub
-                    </button>
+                    <button onclick="saveFamilyMember(event)" style="margin: 0; padding: 10px;">Add to Family Hub</button>
                 </div>
 
                 <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px;">Manage Current Family</h3>
@@ -2034,8 +1991,8 @@ function switchAdminTab(tab) {
     } else if (tab === 'broadcasts') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">📣 Community Broadcasts</h2>
-                <p style="color: #555;">Post an update directly to the user sidebar. Everyone will see it.</p>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">📣 Community Broadcasts</h2>
+                <p style="color: #555; margin-top: 0;">Post an update directly to the user sidebar. Everyone will see it.</p>
 
                 <div class="window-box" style="display: flex; flex-direction: column; gap: 15px; max-width: 700px; margin-bottom: 30px;">
                     <textarea id="broadcast-message" placeholder="Type your announcement here... (e.g., Hey everyone, we are looking for moderators!)" rows="4" required style="margin-bottom: 0; font-family: inherit;"></textarea>
@@ -2047,9 +2004,7 @@ function switchAdminTab(tab) {
                             <option value="Jenny">— Jenny</option>
                             <option value="Anton & Jenny">— Anton & Jenny</option>
                         </select>
-                        <button onclick="postBroadcast(event)" style="padding: 10px 20px; margin: 0;">
-                            Send Broadcast 📢
-                        </button>
+                        <button onclick="postBroadcast(event)" style="padding: 10px 20px; margin: 0;">Send Broadcast 📢</button>
                     </div>
                 </div>
 
@@ -2063,8 +2018,8 @@ function switchAdminTab(tab) {
     } else if (tab === 'campfire') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">🔥 Campfire Logs (Moderation)</h2>
-                <p style="color: #555;">Live feed of the public shoutbox. Delete inappropriate messages instantly.</p>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🔥 Campfire Logs (Moderation)</h2>
+                <p style="color: #555; margin-top: 0;">Live feed of the public shoutbox. Delete inappropriate messages instantly.</p>
                 <div id="admin-campfire-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                     <p><i>Loading logs...</i></p>
                 </div>
@@ -2074,8 +2029,8 @@ function switchAdminTab(tab) {
     } else if (tab === 'jail') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">🛑 Holding Cell (Soft Blocks)</h2>
-                <p style="color: #555;">Users currently restricted from posting. Review and Reinstate.</p>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">🛑 Holding Cell (Soft Blocks)</h2>
+                <p style="color: #555; margin-top: 0;">Users currently restricted from posting. Review and Reinstate.</p>
                 <div id="admin-jail-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                     <p><i>Loading restricted users...</i></p>
                 </div>
@@ -2085,8 +2040,8 @@ function switchAdminTab(tab) {
     } else if (tab === 'audit') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">👁️ Live Audit Logs</h2>
-                <p style="color: #555;">Immutable record of all administrative and moderation actions.</p>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👁️ Live Audit Logs</h2>
+                <p style="color: #555; margin-top: 0;">Immutable record of all administrative and moderation actions.</p>
                 <div id="admin-audit-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                     <p><i>Pulling security tapes...</i></p>
                 </div>
@@ -2096,8 +2051,8 @@ function switchAdminTab(tab) {
     } else if (tab === 'users') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0;">👥 User Directory</h2>
-                <p style="color: #555;">Search the public mirror profile database to moderate users.</p>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👥 User Directory</h2>
+                <p style="color: #555; margin-top: 0;">Search the public mirror profile database to moderate users.</p>
                 
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <input type="text" id="directory-search" placeholder="Search by email or nickname..." style="flex: 1; margin: 0;" onkeyup="if(event.key === 'Enter') searchUserDirectory()">
@@ -2113,7 +2068,7 @@ function switchAdminTab(tab) {
 }
 
 // ==========================================
-//        PHASE 5: MIRROR DIRECTORY SEARCH
+//        ADMIN FUNCTIONS (DIRECTORY/JAIL/AUDIT)
 // ==========================================
 async function searchUserDirectory() {
     const term = document.getElementById('directory-search').value.trim();
@@ -2154,15 +2109,9 @@ async function searchUserDirectory() {
 
 async function promoteUser(email) {
     const newRole = prompt(`Promote ${email} to what role?\nOptions: 'moderator', 'admin', 'developer'`);
-    if (!newRole || !['moderator', 'admin', 'developer'].includes(newRole.toLowerCase())) {
-        return alert("Invalid role. Cancelled.");
-    }
+    if (!newRole || !['moderator', 'admin', 'developer'].includes(newRole.toLowerCase())) return alert("Invalid role. Cancelled.");
 
-    const { error } = await myDatabase.from('admin_whitelist').upsert({
-        email: email,
-        role: newRole.toLowerCase()
-    }, { onConflict: 'email' });
-
+    const { error } = await myDatabase.from('admin_whitelist').upsert({ email: email, role: newRole.toLowerCase() }, { onConflict: 'email' });
     if(error) alert("Error: " + error.message);
     else {
         await logAction('ROLE_CHANGED', `Target: ${email}`, `Promoted to ${newRole}`);
@@ -2170,15 +2119,9 @@ async function promoteUser(email) {
     }
 }
 
-// ==========================================
-//        PHASE 4: THE HOLDING CELL (JAIL)
-// ==========================================
 async function loadHoldingCell() {
     const listDiv = document.getElementById('admin-jail-list');
-    
-    const { data, error } = await myDatabase.from('banned_users')
-        .select('*')
-        .order('banned_at', { ascending: false });
+    const { data, error } = await myDatabase.from('banned_users').select('*').order('banned_at', { ascending: false });
 
     if (error) { listDiv.innerHTML = `<p>Error: ${error.message}</p>`; return; }
     if (data.length === 0) { listDiv.innerHTML = "<p>The Holding Cell is currently empty.</p>"; return; }
@@ -2191,7 +2134,7 @@ async function loadHoldingCell() {
                 <p style="font-weight: bold; font-size: 1.1rem; margin: 0 0 5px 0;">${inmate.user_email}</p>
                 <p style="margin: 0 0 5px 0; font-size: 0.95rem;"><strong>Reason:</strong> ${inmate.reason}</p>
                 <p style="margin: 0 0 10px 0; font-size: 0.8rem; color: #666;">Banned by ${inmate.banned_by} on ${dateStr}</p>
-                <button onclick="unblockUser('${inmate.id}', '${inmate.user_email}')">✅ Unblock</button>
+                <button onclick="unblockUser('${inmate.id}', '${inmate.user_email}')" style="margin: 0;">✅ Unblock User</button>
             </div>
         `;
     });
@@ -2200,7 +2143,6 @@ async function loadHoldingCell() {
 
 async function unblockUser(recordId, email) {
     if (!confirm(`Are you sure you want to reinstate ${email}?`)) return;
-
     const { error } = await myDatabase.from('banned_users').delete().eq('id', recordId);
     if (error) alert("Error unblocking: " + error.message);
     else {
@@ -2210,15 +2152,11 @@ async function unblockUser(recordId, email) {
     }
 }
 
-// ==========================================
-//        PHASE 4: AUDIT LOGS
-// ==========================================
 async function loadAuditLogs() {
     const listDiv = document.getElementById('admin-audit-list');
 
     const renderList = (data) => {
         if (data.length === 0) { listDiv.innerHTML = "<p>No logs found.</p>"; return; }
-
         let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">';
         html += '<tr style="border-bottom: 2px solid var(--border);"><th style="padding: 8px;">Time</th><th style="padding: 8px;">Actor</th><th style="padding: 8px;">Action</th><th style="padding: 8px;">Target/Context</th></tr>';
         
@@ -2237,17 +2175,16 @@ async function loadAuditLogs() {
         listDiv.innerHTML = html;
     };
 
-    await fetchWithSWR(
-        'cache_audit_logs',
-        async () => {
-            const { data, error } = await myDatabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100);
-            if (error) throw error;
-            return data;
-        },
-        renderList
-    );
+    await fetchWithSWR('cache_audit_logs', async () => {
+        const { data, error } = await myDatabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100);
+        if (error) throw error;
+        return data;
+    }, renderList);
 }
 
+// ==========================================
+//        ADMIN QUEUES (PHOTOS/RECIPES/LIBRARY)
+// ==========================================
 async function loadPhotoQueue() {
     const area = document.getElementById('photo-list');
     area.innerHTML = "Checking for pending photos...";
@@ -2329,19 +2266,25 @@ function updateTier2(context) {
     if (t1 === 'global') {
         t2.style.display = 'block';
         t2.innerHTML = '<option value="all">-- All Main Categories --</option>';
-        Object.keys(categories).forEach(cat => {
-            if (cat !== 'Pet Food & Treats' && cat !== 'Specialized Plans') {
-                t2.innerHTML += `<option value="${cat}">${cat}</option>`;
-            }
-        });
+        if (typeof categories !== 'undefined') {
+            Object.keys(categories).forEach(cat => {
+                if (cat !== 'Pet Food & Treats' && cat !== 'Specialized Plans') {
+                    t2.innerHTML += `<option value="${cat}">${cat}</option>`;
+                }
+            });
+        }
     } else if (t1 === 'budget' || t1 === 'special') {
         t2.style.display = 'block';
         t2.innerHTML = '<option value="all">-- All Countries --</option>';
-        countries.forEach(c => t2.innerHTML += `<option value="${c}">${c}</option>`);
+        if (typeof countries !== 'undefined') {
+            countries.forEach(c => t2.innerHTML += `<option value="${c}">${c}</option>`);
+        }
     } else if (t1 === 'pet') {
         t2.style.display = 'block';
         t2.innerHTML = '<option value="all">-- All Pets --</option>';
-        categories['Pet Food & Treats'].forEach(sub => t2.innerHTML += `<option value="${sub}">${sub}</option>`);
+        if (typeof categories !== 'undefined' && categories['Pet Food & Treats']) {
+            categories['Pet Food & Treats'].forEach(sub => t2.innerHTML += `<option value="${sub}">${sub}</option>`);
+        }
     }
     if (context === 'review') loadReviewQueue(); else loadLibrary();
 }
@@ -2356,7 +2299,9 @@ function updateTier3(context) {
     if (t1 === 'global' && t2 !== 'all') {
         t3.style.display = 'block';
         t3.innerHTML = '<option value="all">-- All Subcategories --</option>';
-        categories[t2].forEach(sub => t3.innerHTML += `<option value="${sub}">${sub}</option>`);
+        if (typeof categories !== 'undefined' && categories[t2]) {
+            categories[t2].forEach(sub => t3.innerHTML += `<option value="${sub}">${sub}</option>`);
+        }
     } else if (t1 === 'budget') {
         t3.style.display = 'block';
         t3.innerHTML = `<option value="all">-- All Meal Types --</option><option value="home">Home-Cooked</option><option value="takeaway">Takeaway</option>`;
@@ -2386,11 +2331,13 @@ function buildAdminQuery(context, status) {
             query = query.eq('parent_category', t2.value);
         } else {
             let allGlobalSubcats = [];
-            Object.keys(categories).forEach(c => {
-                if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
-                    allGlobalSubcats = allGlobalSubcats.concat(categories[c]);
-                }
-            });
+            if (typeof categories !== 'undefined') {
+                Object.keys(categories).forEach(c => {
+                    if (c !== 'Pet Food & Treats' && c !== 'Specialized Plans') {
+                        allGlobalSubcats = allGlobalSubcats.concat(categories[c]);
+                    }
+                });
+            }
             query = query.in('category', allGlobalSubcats);
         }
     } else if (t1 === 'budget') {
@@ -2436,7 +2383,7 @@ function renderAdminItems(data, container, contextPrefix) {
         if (meal.category === 'budget') { typeInfo = `Budget Meal (${meal.country}) - ${meal.meal_type || 'Unknown'}`; } 
         else if (meal.category === 'special') { typeInfo = `Local Special (${meal.country})`; } 
         else if (meal.category === '7-Day Meal Plans') { typeInfo = `Meal Plan (Global)`; } 
-        else if (categories['Pet Food & Treats'].includes(meal.category)) { typeInfo = `Pet Food (${meal.category})`; }
+        else if (typeof categories !== 'undefined' && categories['Pet Food & Treats'] && categories['Pet Food & Treats'].includes(meal.category)) { typeInfo = `Pet Food (${meal.category})`; }
 
         html += `
         <div class="window-box" id="${contextPrefix}-${meal.id}" style="padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
@@ -2447,18 +2394,25 @@ function renderAdminItems(data, container, contextPrefix) {
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">`;
         
         if (contextPrefix === 'review') {
-            html += `<button onclick="approveRecipe('${meal.id}')">Approve</button>`;
+            html += `<button onclick="approveRecipe('${meal.id}')" style="margin: 0;">Approve</button>`;
         } else if (contextPrefix === 'library') {
-            html += `<button onclick="moderateComments('${meal.id}', '${meal.title.replace(/'/g, "\\'")}')">Moderate Comments</button>`;
+            html += `<button onclick="moderateComments('${meal.id}', '${meal.title.replace(/'/g, "\\'")}')" style="margin: 0;">Moderate Comments</button>`;
         }
         
         html += `
-                <button onclick="openEdit('${meal.id}')">Edit</button>
-                <button onclick="deleteRecord('meals', '${meal.id}')">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
+                <button onclick="openEdit('${meal.id}')" style="margin: 0;">Edit</button>
+                <button onclick="deleteRecord('meals', '${meal.id}')" style="margin: 0;">${contextPrefix === 'review' ? 'Decline' : 'Delete'}</button>
             </div>
         </div>`;
     });
     container.innerHTML = html;
+}
+
+async function approveRecipe(id) {
+    await logAction('APPROVE_RECIPE', `ID: ${id}`, `Approved post from queue.`);
+    const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
+    if (error) alert("Error approving: " + error.message); 
+    else loadReviewQueue(); 
 }
 
 async function moderateComments(recipeId, recipeTitle) {
@@ -2502,13 +2456,6 @@ async function moderateComments(recipeId, recipeTitle) {
     area.innerHTML = html;
 }
 
-async function approveRecipe(id) {
-    await logAction('APPROVE_RECIPE', `ID: ${id}`, `Approved post from queue.`);
-    const { error } = await myDatabase.from('meals').update({ status: 'approved' }).eq('id', id);
-    if (error) alert("Error approving: " + error.message); 
-    else loadReviewQueue(); 
-}
-
 async function loadMessages() {
     const list = document.getElementById('messages-list');
     const { data, error } = await myDatabase.from('messages').select('*').order('created_at', { ascending: false });
@@ -2546,7 +2493,7 @@ async function loadMessages() {
             
             <div id="reply-box-${safeEmailId}" style="display:none; width: 100%; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
                 <textarea id="reply-text-${safeEmailId}" rows="3" placeholder="Type your reply to ${msg.email}..." style="width: 100%; margin-bottom: 10px;"></textarea>
-                <button onclick="sendAdminReply('${msg.email}', '${safeEmailId}')">Send Reply</button>
+                <button onclick="sendAdminReply('${msg.email}', '${safeEmailId}')" style="margin: 0;">Send Reply</button>
             </div>
         </div>`;
     });
@@ -2564,23 +2511,15 @@ async function sendAdminReply(recipientEmail, safeId) {
     
     await logAction('ADMIN_REPLY', `To: ${recipientEmail}`, `Sent reply from inbox.`);
     const { error } = await myDatabase.from('messages').insert([{
-        name: 'Admin Support',
-        email: currentUser.email,
-        recipient_email: recipientEmail,
-        message: text,
-        is_read: false
+        name: 'Admin Support', email: currentUser.email, recipient_email: recipientEmail, message: text, is_read: false
     }]);
     
     if (error) alert("Error sending reply: " + error.message);
-    else {
-        alert("Reply sent successfully!");
-        loadMessages();
-    }
+    else { alert("Reply sent successfully!"); loadMessages(); }
 }
 
 async function deleteRecord(table, id, fallbackId = null, fallbackTitle = null) {
     if (!confirm("Are you 100% sure you want to permanently delete this?")) return;
-    
     await logAction(`DELETE_${table.toUpperCase()}`, `ID: ${id}`, `Deleted from admin panel.`);
     const { error } = await myDatabase.from(table).delete().eq('id', id);
     if (error) alert("Error deleting: " + error.message);
@@ -2641,7 +2580,7 @@ async function openEdit(id) {
         <div class="window-box" style="width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin: 0;">Edit Record</h2>
-                <button onclick="switchAdminTab('library')">Cancel & Return</button>
+                <button onclick="switchAdminTab('library')" style="margin: 0;">Cancel & Return</button>
             </div>
             
             <div class="window-box" style="margin-bottom: 20px;">
@@ -2694,7 +2633,7 @@ async function openEdit(id) {
             <label style="font-weight: bold; font-size: 0.9rem;">Instructions / What is Included</label>
             <textarea id="edit-instructions" rows="8" placeholder="Instructions...">${(data.recipe || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
             
-            <button style="width: 100%; font-size: 1.1rem; padding: 15px;" onclick="saveEdit()">💾 Save Changes to Database</button>
+            <button style="width: 100%; font-size: 1.1rem; padding: 15px; margin: 0;" onclick="saveEdit()">💾 Save Changes to Database</button>
         </div>
     `;
 
@@ -2795,96 +2734,48 @@ async function saveEdit() {
     else { alert("Updated successfully!"); switchAdminTab('library'); }
 }
 
+// ==========================================
+//        FRONTEND UTILITIES (COOKBOOK/FAVS)
+// ==========================================
 async function checkFavoriteStatus(recipeId) {
     if (!currentUser) return;
     const btn = document.getElementById(`fav-btn-${recipeId}`);
     if (!btn) return;
     
-    const { data, error } = await myDatabase.from('favorites')
-        .select('id')
-        .eq('user_email', currentUser.email)
-        .eq('recipe_id', recipeId)
-        .single();
-        
-    if (data) {
-        btn.innerHTML = '⭐ Saved to Favorites';
-        btn.dataset.saved = 'true';
-    } else {
-        btn.innerHTML = '⭐ Save to Favorites';
-        btn.dataset.saved = 'false';
-    }
+    const { data } = await myDatabase.from('favorites').select('id').eq('user_email', currentUser.email).eq('recipe_id', recipeId).single();
+    if (data) { btn.innerHTML = '⭐ Saved to Favorites'; btn.dataset.saved = 'true'; } 
+    else { btn.innerHTML = '⭐ Save to Favorites'; btn.dataset.saved = 'false'; }
 }
 
 async function toggleFavorite(recipeId) {
-    if (!currentUser) {
-        alert("Please create a free account to save recipes to your personal cookbook!");
-        openAuthModal();
-        return;
-    }
+    if (!currentUser) { alert("Please create a free account to save recipes to your personal cookbook!"); openAuthModal(); return; }
 
     const btn = document.getElementById(`fav-btn-${recipeId}`);
     btn.disabled = true;
     
     if (btn.dataset.saved === 'true') {
-        const { error } = await myDatabase.from('favorites')
-            .delete()
-            .eq('user_email', currentUser.email)
-            .eq('recipe_id', recipeId);
-        if (!error) {
-            btn.innerHTML = '⭐ Save to Favorites';
-            btn.dataset.saved = 'false';
-        }
+        const { error } = await myDatabase.from('favorites').delete().eq('user_email', currentUser.email).eq('recipe_id', recipeId);
+        if (!error) { btn.innerHTML = '⭐ Save to Favorites'; btn.dataset.saved = 'false'; }
     } else {
-        const { error } = await myDatabase.from('favorites').insert([{
-            user_email: currentUser.email,
-            recipe_id: recipeId
-        }]);
-        if (!error) {
-            btn.innerHTML = '⭐ Saved to Favorites';
-            btn.dataset.saved = 'true';
-        }
+        const { error } = await myDatabase.from('favorites').insert([{ user_email: currentUser.email, recipe_id: recipeId }]);
+        if (!error) { btn.innerHTML = '⭐ Saved to Favorites'; btn.dataset.saved = 'true'; }
     }
     btn.disabled = false;
-}
-
-function toggleCookbook() {
-    const inbox = document.getElementById('profile-inbox-section');
-    const cookbook = document.getElementById('profile-cookbook-section');
-    
-    if (inbox.style.display === 'none') {
-        inbox.style.display = 'block';
-        cookbook.style.display = 'none';
-    } else {
-        inbox.style.display = 'none';
-        cookbook.style.display = 'block';
-        loadCookbook();
-    }
 }
 
 async function loadCookbook() {
     const list = document.getElementById('cookbook-list');
     list.innerHTML = 'Loading your recipes...';
     
-    const { data: favs, error: favErr } = await myDatabase.from('favorites')
-        .select('recipe_id')
-        .eq('user_email', currentUser.email)
-        .order('created_at', { ascending: false });
-        
+    const { data: favs, error: favErr } = await myDatabase.from('favorites').select('recipe_id').eq('user_email', currentUser.email).order('created_at', { ascending: false });
     if (favErr) { list.innerHTML = 'Error loading favorites.'; return; }
-    if (!favs || favs.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#666; margin-top: 20px;">Your cookbook is empty. Explore recipes and click "Save to Favorites" to build your collection!</p>';
-        return;
-    }
+    if (!favs || favs.length === 0) { list.innerHTML = '<p style="text-align:center; color:#666; margin-top: 20px;">Your cookbook is empty. Explore recipes and click "Save to Favorites" to build your collection!</p>'; return; }
     
     const recipeIds = favs.map(f => f.recipe_id);
-    const { data: meals, error: mealErr } = await myDatabase.from('meals')
-        .select('id, title, category, author, meal_type, country')
-        .in('id', recipeIds);
-        
+    const { data: meals, error: mealErr } = await myDatabase.from('meals').select('id, title, category, author, meal_type, country').in('id', recipeIds);
     if (mealErr) { list.innerHTML = 'Error loading recipes.'; return; }
     
     let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
-    
     favs.forEach(fav => {
         const meal = meals.find(m => m.id === fav.recipe_id);
         if (meal) {
@@ -2904,7 +2795,6 @@ async function loadCookbook() {
             `;
         }
     });
-    
     html += '</div>';
     list.innerHTML = html;
 }
@@ -2912,20 +2802,13 @@ async function loadCookbook() {
 async function removeFromCookbook(recipeId, event) {
     event.stopPropagation(); 
     if (!confirm("Remove this recipe from your cookbook?")) return;
-    
-    const { error } = await myDatabase.from('favorites')
-        .delete()
-        .eq('user_email', currentUser.email)
-        .eq('recipe_id', recipeId);
-        
-    if (error) alert("Error: " + error.message);
-    else loadCookbook(); 
+    const { error } = await myDatabase.from('favorites').delete().eq('user_email', currentUser.email).eq('recipe_id', recipeId);
+    if (error) alert("Error: " + error.message); else loadCookbook(); 
 }
 
 // ==========================================
-//        FAMILY HUB LOGIC (ADMIN)
+//        FAMILY HUB LOGIC
 // ==========================================
-
 async function saveFamilyMember(event) {
     const name = document.getElementById('family-name').value.trim();
     const type = document.getElementById('family-type').value;
@@ -2934,41 +2817,24 @@ async function saveFamilyMember(event) {
     const fileInput = document.getElementById('family-image');
     const file = fileInput.files[0];
 
-    if (!name || !story || !file) {
-        return alert("Please fill in the name, story, and select a photo!");
-    }
+    if (!name || !story || !file) return alert("Please fill in the name, story, and select a photo!");
 
     const btn = event ? event.target : document.querySelector('button[onclick^="saveFamilyMember"]');
     const originalText = btn ? btn.innerText : 'Add to Family Hub';
-    if (btn) {
-        btn.innerText = "Uploading... please wait";
-        btn.disabled = true;
-    }
+    if (btn) { btn.innerText = "Uploading... please wait"; btn.disabled = true; }
 
     const fileName = `family-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
     const { error: uploadError } = await myDatabase.storage.from('recipe_images').upload(fileName, file);
-    
-    if (uploadError) {
-        if (btn) { btn.innerText = originalText; btn.disabled = false; }
-        return alert("Photo upload failed: " + uploadError.message);
-    }
+    if (uploadError) { if (btn) { btn.innerText = originalText; btn.disabled = false; } return alert("Photo upload failed: " + uploadError.message); }
 
     const imageUrl = myDatabase.storage.from('recipe_images').getPublicUrl(fileName).data.publicUrl;
 
     await logAction('ADD_FAMILY', `Name: ${name}`, `Added to Sanctuary.`);
-    const { error: dbError } = await myDatabase.from('family_members').insert([{
-        name: name,
-        type: type,
-        story: story,
-        image_url: imageUrl,
-        order_index: parseInt(orderIndex) || 1
-    }]);
+    const { error: dbError } = await myDatabase.from('family_members').insert([{ name: name, type: type, story: story, image_url: imageUrl, order_index: parseInt(orderIndex) || 1 }]);
 
     if (btn) { btn.innerText = originalText; btn.disabled = false; }
-
-    if (dbError) {
-        alert("Database error: " + dbError.message);
-    } else {
+    if (dbError) { alert("Database error: " + dbError.message); } 
+    else {
         alert("Successfully added to the Family Hub!");
         document.getElementById('family-name').value = '';
         document.getElementById('family-story').value = '';
@@ -2980,33 +2846,18 @@ async function saveFamilyMember(event) {
 async function loadAdminFamilyList() {
     const listDiv = document.getElementById('admin-family-list');
     if (!listDiv) return;
-
     listDiv.innerHTML = "<p>Loading family members...</p>";
 
-    const { data, error } = await myDatabase.from('family_members')
-        .select('*')
-        .order('order_index', { ascending: true });
-
-    if (error) {
-        listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
-        return;
-    }
-
-    if (data.length === 0) {
-        listDiv.innerHTML = "<p>No family members added yet.</p>";
-        return;
-    }
+    const { data, error } = await myDatabase.from('family_members').select('*').order('order_index', { ascending: true });
+    if (error) { listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { listDiv.innerHTML = "<p>No family members added yet.</p>"; return; }
 
     let html = "";
     data.forEach((member, index) => {
         let sortButtons = '';
         if (data.length > 1) {
-            if (index > 0) {
-                sortButtons += `<button style="margin: 0; padding: 4px 8px; flex: 1;" onclick="moveFamilyMember('${member.id}', 'up')">⬆️</button>`;
-            }
-            if (index < data.length - 1) {
-                sortButtons += `<button style="margin: 0; padding: 4px 8px; flex: 1;" onclick="moveFamilyMember('${member.id}', 'down')">⬇️</button>`;
-            }
+            if (index > 0) sortButtons += `<button style="margin: 0; padding: 4px 8px; flex: 1;" onclick="moveFamilyMember('${member.id}', 'up')">⬆️</button>`;
+            if (index < data.length - 1) sortButtons += `<button style="margin: 0; padding: 4px 8px; flex: 1;" onclick="moveFamilyMember('${member.id}', 'down')">⬇️</button>`;
         }
 
         html += `
@@ -3019,15 +2870,12 @@ async function loadAdminFamilyList() {
                     </div>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 5px; min-width: 80px;">
-                    <div style="display: flex; gap: 5px; width: 100%;">
-                        ${sortButtons}
-                    </div>
+                    <div style="display: flex; gap: 5px; width: 100%;">${sortButtons}</div>
                     <button style="margin: 0; width: 100%; padding: 6px;" onclick="deleteFamilyMember('${member.id}', '${member.image_url}')">Delete</button>
                 </div>
             </div>
         `;
     });
-
     listDiv.innerHTML = html;
 }
 
@@ -3036,10 +2884,7 @@ async function moveFamilyMember(id, direction) {
     listDiv.innerHTML = "<p>Updating order...</p>";
 
     const { data, error } = await myDatabase.from('family_members').select('id, order_index').order('order_index', { ascending: true });
-    if (error || !data) {
-        alert("Error loading order.");
-        return loadAdminFamilyList();
-    }
+    if (error || !data) { alert("Error loading order."); return loadAdminFamilyList(); }
 
     const currentIndex = data.findIndex(m => m.id == id);
     if (currentIndex === -1) return loadAdminFamilyList();
@@ -3047,37 +2892,26 @@ async function moveFamilyMember(id, direction) {
     let swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (swapIndex < 0 || swapIndex >= data.length) return loadAdminFamilyList();
 
-    const temp = data[currentIndex];
-    data[currentIndex] = data[swapIndex];
-    data[swapIndex] = temp;
+    const temp = data[currentIndex]; data[currentIndex] = data[swapIndex]; data[swapIndex] = temp;
 
     for (let i = 0; i < data.length; i++) {
         await myDatabase.from('family_members').update({ order_index: i + 1 }).eq('id', data[i].id);
     }
-
     loadAdminFamilyList(); 
 }
 
 async function deleteFamilyMember(id, imageUrl) {
     if (!confirm("Are you sure you want to remove this family member?")) return;
-
     await logAction('DELETE_FAMILY', `ID: ${id}`, `Deleted from Sanctuary.`);
     const fileName = imageUrl.split('/').pop();
     await myDatabase.storage.from('recipe_images').remove([fileName]);
-
     const { error } = await myDatabase.from('family_members').delete().eq('id', id);
-
-    if (error) {
-        alert("Error deleting: " + error.message);
-    } else {
-        loadAdminFamilyList(); 
-    }
+    if (error) alert("Error deleting: " + error.message); else loadAdminFamilyList(); 
 }
 
 // ==========================================
-//        BROADCAST LOGIC (ADMIN)
+//        COMMUNITY BROADCASTS
 // ==========================================
-
 async function postBroadcast(event) {
     const message = document.getElementById('broadcast-message').value.trim();
     const signature = document.getElementById('broadcast-signature').value;
@@ -3085,34 +2919,20 @@ async function postBroadcast(event) {
     if (!message) return alert("Please type a message first!");
 
     const btn = event ? event.target : document.querySelector('button[onclick^="postBroadcast"]');
-    const originalText = btn.innerText;
-    btn.innerText = "Sending...";
-    btn.disabled = true;
+    const originalText = btn.innerText; btn.innerText = "Sending..."; btn.disabled = true;
 
     await logAction('BROADCAST_SENT', `Signature: ${signature}`, `Sent new public broadcast.`);
-    const { error } = await myDatabase.from('community_updates').insert([{
-        message: message,
-        author_signature: '— ' + signature
-    }]);
+    const { error } = await myDatabase.from('community_updates').insert([{ message: message, author_signature: '— ' + signature }]);
 
-    btn.innerText = originalText;
-    btn.disabled = false;
-
-    if (error) {
-        alert("Error posting broadcast: " + error.message);
-    } else {
-        document.getElementById('broadcast-message').value = '';
-        loadAdminBroadcasts();
-    }
+    btn.innerText = originalText; btn.disabled = false;
+    if (error) alert("Error posting broadcast: " + error.message);
+    else { document.getElementById('broadcast-message').value = ''; loadAdminBroadcasts(); }
 }
 
 async function loadAdminBroadcasts() {
     const listDiv = document.getElementById('admin-broadcast-list');
     if (!listDiv) return;
-
-    const { data, error } = await myDatabase.from('community_updates')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await myDatabase.from('community_updates').select('*').order('created_at', { ascending: false });
 
     if (error) { listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`; return; }
     if (data.length === 0) { listDiv.innerHTML = "<p>No broadcasts sent yet.</p>"; return; }
@@ -3137,22 +2957,82 @@ async function deleteBroadcast(id) {
     if (!confirm("Delete this broadcast? It will be removed from the users' feed instantly.")) return;
     await logAction('DELETE_BROADCAST', `ID: ${id}`, `Removed broadcast from feed.`);
     const { error } = await myDatabase.from('community_updates').delete().eq('id', id);
-    if (error) alert("Error deleting: " + error.message);
-    else loadAdminBroadcasts();
+    if (error) alert("Error deleting: " + error.message); else loadAdminBroadcasts();
+}
+
+function renderPublicBroadcasts() {
+    const view = document.getElementById('main-view');
+    view.innerHTML = `
+        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">📣 COMMUNITY UPDATES</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">The latest news, announcements, and updates straight from Anton & Jenny.</p>
+        </div>
+        <div id="public-broadcast-list" style="width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 15px;">
+            <p>Loading updates...</p>
+        </div>
+    `;
+    
+    const badge = document.getElementById('new-broadcast-badge');
+    if (badge) badge.style.display = 'none';
+    
+    localStorage.setItem('last_broadcast_view', Date.now().toString());
+    loadPublicBroadcasts();
+}
+
+async function loadPublicBroadcasts() {
+    const container = document.getElementById('public-broadcast-list');
+    if (!container) return;
+
+    const cacheKey = 'cache_public_broadcasts';
+
+    const renderList = (data) => {
+        if (data.length === 0) { container.innerHTML = `<div class="window-box"><p>No recent announcements.</p></div>`; return; }
+
+        let html = '';
+        data.forEach(update => {
+            const dateStr = new Date(update.created_at).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            html += `
+                <div class="window-box" style="background: #fff; margin-bottom: 0; border-left: 5px solid #007bff; padding: 20px;">
+                    <p style="font-size: 0.85rem; color: #666; margin: 0 0 10px 0; font-weight: bold; text-transform: uppercase;">${dateStr}</p>
+                    <p style="margin: 0 0 15px 0; font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap;">${update.message}</p>
+                    <p style="margin: 0; font-weight: bold; color: #007bff; font-family: 'Georgia', serif; font-size: 1.1rem;">${update.author_signature}</p>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    };
+
+    if (!localStorage.getItem(cacheKey)) container.innerHTML = '<p>Loading updates...</p>';
+
+    await fetchWithSWR(
+        cacheKey,
+        async () => {
+            const { data, error } = await myDatabase.from('community_updates').select('*').order('created_at', { ascending: false });
+            if (error) throw error; return data;
+        },
+        renderList
+    );
+}
+
+async function checkNewBroadcasts() {
+    const { data, error } = await myDatabase.from('community_updates').select('created_at').order('created_at', { ascending: false }).limit(1);
+    if (!error && data.length > 0) {
+        const latestDbTime = new Date(data[0].created_at).getTime();
+        const lastViewTime = parseInt(localStorage.getItem('last_broadcast_view') || '0');
+        if (latestDbTime > lastViewTime) {
+            const badge = document.getElementById('new-broadcast-badge');
+            if (badge) badge.style.display = 'block';
+        }
+    }
 }
 
 // ==========================================
-//        CAMPFIRE LOGS (ADMIN)
+//        CAMPFIRE LOGIC
 // ==========================================
-
 async function loadAdminCampfire() {
     const listDiv = document.getElementById('admin-campfire-list');
     if (!listDiv) return;
-
-    const { data, error } = await myDatabase.from('global_chat')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+    const { data, error } = await myDatabase.from('global_chat').select('*').order('created_at', { ascending: false }).limit(100);
 
     if (error) { listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`; return; }
     if (data.length === 0) { listDiv.innerHTML = "<p>No messages in the campfire.</p>"; return; }
@@ -3180,61 +3060,11 @@ async function adminDeleteCampfireMessage(id, btnElement) {
     await logAction('DELETE_CHAT', `ID: ${id}`, `Deleted from campfire logs.`);
     const { error } = await myDatabase.from('global_chat').delete().eq('id', id);
     if (error) alert("Error deleting message: " + error.message);
-    else {
-        if (btnElement) btnElement.closest('.window-box').remove();
-    }
+    else { if (btnElement) btnElement.closest('.window-box').remove(); }
 }
-
-// ==========================================
-//        THE SANCTUARY (PUBLIC FRONTEND)
-// ==========================================
-
-async function renderFamilyPage() {
-    const view = document.getElementById('main-view');
-    view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Opening the front door...</h1></div>`;
-
-    const { data, error } = await myDatabase.from('family_members').select('*').order('order_index', { ascending: true });
-
-    if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><p>Error: ${error.message}</p></div>`; return; }
-
-    let html = `
-        <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
-            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">🏡 MEET THE FAMILY</h1>
-            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Welcome to our personal sanctuary. Get to know the humans and pets behind the platform!</p>
-        </div>
-    `;
-
-    if (data.length === 0) {
-        html += `<div class="window-box" style="width: 100%; max-width: 800px;"><p>The house is quiet... Anton & Jenny haven't uploaded their photos yet!</p></div>`;
-    } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px;">`;
-        data.forEach(member => {
-            const isPet = member.type === 'pet';
-            const badge = isPet ? '🐾 Family Pet' : '👤 The Team';
-            
-            html += `
-                <div class="window-box" style="padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: nowrap; background: #fff; margin-bottom: 0;">
-                    <img src="${member.image_url}" style="width: 100px; height: 100px; min-width: 100px; border-radius: 50%; border: 3px solid var(--border); object-fit: cover; flex-shrink: 0; background: #fdf6e3;">
-                    <div style="flex: 1; min-width: 0;">
-                        <span style="display: inline-block; padding: 4px 10px; background: #8b4513; color: white; font-size: 0.75rem; font-weight: bold; border-radius: 12px; margin-bottom: 8px; box-shadow: 1px 1px 0px rgba(0,0,0,0.2);">${badge}</span>
-                        <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #2b1a10; font-family: 'Georgia', serif; line-height: 1.2;">${member.name}</h2>
-                        <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #444; white-space: pre-wrap; word-wrap: break-word;">${member.story}</p>
-                    </div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-    }
-    view.innerHTML = html;
-}
-
-// ==========================================
-//        THE CAMPFIRE (SHOUTBOX)
-// ==========================================
 
 function renderShoutbox() {
     const view = document.getElementById('main-view');
-    
     let inputArea = '';
     if (currentUser) {
         inputArea = `
@@ -3294,14 +3124,8 @@ async function loadShoutboxMessages() {
             html += `
                 <div class="window-box" style="padding: 10px; margin-bottom: 0; display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px; align-items: center;">
-                        <div>
-                            ${nameHTML}
-                            <span style="font-size: 0.75rem; color: #888; margin-left: 8px;">${timeStr}</span>
-                        </div>
-                        <div>
-                            ${reportBtn}
-                            ${adminControls}
-                        </div>
+                        <div>${nameHTML}<span style="font-size: 0.75rem; color: #888; margin-left: 8px;">${timeStr}</span></div>
+                        <div>${reportBtn}${adminControls}</div>
                     </div>
                     <div style="font-size: 0.95rem; line-height: 1.4; word-wrap: break-word;">${msg.message}</div>
                 </div>
@@ -3310,19 +3134,13 @@ async function loadShoutboxMessages() {
         container.innerHTML = html;
     };
 
-    if (!localStorage.getItem(cacheKey)) {
-        container.innerHTML = '<p>Loading messages...</p>';
-    }
+    if (!localStorage.getItem(cacheKey)) container.innerHTML = '<p>Loading messages...</p>';
 
     await fetchWithSWR(
         cacheKey,
         async () => {
-            const { data, error } = await myDatabase.from('global_chat')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(50);
-            if (error) throw error;
-            return data;
+            const { data, error } = await myDatabase.from('global_chat').select('*').order('created_at', { ascending: false }).limit(50);
+            if (error) throw error; return data;
         },
         renderList
     );
@@ -3337,21 +3155,13 @@ async function postShoutboxMessage() {
     if (!text) return;
 
     input.disabled = true;
-    
     let displayName = getUserDisplayName();
 
-    const { error } = await myDatabase.from('global_chat').insert([{
-        user_id: currentUser.id,
-        user_name: displayName,
-        message: text
-    }]);
+    const { error } = await myDatabase.from('global_chat').insert([{ user_id: currentUser.id, user_name: displayName, message: text }]);
 
     input.disabled = false;
     if (error) alert("Error posting: " + error.message);
-    else {
-        input.value = '';
-        loadShoutboxMessages();
-    }
+    else { input.value = ''; loadShoutboxMessages(); }
 }
 
 async function reportShoutbox(id, text) {
@@ -3359,101 +3169,48 @@ async function reportShoutbox(id, text) {
     if (!reason) return;
     const reporter = currentUser ? currentUser.email : 'Guest';
     
-    const { error } = await myDatabase.from('reports').insert([{
-        item_type: 'chat',
-        item_id: id,
-        reported_by: currentUser.id
-    }]);
-    
+    await myDatabase.from('reports').insert([{ item_type: 'chat', item_id: id, reported_by: currentUser.id }]);
     await myDatabase.from('messages').insert([{ 
-        name: "🚩 REPORTED CHAT", 
-        email: reporter, 
-        recipient_email: 'admin',
-        message: "REASON: " + reason + "\n\nMESSAGE:\n" + text,
-        is_read: false
+        name: "🚩 REPORTED CHAT", email: reporter, recipient_email: 'admin', message: "REASON: " + reason + "\n\nMESSAGE:\n" + text, is_read: false
     }]);
-
-    if (error) alert("Error: " + error.message);
-    else alert("Message reported. Thank you.");
+    alert("Message reported. Thank you.");
 }
 
-// ==========================================
-//        PUBLIC BROADCAST RECEIVER
-// ==========================================
-
-function renderPublicBroadcasts() {
+async function renderFamilyPage() {
     const view = document.getElementById('main-view');
-    view.innerHTML = `
+    view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><h1>Opening the front door...</h1></div>`;
+
+    const { data, error } = await myDatabase.from('family_members').select('*').order('order_index', { ascending: true });
+
+    if (error) { view.innerHTML = `<div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;"><p>Error: ${error.message}</p></div>`; return; }
+
+    let html = `
         <div class="window-box" style="width: 100%; max-width: 800px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
-            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">📣 COMMUNITY UPDATES</h1>
-            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">The latest news, announcements, and updates straight from Anton & Jenny.</p>
-        </div>
-        <div id="public-broadcast-list" style="width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 15px;">
-            <p>Loading updates...</p>
+            <h1 style="margin-top: 0; margin-bottom: 5px; font-size: 1.8rem;">🏡 MEET THE FAMILY</h1>
+            <p style="font-size: 1.1rem; color: #555; margin-top: 0; margin-bottom: 0;">Welcome to our personal sanctuary. Get to know the humans and pets behind the platform!</p>
         </div>
     `;
-    
-    const badge = document.getElementById('new-broadcast-badge');
-    if (badge) badge.style.display = 'none';
-    
-    localStorage.setItem('last_broadcast_view', Date.now().toString());
 
-    loadPublicBroadcasts();
-}
-
-async function loadPublicBroadcasts() {
-    const container = document.getElementById('public-broadcast-list');
-    if (!container) return;
-
-    const cacheKey = 'cache_public_broadcasts';
-
-    const renderList = (data) => {
-        if (data.length === 0) { container.innerHTML = `<div class="window-box"><p>No recent announcements.</p></div>`; return; }
-
-        let html = '';
-        data.forEach(update => {
-            const dateStr = new Date(update.created_at).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    if (data.length === 0) {
+        html += `<div class="window-box" style="width: 100%; max-width: 800px;"><p>The house is quiet... Anton & Jenny haven't uploaded their photos yet!</p></div>`;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px;">`;
+        data.forEach(member => {
+            const isPet = member.type === 'pet';
+            const badge = isPet ? '🐾 Family Pet' : '👤 The Team';
+            
             html += `
-                <div class="window-box" style="background: #fff; margin-bottom: 0; border-left: 5px solid #007bff; padding: 20px;">
-                    <p style="font-size: 0.85rem; color: #666; margin: 0 0 10px 0; font-weight: bold; text-transform: uppercase;">${dateStr}</p>
-                    <p style="margin: 0 0 15px 0; font-size: 1.1rem; line-height: 1.6; white-space: pre-wrap;">${update.message}</p>
-                    <p style="margin: 0; font-weight: bold; color: #007bff; font-family: 'Georgia', serif; font-size: 1.1rem;">${update.author_signature}</p>
+                <div class="window-box" style="padding: 20px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: nowrap; background: #fff; margin-bottom: 0;">
+                    <img src="${member.image_url}" style="width: 100px; height: 100px; min-width: 100px; border-radius: 50%; border: 3px solid var(--border); object-fit: cover; flex-shrink: 0; background: #fdf6e3;">
+                    <div style="flex: 1; min-width: 0;">
+                        <span style="display: inline-block; padding: 4px 10px; background: #8b4513; color: white; font-size: 0.75rem; font-weight: bold; border-radius: 12px; margin-bottom: 8px; box-shadow: 1px 1px 0px rgba(0,0,0,0.2);">${badge}</span>
+                        <h2 style="margin: 0 0 8px 0; font-size: 1.5rem; color: #2b1a10; font-family: 'Georgia', serif; line-height: 1.2;">${member.name}</h2>
+                        <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #444; white-space: pre-wrap; word-wrap: break-word;">${member.story}</p>
+                    </div>
                 </div>
             `;
         });
-        container.innerHTML = html;
-    };
-
-    if (!localStorage.getItem(cacheKey)) {
-        container.innerHTML = '<p>Loading updates...</p>';
+        html += `</div>`;
     }
-
-    await fetchWithSWR(
-        cacheKey,
-        async () => {
-            const { data, error } = await myDatabase.from('community_updates')
-                .select('*')
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-            return data;
-        },
-        renderList
-    );
-}
-
-async function checkNewBroadcasts() {
-    const { data, error } = await myDatabase.from('community_updates')
-        .select('created_at')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-    if (!error && data.length > 0) {
-        const latestDbTime = new Date(data[0].created_at).getTime();
-        const lastViewTime = parseInt(localStorage.getItem('last_broadcast_view') || '0');
-
-        if (latestDbTime > lastViewTime) {
-            const badge = document.getElementById('new-broadcast-badge');
-            if (badge) badge.style.display = 'block';
-        }
-    }
+    view.innerHTML = html;
 }
