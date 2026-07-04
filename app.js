@@ -845,10 +845,13 @@ async function executeSearch() {
             const isBudget = meal.category === 'budget';
             const clickAction = isBudget ? `viewBudgetMeal('${meal.id}')` : `viewRecipe('${meal.id}')`;
             const badge = isBudget ? ` - BUDGET` : '';
+            const urlParam = isBudget ? `?budget=${meal.id}` : `?recipe=${meal.id}`;
 
-            html += `<div class="window-box" onclick="${clickAction}" style="padding: 15px; cursor: pointer; margin-bottom: 0;">
-                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
-                        <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
+            html += `<div class="window-box" style="padding: 15px; margin-bottom: 0;">
+                        <a href="${urlParam}" onclick="event.preventDefault(); window.history.pushState({}, '', '${urlParam}'); ${clickAction};" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
+                            <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}${badge}</div>
+                            <div style="font-size: 0.85rem; color: #666;">In ${meal.category} • By ${author}</div>
+                        </a>
                      </div>`;
         });
         html += `</div>`;
@@ -1164,21 +1167,23 @@ async function loadBudgetMeals(filter = 'all') {
                 
                 let adminControls = '';
                 if (isAdmin) {
-                    adminControls = `<button onclick="adminDeleteContent('meals', '${meal.id}', this); event.stopPropagation();" style="margin: 0 0 10px 0;">Delete Post</button>`;
+                    adminControls = `<button onclick="adminDeleteContent('meals', '${meal.id}', this); event.preventDefault(); event.stopPropagation();" style="margin: 0 0 10px 0; position: relative; z-index: 10;">Delete Post</button>`;
                 }
 
                 html += `
-                <div class="window-box" onclick="viewBudgetMeal('${meal.id}')" style="cursor: pointer; margin-bottom: 0;">
+                <div class="window-box" style="position: relative; margin-bottom: 0;">
                     ${adminControls}
-                    <div style="margin-bottom: 8px;">
-                        <span style="font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">${badgeText}</span>
-                        <span style="font-size: 0.8rem; color: #666; margin-left: 10px;">By: ${meal.author || 'Community'}</span>
-                    </div>
-                    <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
-                    <div style="font-size: 1.1rem;">
-                        <strong>${currencyMap[selectedCountry]}${costPerPerson}</strong> per person 
-                        <span style="font-size: 0.9rem; color: #555; display: block; margin-top: 5px;">(Total: ${currencyMap[selectedCountry]}${meal.cost} for ${meal.servings} servings)</span>
-                    </div>
+                    <a href="?budget=${meal.id}" onclick="event.preventDefault(); window.history.pushState({}, '', '?budget=${meal.id}'); viewBudgetMeal('${meal.id}');" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
+                        <div style="margin-bottom: 8px;">
+                            <span style="font-size: 0.7rem; font-weight: bold; border: 1px solid var(--border); display: inline-block; padding: 3px 8px;">${badgeText}</span>
+                            <span style="font-size: 0.8rem; color: #666; margin-left: 10px;">By: ${meal.author || 'Community'}</span>
+                        </div>
+                        <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; word-wrap: break-word;">${meal.title}</div>
+                        <div style="font-size: 1.1rem;">
+                            <strong>${currencyMap[selectedCountry]}${costPerPerson}</strong> per person 
+                            <span style="font-size: 0.9rem; color: #555; display: block; margin-top: 5px;">(Total: ${currencyMap[selectedCountry]}${meal.cost} for ${meal.servings} servings)</span>
+                        </div>
+                    </a>
                 </div>`;
             });
             html += `</div>`;
@@ -1582,15 +1587,15 @@ async function loadSubcategory(subcategory, parentCategory) {
                 
                 let adminControls = '';
                 if (isAdmin) {
-                    adminControls = `<button onclick="adminDeleteContent('meals', '${meal.id}', this); event.stopPropagation();" style="padding: 4px 8px; font-size: 0.7rem; float: right;">Delete Post</button>`;
+                    adminControls = `<button onclick="adminDeleteContent('meals', '${meal.id}', this); event.preventDefault(); event.stopPropagation();" style="padding: 4px 8px; font-size: 0.7rem; float: right; position: relative; z-index: 10;">Delete Post</button>`;
                 }
 
-                html += `<div class="window-box" style="cursor: pointer; margin-bottom: 0;">
+                html += `<div class="window-box" style="position: relative; margin-bottom: 0;">
                             ${adminControls}
-                            <div onclick="viewRecipe('${meal.id}')">
+                            <a href="?recipe=${meal.id}" onclick="event.preventDefault(); window.history.pushState({}, '', '?recipe=${meal.id}'); viewRecipe('${meal.id}');" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
                                 <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">${meal.title}</div>
                                 <div style="font-size: 0.85rem; color: #666;">By ${author} • ${date}</div>
-                            </div>
+                            </a>
                          </div>`;
             });
             html += `</div>`;
