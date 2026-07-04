@@ -1662,8 +1662,8 @@ async function viewRecipe(id) {
 
     const author = data.author || "Home Cook";
     const date = data.created_at ? new Date(data.created_at).toLocaleDateString() : "Unknown Date";
-    const currentUrl = window.location.origin + window.location.pathname + '?recipe=' + data.id;
-    const whatsappText = encodeURIComponent(`Check out this recipe for ${data.title} on Budget Meal Planner! ${currentUrl}`);
+    const currentUrl = `https://bvdgbodzrfhgpvxzuogs.supabase.co/functions/v1/og-tag-interceptor?recipe=${data.id}`;
+    const whatsappText = encodeURIComponent(`Check out this meal: ${data.title} on BudgetMealPlanner! ${currentUrl}`);
     const parentCat = data.parent_category || getParentCategory(data.category);
 
     let commentFormHTML = '';
