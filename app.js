@@ -1245,8 +1245,8 @@ async function viewBudgetMeal(id) {
     }
 
     const costPer = (data.cost / data.servings).toFixed(2);
-    const currentUrl = window.location.origin + window.location.pathname + '?budget=' + data.id;
-    const whatsappText = encodeURIComponent(`Check out this budget meal: ${data.title} on Budget Meal Planner! ${currentUrl}`);
+    const currentUrl = `https://bvdgbodzrfhgpvxzuogs.supabase.co/functions/v1/og-tag-interceptor?recipe=${data.id}`;
+    const whatsappText = encodeURIComponent(`Check out this meal: ${data.title} on BudgetMealPlanner! ${currentUrl}`);
 
     let commentFormHTML = '';
     if (currentUser) {
