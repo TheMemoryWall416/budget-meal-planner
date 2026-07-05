@@ -1248,6 +1248,15 @@ async function viewBudgetMeal(id) {
     const currentUrl = `https://bvdgbodzrfhgpvxzuogs.supabase.co/functions/v1/og-tag-interceptor?recipe=${data.id}`;
     const whatsappText = encodeURIComponent(`Check out this meal: ${data.title} on BudgetMealPlanner! ${currentUrl}`);
 
+    // Send dynamic page view to Google Analytics
+    if (typeof gtag === 'function') {
+      gtag('event', 'page_view', {
+        page_title: data.title,
+        page_location: window.location.href,
+        page_path: window.location.pathname + window.location.search
+      });
+    }
+
     let commentFormHTML = '';
     if (currentUser) {
         commentFormHTML = `
@@ -1665,6 +1674,15 @@ async function viewRecipe(id) {
     const currentUrl = `https://bvdgbodzrfhgpvxzuogs.supabase.co/functions/v1/og-tag-interceptor?recipe=${data.id}`;
     const whatsappText = encodeURIComponent(`Check out this meal: ${data.title} on BudgetMealPlanner! ${currentUrl}`);
     const parentCat = data.parent_category || getParentCategory(data.category);
+
+    // Send dynamic page view to Google Analytics
+    if (typeof gtag === 'function') {
+      gtag('event', 'page_view', {
+        page_title: data.title,
+        page_location: window.location.href,
+        page_path: window.location.pathname + window.location.search
+      });
+    }
 
     let commentFormHTML = '';
     if (currentUser) {
