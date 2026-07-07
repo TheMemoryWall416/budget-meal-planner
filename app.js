@@ -363,6 +363,13 @@ window.onload = function() {
 //        MASTER ROUTER
 // ==========================================
 function showPage(page) {
+    const restrictedPages = ['add-budget-meal', 'add-special', 'add-meal-plan'];
+    if (restrictedPages.includes(page) && !currentUser) {
+        alert("Please join or sign in to share with the community!");
+        openAuthModal();
+        return;
+    }
+
     const view = document.getElementById('main-view');
     window.history.pushState({}, document.title, window.location.pathname);
 
@@ -911,6 +918,12 @@ function renderCategoryList(context) {
 }
 
 function renderSubcategoryList(mainCategory, context) {
+    if (context === 'add' && !currentUser) {
+        alert("Please join or sign in to share with the community!");
+        openAuthModal();
+        return;
+    }
+
     const view = document.getElementById('main-view');
     
     let html = `
@@ -1358,10 +1371,11 @@ async function likeMeal(id, btnElement) {
 }
 
 async function reportRecipe(title, id) {
+    if (!currentUser) { alert("Please sign in to report content."); openAuthModal(); return; }
     const reason = prompt("Why are you reporting this?");
     if (!reason) return; 
 
-    const reporterEmail = currentUser ? currentUser.email : 'Guest';
+    const reporterEmail = currentUser.email;
 
     const { error } = await myDatabase.from('messages').insert([{ 
         name: "REPORTED: " + title, 
@@ -1562,10 +1576,11 @@ async function likeComment(commentId, btnElement) {
 }
 
 async function reportComment(commentId, commentText) {
+    if (!currentUser) { alert("Please sign in to report content."); openAuthModal(); return; }
     const reason = prompt("Why are you reporting this comment?");
     if (!reason) return;
 
-    const reporterEmail = currentUser ? currentUser.email : 'Guest';
+    const reporterEmail = currentUser.email;
     const shortText = commentText.length > 30 ? commentText.substring(0, 30) + '...' : commentText;
 
     const { error } = await myDatabase.from('messages').insert([{ 
@@ -1826,7 +1841,10 @@ function calculateConversion() {
     resDiv.innerHTML = `Result: ${+(Math.round(result + "e+2")  + "e-2")} ${to}`;
 }
 
-function addRecipeMenu() { renderCategoryList('add'); }
+function addRecipeMenu() { 
+    if (!currentUser) { alert("Please join or sign in to share a recipe!"); openAuthModal(); return; }
+    renderCategoryList('add'); 
+}
 
 function showForm(subcategory, parentCategory) {
     selectedSubcategory = subcategory;
@@ -3194,13 +3212,14 @@ async function postShoutboxMessage() {
 }
 
 async function reportShoutbox(id, text) {
+    if (!currentUser) { alert("Please sign in to report content."); openAuthModal(); return; }
     const reason = prompt("Why are you reporting this message?");
     if (!reason) return;
-    const reporter = currentUser ? currentUser.email : 'Guest';
+    const reporterEmail = currentUser.email;
     
     await myDatabase.from('reports').insert([{ item_type: 'chat', item_id: id, reported_by: currentUser.id }]);
     await myDatabase.from('messages').insert([{ 
-        name: "🚩 REPORTED CHAT", email: reporter, recipient_email: 'admin', message: "REASON: " + reason + "\n\nMESSAGE:\n" + text, is_read: false
+        name: "🚩 REPORTED CHAT", email: reporterEmail, recipient_email: 'admin', message: "REASON: " + reason + "\n\nMESSAGE:\n" + text, is_read: false
     }]);
     alert("Message reported. Thank you.");
 }
