@@ -15,7 +15,7 @@ let isAdmin = false;
 let userRole = 'user'; 
 
 // ==========================================
-//        THE SWR CACHE ENGINE
+//        THE SWR Cache Engine
 // ==========================================
 async function fetchWithSWR(cacheKey, dbQueryFunction, renderFunction) {
     const cachedDataString = localStorage.getItem(cacheKey);
@@ -134,20 +134,8 @@ async function updateAuthUI() {
         if (currentUser) {
             authBtn.innerHTML = '👤 My Profile Dashboard';
             authBtn.onclick = () => showPage('profile');
+            authBtn.style.marginBottom = '20px'; 
             await checkUnreadMessages();
-
-            if (isAdmin) {
-                const adminBtn = document.createElement('a');
-                adminBtn.id = 'nav-admin-btn';
-                adminBtn.href = 'javascript:void(0)';
-                adminBtn.onclick = () => showPage('admin');
-                adminBtn.style.cssText = 'display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 20px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; text-align: center;';
-                adminBtn.innerHTML = '⚙️ Command Center';
-                authBtn.parentNode.insertBefore(adminBtn, authBtn.nextSibling);
-                authBtn.style.marginBottom = '8px'; 
-            } else {
-                authBtn.style.marginBottom = '20px'; 
-            }
         } else {
             authBtn.innerHTML = '🚪 Join / Sign In';
             authBtn.onclick = openAuthModal;
@@ -533,6 +521,11 @@ function renderProfileDashboard(view) {
         });
     }
 
+    let adminTabButton = '';
+    if (isAdmin) {
+        adminTabButton = `<button onclick="showPage('admin')" style="flex: 1; margin: 0; background: #ffe6e6; border-color: #cc0000; border-bottom: 4px solid #cc0000; color: #cc0000; min-width: 150px;">⚙️ Command Center</button>`;
+    }
+
     view.innerHTML = `
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
             <div style="text-align: left;">
@@ -566,9 +559,10 @@ function renderProfileDashboard(view) {
             </div>
         </div>
 
-        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; display: flex; gap: 10px; padding: 10px;">
-            <button onclick="switchProfileTab('inbox')" id="prof-tab-inbox" style="flex: 1; margin: 0; background: #ffffff; border-bottom: 4px solid var(--border);">📥 Private Inbox</button>
-            <button onclick="switchProfileTab('cookbook')" id="prof-tab-cookbook" style="flex: 1; margin: 0; background: var(--btn-grey); border-bottom: 2px solid var(--border);">📖 My Cookbook</button>
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; display: flex; gap: 10px; padding: 10px; flex-wrap: wrap;">
+            <button onclick="switchProfileTab('inbox')" id="prof-tab-inbox" style="flex: 1; margin: 0; background: #ffffff; border-bottom: 4px solid var(--border); min-width: 150px;">📥 Private Inbox</button>
+            <button onclick="switchProfileTab('cookbook')" id="prof-tab-cookbook" style="flex: 1; margin: 0; background: var(--btn-grey); border-bottom: 2px solid var(--border); min-width: 150px;">📖 My Cookbook</button>
+            ${adminTabButton}
         </div>
 
         <div id="profile-inbox-section" class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box;">
