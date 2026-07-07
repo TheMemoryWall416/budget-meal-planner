@@ -15,7 +15,7 @@ let isAdmin = false;
 let userRole = 'user'; 
 
 // ==========================================
-//        THE SWR Cache Engine
+//        THE SWR CACHE ENGINE
 // ==========================================
 async function fetchWithSWR(cacheKey, dbQueryFunction, renderFunction) {
     const cachedDataString = localStorage.getItem(cacheKey);
@@ -132,7 +132,7 @@ async function updateAuthUI() {
 
     if (authBtn) {
         if (currentUser) {
-            authBtn.innerHTML = '👤 My Profile Dashboard';
+            authBtn.innerHTML = '👤 My Profile';
             authBtn.onclick = () => showPage('profile');
             authBtn.style.marginBottom = '20px'; 
             await checkUnreadMessages();
@@ -148,7 +148,7 @@ async function checkUnreadMessages() {
     if (!currentUser) return; 
     const { count } = await myDatabase.from('messages').select('*', { count: 'exact', head: true }).eq('recipient_email', currentUser.email).eq('is_read', false);
     const authBtn = document.getElementById('nav-auth-btn');
-    if (authBtn && count > 0) { authBtn.innerHTML = `👤 My Profile (${count} New)`; }
+    if (authBtn && count > 0) { authBtn.innerHTML = `👤 My Profile (${count})`; }
 }
 
 function openAuthModal() { document.getElementById('auth-modal').style.display = 'flex'; }
@@ -282,10 +282,22 @@ async function fetchStats() {
     const navCounter = document.getElementById('nav-counter');
     if (navCounter) {
         navCounter.innerHTML = `
-            <div style="margin-bottom: 8px;">🌍 <strong>${totalApprovedRecipes}</strong> Live Recipes</div>
-            <div style="margin-bottom: 8px;">📤 <strong>${totalShared}</strong> Total Shared</div>
-            <div style="margin-bottom: 8px;">❤️ <strong>${totalLikes}</strong> Total Likes</div>
-            <div>👀 <strong>${totalVisitors.toLocaleString()}</strong> Total Visits</div>
+            <div style="margin-bottom: 12px; text-align: center;">
+                <div style="font-size: 1.1rem; font-weight: bold; color: #000;">🌍 ${totalApprovedRecipes}</div>
+                <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Live Recipes</div>
+            </div>
+            <div style="margin-bottom: 12px; text-align: center;">
+                <div style="font-size: 1.1rem; font-weight: bold; color: #000;">📤 ${totalShared}</div>
+                <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Shared</div>
+            </div>
+            <div style="margin-bottom: 12px; text-align: center;">
+                <div style="font-size: 1.1rem; font-weight: bold; color: #000;">❤️ ${totalLikes}</div>
+                <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Likes</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.1rem; font-weight: bold; color: #000;">👀 ${totalVisitors.toLocaleString()}</div>
+                <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Visits</div>
+            </div>
         `;
     }
 }
@@ -750,7 +762,7 @@ async function loadMemberMessages() {
     await myDatabase.from('messages').update({ is_read: true }).eq('recipient_email', currentUser.email).eq('is_read', false);
     
     const authBtn = document.getElementById('nav-auth-btn');
-    if (authBtn) authBtn.innerHTML = '👤 My Profile Dashboard';
+    if (authBtn) authBtn.innerHTML = '👤 My Profile';
 
     const cacheKey = `cache_member_messages_${currentUser.email}`;
 
