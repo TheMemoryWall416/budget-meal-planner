@@ -1332,6 +1332,10 @@ async function viewBudgetMeal(id) {
         
         ${contentHTML}
         
+        <div style="width: 100%; max-width: 650px; box-sizing: border-box; margin-bottom: 20px;">
+            <div class="ad-placeholder" style="height: 250px; width: 100%; border-radius: 4px;">Future AdSense Space<br>(End of Content)</div>
+        </div>
+        
         <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
             <button onclick="likeMeal('${data.id}', this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
             <button id="fav-btn-${data.id}" onclick="toggleFavorite('${data.id}')">⭐ Save to Favorites</button>
@@ -1784,6 +1788,10 @@ async function viewRecipe(id) {
             
             <h2 style="margin-top: 30px;">Instructions</h2>
             <div style="white-space: pre-wrap;">${data.recipe}</div>
+        </div>
+        
+        <div style="width: 100%; max-width: 650px; box-sizing: border-box; margin-bottom: 20px;">
+            <div class="ad-placeholder" style="height: 250px; width: 100%; border-radius: 4px;">Future AdSense Space<br>(End of Content)</div>
         </div>
         
         <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
