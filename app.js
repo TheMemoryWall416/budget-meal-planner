@@ -1332,16 +1332,16 @@ async function viewBudgetMeal(id) {
         
         ${contentHTML}
         
-        <div style="width: 100%; max-width: 650px; box-sizing: border-box; margin-bottom: 20px;">
-            <div class="ad-placeholder" style="height: 250px; width: 100%; border-radius: 4px;">Future AdSense Space<br>(End of Content)</div>
-        </div>
-        
-        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
+        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 20px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
             <button onclick="likeMeal('${data.id}', this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
             <button id="fav-btn-${data.id}" onclick="toggleFavorite('${data.id}')">⭐ Save to Favorites</button>
             <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
             <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
             <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', '${data.id}')">⚠️ Report Recipe</button>
+        </div>
+
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; margin-bottom: 20px; padding: 15px;">
+            <div class="ad-placeholder" style="height: 250px; width: 100%; border-radius: 4px;">Future AdSense Space<br>(End of Content)</div>
         </div>
 
         ${commentsSectionHTML}
@@ -1790,16 +1790,16 @@ async function viewRecipe(id) {
             <div style="white-space: pre-wrap;">${data.recipe}</div>
         </div>
         
-        <div style="width: 100%; max-width: 650px; box-sizing: border-box; margin-bottom: 20px;">
-            <div class="ad-placeholder" style="height: 250px; width: 100%; border-radius: 4px;">Future AdSense Space<br>(End of Content)</div>
-        </div>
-        
-        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
+        <div class="window-box" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 20px; flex-wrap: wrap; width: 100%; max-width: 650px; background: transparent; border: none; box-shadow: none; padding: 0;">
             <button onclick="likeMeal('${data.id}', this)">❤️ Like (<span class="like-count">${data.likes || 0}</span>)</button>
             <button id="fav-btn-${data.id}" onclick="toggleFavorite('${data.id}')">⭐ Save to Favorites</button>
             <button onclick="copyToClipboard('${currentUrl}')">🔗 Copy Link</button>
             <button onclick="window.open('https://wa.me/?text=${whatsappText}', '_blank')">📱 WhatsApp</button>
             <button onclick="reportRecipe('${data.title.replace(/'/g, "\\'")}', '${data.id}')">⚠️ Report Recipe</button>
+        </div>
+
+        <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; margin-bottom: 20px; padding: 15px;">
+            <div class="ad-placeholder" style="height: 250px; width: 100%; border-radius: 4px;">Future AdSense Space<br>(End of Content)</div>
         </div>
 
         ${commentsSectionHTML}
@@ -2106,31 +2106,81 @@ function switchAdminTab(tab) {
     } else if (tab === 'users') {
         area.innerHTML = `
             <div class="window-box" style="width: 100%; box-sizing: border-box;">
-                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👥 User Directory</h2>
-                <p style="color: #555; margin-top: 0;">Search the public mirror profile database to moderate users.</p>
+                <h2 style="margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px;">👥 User Directory & Staff Roster</h2>
+                <p style="color: #555; margin-top: 0;">Manage your team and search the public profile database to moderate users.</p>
                 
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <input type="text" id="directory-search" placeholder="Search by email or nickname..." style="flex: 1; margin: 0;" onkeyup="if(event.key === 'Enter') searchUserDirectory()">
-                    <button style="margin: 0;" onclick="searchUserDirectory()">Search</button>
+                    <button style="margin: 0;" onclick="searchUserDirectory()">Search Global Directory</button>
                 </div>
 
-                <div id="admin-directory-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 20px;">Current Staff Roster</h3>
+                <div id="admin-roster-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px;">
+                    <p><i>Loading staff roster...</i></p>
+                </div>
+
+                <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-top: 20px;">Search Results</h3>
+                <div id="admin-directory-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
                     <p><i>Enter a search term above...</i></p>
                 </div>
             </div>
         `;
+        if (typeof loadStaffRoster === 'function') loadStaffRoster();
     }
 }
 
 // ==========================================
 //        ADMIN FUNCTIONS (DIRECTORY/JAIL/AUDIT)
 // ==========================================
+async function loadStaffRoster() {
+    const listDiv = document.getElementById('admin-roster-list');
+    if (!listDiv) return;
+    const { data, error } = await myDatabase.from('admin_whitelist').select('*').order('role', { ascending: true });
+    
+    if (error) { listDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`; return; }
+    if (data.length === 0) { listDiv.innerHTML = "<p>No staff members found.</p>"; return; }
+
+    let html = "";
+    data.forEach(staff => {
+        let revokeBtn = (userRole === 'developer' && staff.email !== currentUser.email) 
+            ? `<button style="margin: 0; padding: 6px 12px; background: #ffe6e6; color: #cc0000; border-color: #cc0000;" onclick="revokeUser('${staff.email}')">Revoke Role</button>` 
+            : '';
+        
+        html += `
+            <div class="window-box" style="padding: 15px; margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 1.1rem;">${staff.email}</p>
+                    <span style="display: inline-block; padding: 4px 8px; background: #007bff; color: white; border-radius: 12px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">${staff.role}</span>
+                </div>
+                <div>${revokeBtn}</div>
+            </div>
+        `;
+    });
+    listDiv.innerHTML = html;
+}
+
+async function revokeUser(email) {
+    if (!confirm(`Are you absolutely sure you want to revoke ${email}'s admin privileges?`)) return;
+    const { error } = await myDatabase.from('admin_whitelist').delete().eq('email', email);
+    if (error) alert("Error revoking role: " + error.message);
+    else {
+        await logAction('ROLE_REVOKED', `Target: ${email}`, `Removed from admin whitelist.`);
+        alert(`${email} has been demoted to a standard member.`);
+        loadStaffRoster();
+    }
+}
+
 async function searchUserDirectory() {
     const term = document.getElementById('directory-search').value.trim();
     if(!term) return;
 
     const listDiv = document.getElementById('admin-directory-list');
     listDiv.innerHTML = "<p>Searching vault...</p>";
+
+    // Fetch current staff to cross-reference roles
+    const { data: staffData } = await myDatabase.from('admin_whitelist').select('email, role');
+    const staffMap = {};
+    if (staffData) { staffData.forEach(s => staffMap[s.email] = s.role); }
 
     const { data, error } = await myDatabase.from('public_profiles')
         .select('*')
@@ -2143,12 +2193,15 @@ async function searchUserDirectory() {
     let html = '';
     data.forEach(user => {
         let nameToDisplay = user.nickname || "No Nickname Set";
+        let currentRole = staffMap[user.email];
+        let roleBadge = currentRole ? `<span style="display: inline-block; padding: 3px 8px; background: #007bff; color: white; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 10px; text-transform: uppercase; vertical-align: middle;">${currentRole}</span>` : '';
+        
         let promoteBtn = userRole === 'developer' ? `<button style="margin: 0;" onclick="promoteUser('${user.email}')">Promote Role</button>` : '';
 
         html += `
             <div class="window-box" style="padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
                 <div style="border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-                    <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${nameToDisplay}</p>
+                    <p style="font-weight: bold; font-size: 1.2rem; margin: 0 0 5px 0;">${nameToDisplay} ${roleBadge}</p>
                     <p style="font-size: 0.85rem; color: #666; margin: 0;">Email: ${user.email} | ID: <span style="font-family: monospace;">${user.id}</span></p>
                 </div>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -2171,6 +2224,8 @@ async function promoteUser(email) {
     else {
         await logAction('ROLE_CHANGED', `Target: ${email}`, `Promoted to ${newRole}`);
         alert(`${email} is now a ${newRole}.`);
+        if (typeof loadStaffRoster === 'function') loadStaffRoster();
+        searchUserDirectory(); // Refresh search list to show new badge
     }
 }
 
