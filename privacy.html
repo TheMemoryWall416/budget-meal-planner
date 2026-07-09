@@ -7,37 +7,24 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* ==========================================================
-           SECTION 1: THE CSSOM (CSS Object Model) PAINT ENGINE
-           [MACRO]: Defines the visual geometry and aesthetic rules.
-        ========================================================== */
-
-        /* [ATOMIC]: :root targets the highest level of the DOM tree (the <html> tag). 
-           Variables declared with '--' allocate dynamic memory directly in the CSS engine. */
         :root { --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
         body { 
             font-family: sans-serif; 
             margin: 0; 
-            /* [ATOMIC]: Viewport Height (vh). 5vh forces exactly 5% of the user's physical screen height as padding, making the UI naturally responsive. */
             padding: 5vh 20px; 
             background-color: #eaddcf; 
-            /* [ATOMIC]: min-height guarantees the body element will stretch to the bottom of the monitor even if the text inside it is very short. */
             min-height: 100vh; 
-            /* [ATOMIC]: box-sizing: border-box alters the browser's physics engine. Padding and borders are calculated *inside* the element's width, preventing horizontal scrollbars. */
             box-sizing: border-box; 
-            /* [ATOMIC]: var() executes a live lookup of the CSS variable stored in :root. */
             color: var(--text); 
         }
         
-        /* [ATOMIC]: margin: 0 auto calculates the remaining negative space on the left and right of the 800px box and divides it equally, forcing perfect horizontal centering. */
         .content { width: 100%; max-width: 800px; margin: 0 auto; }
         
         .window-box { 
             background: #f0f0f0; 
             border: 2px solid var(--border); 
             padding: 40px; 
-            /* [ATOMIC]: 4px X-offset, 4px Y-offset, 15px Blur-radius, rgba (Red, Green, Blue, Alpha transparency at 20%). Computes a hardware-accelerated drop shadow. */
             box-shadow: 4px 4px 15px rgba(0,0,0,0.2); 
             border-radius: 4px; 
         }
@@ -47,19 +34,14 @@
             color: var(--text); 
             padding: 8px 16px; 
             font-size: 0.9rem; 
-            /* [ATOMIC]: text-decoration: none strips the browser's default hyperlink underline. */
             text-decoration: none; 
-            /* [ATOMIC]: inline-block allows the element to sit inline with text, but still respects strict width/height/padding physics. */
             display: inline-block; 
             border: 2px solid var(--border); 
             font-weight: bold; 
             margin-bottom: 20px; 
             cursor: pointer; 
-            /* [ATOMIC]: Solid shadow with 0px blur. Creates the retro/brutalist "pop-out" 3D button effect. */
             box-shadow: 2px 2px 0px var(--border);
         }
-        /* [ATOMIC]: :hover is a CSS pseudo-class. The engine listens for the mouse pointer coordinates to intersect the node's geometry. 
-           filter: brightness(90%) executes a mathematical darkening algorithm across all pixels inside the node. */
         .back-btn:hover { filter: brightness(90%); }
     </style>
 </head>
@@ -71,55 +53,44 @@
     <div class="window-box">
         <h1 style="margin-top: 0; font-size: 2.5rem;">Privacy Policy</h1>
         <div style="line-height: 1.8; font-size: 1.1rem;">
-            <p><strong>Effective Date:</strong> June 2026</p>
-            <p>The Global Recipe & Meal Planner is committed to protecting your privacy. Our platform allows for both public browsing and registered member participation.</p>
+            <p><strong>Effective Date:</strong> July 2026</p>
+            <p>Budget Meal Planner is committed to protecting your privacy. Our platform allows for both public browsing and registered member participation.</p>
             
             <h3>1. Information We Collect</h3>
-            <p><strong>Guest Users:</strong> If you browse the site without an account, we do not collect personally identifiable information such as names or emails. We only track anonymized visitor counts.</p>
-            <p><strong>Registered Members:</strong> To save recipes and use the community features, you must create a free account. We collect your <strong>Email Address</strong> solely for authentication and secure login purposes. Your password is cryptographically hashed and cannot be read by our team.</p>
-            <p><strong>User-Generated Content:</strong> The recipes, ingredients, and meal costs you submit are public data intended for community sharing. Private messages sent to the administration team remain strictly confidential between you and the moderators.</p>
+            <p><strong>Guest Users:</strong> We track basic anonymized visitor counts to help us understand site activity. This does not involve personally identifiable information.</p>
+            <p><strong>Registered Members:</strong> To save recipes and participate in the community, you must create a free account. We collect your <strong>Email Address</strong> for authentication and login. Passwords are cryptographically hashed; our team cannot read your password.</p>
+            <p><strong>User-Generated Content:</strong> Recipes, ingredients, photos, and comments you submit are stored by us and displayed publicly. Private messages sent to administration are stored securely for support purposes.</p>
 
-            <h3>2. Newsletter & Explicit Consent</h3>
+            <h3>2. Analytics & Tracking</h3>
+            <p>We use <strong>Google Analytics</strong> to track site traffic and usage patterns. This helps us optimize the site for our users. Additionally, we maintain internal analytics logs (such as daily visitor counts) to monitor platform health. These internal logs do not track your identity; they only aggregate usage data.</p>
+
+            <h3>3. Newsletter & Explicit Consent</h3>
             <p><strong>Creating an account does NOT sign you up for our newsletter.</strong> We operate on a strict explicit-consent model.</p>
-            <p>If you wish to receive our newsletter, you must manually request it through the dedicated subscription box. Even then, we utilize a <strong>Double Opt-In</strong> system: you will only be added to the mailing list if you open the confirmation email we send you and explicitly click "Accept Request."</p>
+            <p>If you wish to receive our newsletter, you must manually request it. We utilize a <strong>Double Opt-In</strong> system: you will only be added to the mailing list if you open the confirmation email we send and explicitly click "Accept Request."</p>
 
-            <h3>3. How We Use Your Data</h3>
-            <p>Your email address is used <strong>only</strong> for the specific services you have requested (e.g., authenticating your account, or sending the newsletter if you explicitly opted in). <strong>We will never sell your email address or use it for anything you haven't specifically asked for.</strong></p>
+            <h3>4. How We Use Your Data</h3>
+            <p>Your email address is used <strong>only</strong> for the specific services you have requested (e.g., account authentication or newsletters). <strong>We will never sell your email address or use it for anything you haven't specifically asked for.</strong></p>
             
-            <h3>4. Third-Party Advertising and Analytics</h3>
-            <p>We use third-party advertising companies, including Google AdSense, to serve ads when you visit our website. These companies may use cookies (small text files placed on your browser) to serve ads based on your prior visits to this website or other websites. Google's use of advertising cookies enables it and its partners to serve ads to you based on your visit to your sites and/or other sites on the Internet.</p>
+            <h3>5. Third-Party Advertising</h3>
+            <p>We use third-party advertising companies, including Google AdSense, to serve ads. These companies may use cookies to serve ads based on your prior visits to this website. You may opt out of personalized advertising by visiting <a href="https://www.aboutads.info/">www.aboutads.info</a>.</p>
             
-            <h3>5. Data Storage and Security</h3>
-            <p>Your data is securely stored using industry-standard backend infrastructure (Supabase). While we take all reasonable precautions to protect your data, no system is entirely foolproof. By using this service, you acknowledge that you do so at your own risk.</p>
+            <h3>6. Data Storage and Security</h3>
+            <p>Your data is securely stored using Supabase backend infrastructure. While we take reasonable precautions to protect your data, no system is entirely foolproof. By using this service, you acknowledge that you do so at your own risk.</p>
 
-            <h3>6. Contact</h3>
-            <p>If you have any questions about this Privacy Policy or wish to request the deletion of your account and data, please visit our <a href="contact.html" style="color: #000; font-weight: bold;">Contact page</a> to get in touch with our administration team.</p>
+            <h3>7. Contact</h3>
+            <p>If you wish to request the deletion of your account and data, please visit our <a href="contact.html" style="color: #000; font-weight: bold;">Contact page</a> to get in touch. We will process data removal requests promptly.</p>
         </div>
     </div>
 </div>
 
 <script>
-    /* ==========================================================
-       SECTION 3: ENGINE INITIALIZATION & DYNAMIC UI HYDRATION
-       [MACRO]: Connects to Supabase to pull in the centralized dynamic background.
-    ========================================================== */
-
-    // [ATOMIC]: Pointer allocation locking the specific HTTP address string into isolated memory.
     const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
-    
-    // [ATOMIC]: Instantiates the Supabase client object, creating a persistent connection tunnel stored in the global execution context.
     const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    // [ATOMIC]: Event Listener execution sequence. Fires exactly when the OS signals the DOM parser has finished building the visual nodes and downloading CSS.
     window.onload = async function() {
-        // [ATOMIC]: Destructures `{ data }` from the HTTP Promise resolution. .select('main_background_url') restricts the database payload bandwidth to a single column.
         const { data } = await myDatabase.from('site_config').select('main_background_url').eq('id', 1).single();
-        
-        // [ATOMIC]: Deep evaluation logic gate. Verifies `data` is a valid Object AND the string property `main_background_url` is truthy before attempting execution.
         if (data && data.main_background_url) {
-            // [ATOMIC]: Directly executes CSS Object Model (CSSOM) mutation natively on the <body> tag.
-            // Template literal string parsing (``) injects the dynamic URL into the CSS rule.
             document.body.style.backgroundImage = `url('${data.main_background_url}')`;
             document.body.style.backgroundSize = 'cover';
             document.body.style.backgroundPosition = 'center center';
