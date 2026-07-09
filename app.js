@@ -108,6 +108,14 @@ async function initAuth() {
     currentUser = session ? session.user : null;
     if (currentUser) {
         await checkAdminStatus(currentUser.email);
+        
+        // Silently update user active status once per day per device
+        const lastActiveKey = `last_active_${currentUser.id}`;
+        const todayStr = new Date().toDateString();
+        if (localStorage.getItem(lastActiveKey) !== todayStr) {
+            myDatabase.rpc('update_user_active_status', { user_uuid: currentUser.id }).then();
+            localStorage.setItem(lastActiveKey, todayStr);
+        }
     } else {
         updateAuthUI();
     }
@@ -455,6 +463,8 @@ function showPage(page) {
                 <p style="margin: 0; font-size: 1rem; color: #555;">Clearance: <strong>${userRole.toUpperCase()}</strong></p>
             </div>
             
+            <div id="admin-pulse-dashboard" style="width: 100%; max-width: 1000px; box-sizing: border-box; margin-bottom: 20px;"></div>
+            
             ${developerWarning}
 
             <div class="window-box" style="width: 100%; max-width: 1000px; box-sizing: border-box; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px;">
@@ -468,6 +478,7 @@ function showPage(page) {
             
             <div id="admin-content-area" style="width: 100%; max-width: 1000px;"></div>
         `;
+        loadAdminPulse();
         switchAdminTab('inbox');
         
     } else if (page === 'find-recipes') {
@@ -524,6 +535,52 @@ function showPage(page) {
     } else {
         view.innerHTML = `<div class="window-box"><h1>${page.replace(/-/g, ' ').toUpperCase()}</h1></div>`;
     }
+}
+
+// ==========================================
+//        ADMIN PULSE DASHBOARD (NEW)
+// ==========================================
+async function loadAdminPulse() {
+    const pulseDiv = document.getElementById('admin-pulse-dashboard');
+    if (!pulseDiv) return;
+    
+    pulseDiv.innerHTML = '<div class="window-box"><p style="text-align: center; margin: 0;">Loading live platform metrics...</p></div>';
+    
+    const { data, error } = await myDatabase.rpc('get_admin_dashboard_stats');
+    
+    if (error) {
+        pulseDiv.innerHTML = `<div class="window-box"><p style="color: red; margin: 0;">Error loading stats: ${error.message}</p></div>`;
+        return;
+    }
+
+    pulseDiv.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+            <div class="window-box" style="margin: 0; padding: 15px; text-align: center; border-top: 4px solid #007bff;">
+                <div style="font-size: 2rem; font-weight: 900;">${data.total_users}</div>
+                <div style="font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Members</div>
+            </div>
+            <div class="window-box" style="margin: 0; padding: 15px; text-align: center; border-top: 4px solid #28a745;">
+                <div style="font-size: 2rem; font-weight: 900;">${data.new_users_today}</div>
+                <div style="font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase;">Sign-Ups Today</div>
+            </div>
+            <div class="window-box" style="margin: 0; padding: 15px; text-align: center; border-top: 4px solid #17a2b8;">
+                <div style="font-size: 2rem; font-weight: 900;">${data.active_users_today}</div>
+                <div style="font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase;">Active Today</div>
+            </div>
+            <div class="window-box" style="margin: 0; padding: 15px; text-align: center; border-top: 4px solid #ffc107;">
+                <div style="font-size: 2rem; font-weight: 900;">${data.daily_visits}</div>
+                <div style="font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase;">Visits Today</div>
+            </div>
+            <div class="window-box" style="margin: 0; padding: 15px; text-align: center; border-top: 4px solid #fd7e14;">
+                <div style="font-size: 2rem; font-weight: 900;">${data.new_recipes_today}</div>
+                <div style="font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase;">Recipes Today</div>
+            </div>
+            <div class="window-box" style="margin: 0; padding: 15px; text-align: center; border-top: 4px solid #6f42c1;">
+                <div style="font-size: 2rem; font-weight: 900;">${data.new_comments_today}</div>
+                <div style="font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase;">Comments Today</div>
+            </div>
+        </div>
+    `;
 }
 
 // ==========================================
