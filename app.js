@@ -1513,6 +1513,7 @@ async function loadComments(recipeId) {
     );
 }
 
+// THE POLITE BOUNCER: Hierarchy enforcement & UUID lookup fix
 async function openModMenu(userId, email, nickname, event) {
     if (!isAdmin) return;
     
@@ -1521,8 +1522,19 @@ async function openModMenu(userId, email, nickname, event) {
 
     if (!userId) return alert("System ID missing for this user. Cannot perform moderation.");
 
-    // THE POLITE BOUNCER: Check the target's rank first
-    const { data } = await myDatabase.from('admin_whitelist').select('role').eq('email', email).single();
+    // Fetch the real email if it is missing (Shoutbox / global chat)
+    let targetEmail = email;
+    if (!targetEmail || targetEmail === 'Unknown' || targetEmail === 'undefined') {
+        const { data: profileData } = await myDatabase.from('public_profiles').select('email').eq('id', userId).single();
+        if (profileData) {
+            targetEmail = profileData.email;
+        } else {
+            return alert("Could not locate user profile data.");
+        }
+    }
+
+    // Check the target's rank using the resolved email
+    const { data } = await myDatabase.from('admin_whitelist').select('role').eq('email', targetEmail).single();
     const targetRole = data ? data.role : 'user';
 
     // Establish the chain of command
@@ -1544,14 +1556,14 @@ async function openModMenu(userId, email, nickname, event) {
 
     // Either show the block button, or show a protected warning
     let blockButtonHTML = canBlock 
-        ? `<button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="modSoftBlock('${userId}', '${email}')">🛑 Block User</button>`
+        ? `<button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="modSoftBlock('${userId}', '${targetEmail}')">🛑 Block User</button>`
         : `<div style="font-size: 0.75rem; color: #cc0000; padding: 5px; text-align: center; border: 1px dashed #cc0000; font-weight: bold; background: #ffe6e6;">Protected Rank</div>`;
 
     menu.innerHTML = `
         <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">
             Target: ${nickname} <br><span style="color:#007bff; font-weight:normal; text-transform: uppercase;">(${targetRole})</span>
         </div>
-        <button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="modDirectMessage('${email}')">✉️ Send DM</button>
+        <button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="modDirectMessage('${targetEmail}')">✉️ Send DM</button>
         ${blockButtonHTML}
         <button style="margin: 0; font-size: 0.85rem; padding: 5px;" onclick="this.parentElement.remove()">Cancel</button>
     `;
