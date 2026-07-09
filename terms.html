@@ -7,36 +7,24 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* ==========================================================
-           SECTION 1: THE CSSOM (CSS Object Model) PAINT ENGINE
-           [MACRO]: Defines the absolute geometry, variables, and physics of the UI.
-        ========================================================== */
-
-        /* [ATOMIC]: :root targets the Document root. Declaring '--' assigns variables directly into the browser's CSS memory, acting as a global dictionary for hexadecimal color codes. */
         :root { --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
         body { 
             font-family: sans-serif; 
             margin: 0; 
-            /* [ATOMIC]: Viewport Height (vh) unit. The CSS engine queries the OS for the physical screen height and strictly calculates padding as exactly 5% of that axis. */
             padding: 5vh 20px; 
             background-color: #eaddcf; 
-            /* [ATOMIC]: min-height guarantees the body node expands to the absolute bottom of the viewport even if the DOM text content terminates early. */
             min-height: 100vh; 
-            /* [ATOMIC]: box-sizing: border-box instructs the geometry engine to factor padding and border thickness *inward*, preventing horizontal axis overflow (scrolling). */
             box-sizing: border-box; 
-            /* [ATOMIC]: var() invokes a real-time memory lookup of the root CSS dictionary. */
             color: var(--text); 
         }
         
-        /* [ATOMIC]: margin: 0 auto; executes an automated layout algorithm. The engine computes the remaining horizontal negative space (Viewport Width minus 800px) and divides it evenly, forcing absolute centering. */
         .content { width: 100%; max-width: 800px; margin: 0 auto; }
         
         .window-box { 
             background: #f0f0f0; 
             border: 2px solid var(--border); 
             padding: 40px; 
-            /* [ATOMIC]: box-shadow calculates GPU-accelerated raster graphics. Generates a physical drop shadow (X:4, Y:4, Blur:15, Black at 20% opacity). */
             box-shadow: 4px 4px 15px rgba(0,0,0,0.2); 
             border-radius: 4px; 
         }
@@ -46,19 +34,14 @@
             color: var(--text); 
             padding: 8px 16px; 
             font-size: 0.9rem; 
-            /* [ATOMIC]: text-decoration: none strips the browser's default hyperlink rendering rules. */
             text-decoration: none; 
-            /* [ATOMIC]: inline-block overrides inline string physics, permitting the element to accept hard geometric constraints (width/height/padding). */
             display: inline-block; 
             border: 2px solid var(--border); 
             font-weight: bold; 
             margin-bottom: 20px; 
             cursor: pointer; 
-            /* [ATOMIC]: Rigid 0px blur shadow creates a hard, brutalist 3D structural aesthetic. */
             box-shadow: 2px 2px 0px var(--border);
         }
-        
-        /* [ATOMIC]: :hover is a pseudo-class event listener. When the OS mouse coordinates intersect the button's geometric bounds, the filter executes a mathematical pixel-darkening algorithm (brightness 90%). */
         .back-btn:hover { filter: brightness(90%); }
     </style>
 </head>
@@ -70,44 +53,35 @@
     <div class="window-box">
         <h1 style="margin-top: 0; font-size: 2.5rem;">Terms of Service</h1>
         <div style="line-height: 1.8; font-size: 1.1rem;">
-            <p><strong>Effective Date:</strong> June 2026</p>
+            <p><strong>Effective Date:</strong> July 2026</p>
             <p>By accessing the Global Recipe & Meal Planner, you agree to be bound by these terms.</p>
             
-            <h3>1. User-Generated Content</h3>
-            <p>Users are solely responsible for the recipes, meal data, and comments they post. We reserve the right to remove any content that is deemed inappropriate, spam, highly offensive, or violates the spirit of the community without prior notice. By posting a recipe, you grant us the right to display it publicly on the platform.</p>
+            <h3>1. Age Limitation</h3>
+            <p>This platform is intended for users who are at least 13 years of age. By creating an account, you represent that you meet this age requirement.</p>
+
+            <h3>2. User-Generated Content</h3>
+            <p>Users are solely responsible for the recipes, meal data, and comments they post. We reserve the right to remove any content that is deemed inappropriate, spam, highly offensive, or violates the spirit of the community without prior notice. By posting a recipe, you grant us the right to display, host, and distribute it publicly on the platform.</p>
             
-            <h3>2. Disclaimer of Warranties</h3>
-            <p>The nutritional information, ingredient costs, and conversion calculations provided on this platform are for general informational purposes only. Costs vary globally, and we make no guarantees regarding the accuracy, safety, or dietary compliance of the recipes posted by the community. Use your own judgment when cooking.</p>
+            <h3>3. Disclaimer of Warranties</h3>
+            <p>The nutritional information, ingredient costs, and conversion calculations provided are for general informational purposes only. Costs vary globally, and we make no guarantees regarding the accuracy, safety, or dietary compliance of the recipes posted by the community. Use your own judgment when cooking.</p>
             
-            <h3>3. Platform Availability</h3>
-            <p>We strive to keep the platform 100% free and online, but we reserve the right to modify, pause, or discontinue the service at any time.</p>
+            <h3>4. External Links</h3>
+            <p>Our platform may contain links to third-party websites. We are not responsible for the content, privacy practices, or reliability of these external sites. Clicking such links is at your own risk.</p>
+
+            <h3>5. Platform Availability</h3>
+            <p>We strive to keep the platform online, but we reserve the right to modify, pause, or discontinue the service at any time without prior notice.</p>
         </div>
     </div>
 </div>
 
 <script>
-    /* ==========================================================
-       SECTION 3: ENGINE INITIALIZATION & DYNAMIC UI HYDRATION
-       [MACRO]: Connects to Supabase to pull in the centralized dynamic background.
-    ========================================================== */
-
-    // [ATOMIC]: 'const' secures the memory pointer. These string arrays are explicitly locked to prevent unauthorized script injections.
     const supabaseUrl = 'https://bvdgbodzrfhgpvxzuogs.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZGdib2R6cmZoZ3B2eHp1b2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MjYxMzIsImV4cCI6MjA5NzMwMjEzMn0.C6jFxQmFQYnRjVK8V30mG4qTH3PtEWmVThiiSvr1tEw';
-    
-    // [ATOMIC]: window.supabase references the CDN library. .createClient() maps the network configuration parameters and opens the persistent HTTP tunnel into browser RAM.
     const myDatabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    // [ATOMIC]: Global asynchronous event listener. Triggered natively by the browser exactly when the DOM Document finishes compiling.
     window.onload = async function() {
-        // [ATOMIC]: .select('main_background_url') surgically limits the API response payload, returning ONLY the target column. 
-        // Object Destructuring `{ data }` pulls the exact object out of the raw HTTP response.
         const { data } = await myDatabase.from('site_config').select('main_background_url').eq('id', 1).single();
-        
-        // [ATOMIC]: Strict conditional logic. Prevents a NullReference exception from crashing the script if the database response evaluates falsy.
         if (data && data.main_background_url) {
-            // [ATOMIC]: Direct mutation of the CSS Object Model (CSSOM). 
-            // The Template Literal (``) physically constructs a new CSS attribute string and maps it globally to the document <body> element.
             document.body.style.backgroundImage = `url('${data.main_background_url}')`;
             document.body.style.backgroundSize = 'cover';
             document.body.style.backgroundPosition = 'center center';
