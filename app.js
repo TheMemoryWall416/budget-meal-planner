@@ -2927,6 +2927,35 @@ async function saveEdit() {
 // ==========================================
 //        FRONTEND UTILITIES (COOKBOOK/FAVS)
 // ==========================================
+
+function showActionModal(message) {
+    let existing = document.getElementById('action-modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'action-modal-overlay';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 20px; box-sizing: border-box;';
+    
+    const box = document.createElement('div');
+    box.className = 'window-box';
+    box.style.cssText = 'background: #fff; padding: 25px 20px; max-width: 400px; width: 100%; text-align: center; margin: 0;';
+    
+    const text = document.createElement('p');
+    text.style.cssText = 'font-size: 1.1rem; font-weight: bold; margin-top: 0; margin-bottom: 20px; line-height: 1.4;';
+    text.innerText = message;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.innerText = 'Close';
+    closeBtn.style.margin = '0';
+    closeBtn.style.width = '100%';
+    closeBtn.onclick = () => overlay.remove();
+    
+    box.appendChild(text);
+    box.appendChild(closeBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
 async function checkFavoriteStatus(recipeId) {
     if (!currentUser) return;
     const btn = document.getElementById(`fav-btn-${recipeId}`);
@@ -2948,7 +2977,11 @@ async function toggleFavorite(recipeId) {
         if (!error) { btn.innerHTML = '⭐ Save to Favorites'; btn.dataset.saved = 'false'; }
     } else {
         const { error } = await myDatabase.from('favorites').insert([{ user_email: currentUser.email, recipe_id: recipeId }]);
-        if (!error) { btn.innerHTML = '⭐ Saved to Favorites'; btn.dataset.saved = 'true'; }
+        if (!error) { 
+            btn.innerHTML = '⭐ Saved to Favorites'; 
+            btn.dataset.saved = 'true'; 
+            showActionModal("Added to your personal cookbook. Please go to your profile to find it.");
+        }
     }
     btn.disabled = false;
 }
@@ -2994,6 +3027,43 @@ async function removeFromCookbook(recipeId, event) {
     if (!confirm("Remove this recipe from your cookbook?")) return;
     const { error } = await myDatabase.from('favorites').delete().eq('user_email', currentUser.email).eq('recipe_id', recipeId);
     if (error) alert("Error: " + error.message); else loadCookbook(); 
+}
+
+// ==========================================
+//        CONTACT LOGIC
+// ==========================================
+async function submitMessage() {
+    const nameInput = document.getElementById('contact-name');
+    const emailInput = document.getElementById('contact-email');
+    const messageInput = document.getElementById('contact-message');
+    
+    if (!nameInput || !emailInput || !messageInput) {
+        alert("Contact form fields not found.");
+        return;
+    }
+    
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const message = messageInput.value.trim();
+    
+    if (!name || !email || !message) return alert("Please fill in all fields.");
+    
+    const { error } = await myDatabase.from('messages').insert([{
+        name: name,
+        email: email,
+        recipient_email: 'admin',
+        message: message,
+        is_read: false
+    }]);
+    
+    if (error) {
+        alert("Error sending message: " + error.message);
+    } else {
+        alert("Message sent successfully!");
+        nameInput.value = '';
+        emailInput.value = '';
+        messageInput.value = '';
+    }
 }
 
 // ==========================================
