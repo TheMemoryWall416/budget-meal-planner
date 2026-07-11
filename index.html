@@ -7,25 +7,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* ==========================================================
-           SECTION 1: THE CSS OBJECT MODEL (CSSOM) PHYSICS ENGINE
-           [MACRO]: Defines the absolute geometry, variables, and physics of the UI.
-        ========================================================== */
-
-        /* [ATOMIC]: :root initializes a global CSS dictionary in browser RAM. These '--' variables can be referenced by any node, ensuring 100% color synchronization across the render tree. */
         :root { --bg: #fff0f5; --nav-color: #ffb7c5; --btn-grey: #d3d3d3; --text: #000000; --border: #000000; }
         
-        /* [ATOMIC]: The Body locks the viewport. 
-           display: flex; creates a horizontal 1-dimensional layout axis.
-           height: 100vh; forces the body to be exactly 100% of the physical screen height.
-           overflow: hidden; explicitly disables the master browser scrollbar. The page itself CANNOT scroll. */
         body { font-family: sans-serif; display: flex; margin: 0; background-color: #eaddcf; height: 100vh; overflow: hidden; color: var(--text); }
         
-        /* [ATOMIC]: The flex-shrink: 0; property commands the engine: "Never compress this column even if the screen gets small."
-           overflow-y: auto; delegates scrolling physics to this specific column ONLY, creating the "App-like" fixed-layout feel. */
         nav { width: 220px; padding: 15px; padding-bottom: 120px; flex-shrink: 0; border-right: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
         
-        /* [ATOMIC]: flex-grow: 1; commands the center content area to mathematically calculate remaining horizontal screen space and consume 100% of it. */
         .content { flex-grow: 1; padding: 15px 30px; padding-bottom: 120px; height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
         
         aside { width: 280px; padding: 15px; padding-bottom: 120px; flex-shrink: 0; border-left: 2px solid var(--border); height: 100vh; overflow-y: auto; box-sizing: border-box; background: transparent; }
@@ -35,42 +22,28 @@
             border: 2px solid var(--border); 
             padding: 20px; 
             margin-bottom: 20px; 
-            /* [ATOMIC]: Hardware-accelerated GPU shadow rendering. Offsets X:4px, Y:4px, Blur:10px, Alpha:15%. */
             box-shadow: 4px 4px 10px rgba(0,0,0,0.15); 
             border-radius: 4px; 
         }
 
-        /* [ATOMIC]: CSS Descendant Selector (nav a). Applies strict rendering rules only to anchor tags physically nested inside the <nav> node. */
         nav a { display: block; color: var(--text); background: var(--btn-grey); border: 2px solid var(--border); padding: 10px; margin-bottom: 8px; text-decoration: none; cursor: pointer; font-size: 0.9rem; box-sizing: border-box; font-weight: bold; text-align: center; }
         nav a:hover { filter: brightness(90%); }
         
-        /* [ATOMIC]: display: flex combined with align-items: center and justify-content: center forces absolute mathematical dead-centering of elements inside the placeholder box. */
         .ad-placeholder { display: flex; align-items: center; justify-content: center; height: 250px; background: #f0f0f0; border: 2px dashed #999; color: #666; font-weight: bold; text-align: center; padding: 10px; }
         
-        /* [CLEANUP]: Added text-align: center; to force center alignment on all buttons globally */
         button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; text-align: center; }
         
-        /* [ATOMIC]: transform: translate(-1px, -1px) executes a 2D matrix geometry shift, moving the button 1 pixel up and left.
-           box-shadow increases to 2px, creating the physical illusion that the button is "popping up" towards the user. */
         button:hover { filter: brightness(90%); transform: translate(-1px, -1px); box-shadow: 2px 2px 0px var(--border); }
         
-        /* [ATOMIC]: :active fires during the exact millisecond the mouse clicks down. 
-           transform: translate(1px, 1px) pushes the button down, and removing the box-shadow creates a mechanical "depressed" button effect. */
         button:active { transform: translate(1px, 1px); box-shadow: none; }
         
         textarea, input, select { width: 100%; max-width: 450px; border: 2px solid var(--border); padding: 8px; margin-bottom: 15px; background: #ffffff; font-family: sans-serif; box-sizing: border-box; font-size: 0.9rem; }
         
-        /* [LIVE WIRE]: The Stage. #main-view is the empty container where your app.js injects 100% of the SPA HTML via innerHTML. */
         #main-view { display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
         .ingredient-row input, .ingredient-row select { margin-bottom: 0; }
 
-        /* [ATOMIC]: The Sanctuary Aesthetic Engine. 
-           background-image: url(...) executes an inline SVG (Scalable Vector Graphic) filter.
-           It uses fractalNoise mathematics to compute a procedural "grain" or "texture" directly on the GPU, avoiding external image downloads. */
         .farmhouse-scroll { position: relative; margin: 30px 0; width: 100%; max-width: 650px; background-color: #fdf6e3; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E"); box-shadow: inset 0 0 40px rgba(139, 69, 19, 0.15), inset 0 0 10px rgba(139, 69, 19, 0.1), 0 15px 25px rgba(0,0,0,0.1); border-radius: 3px; padding: 50px 40px; box-sizing: border-box; color: #3e2723; font-family: 'Georgia', 'Times New Roman', serif; font-size: 1.15rem; line-height: 1.8; }
         
-        /* [ATOMIC]: ::before and ::after inject phantom DOM nodes without touching the HTML. 
-           linear-gradient computes a 3D shadow map simulating the rolled edges of an ancient parchment. */
         .farmhouse-scroll::before, .farmhouse-scroll::after { content: ''; position: absolute; left: -15px; right: -15px; height: 30px; background: linear-gradient(to bottom, #5c3a21, #2b1a10, #5c3a21); border-radius: 15px; box-shadow: 0 8px 15px rgba(0,0,0,0.4), inset 0 3px 6px rgba(255,255,255,0.1); z-index: 2; }
         .farmhouse-scroll::before { top: -15px; }
         .farmhouse-scroll::after { bottom: -15px; }
@@ -87,6 +60,13 @@
     </script>
 </head>
 <body>
+
+<div id="action-modal-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 10000; padding: 20px; box-sizing: border-box;">
+    <div class="window-box" style="background: #fff; padding: 25px 20px; max-width: 400px; width: 100%; text-align: center; margin: 0;">
+        <p id="modal-text" style="font-size: 1.1rem; font-weight: bold; margin-top: 0; margin-bottom: 20px; line-height: 1.4;"></p>
+        <button onclick="document.getElementById('action-modal-overlay').style.display='none'" style="margin: 0; width: 100%;">Close</button>
+    </div>
+</div>
 
 <div id="country-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center;">
     <div id="modal-content" class="window-box" style="background: var(--nav-color); padding: 40px; text-align: center; border-width: 3px;">
@@ -127,7 +107,8 @@
         <a href="#" onclick="showPage('home')">Home</a>
         <a href="#" onclick="showPage('find-recipes')">Find Recipes</a>
         <a href="#" onclick="showPage('creator-hub')">Add Your Own</a>
-        <a href="contact.html">Contact</a>
+        <a href="javascript:void(0)" onclick="showPage('knowledge-hub')">Knowledge Hub</a>
+        <a href="contact.html">Contact Us</a>
     </div>
 
     <div class="window-box" style="padding: 15px;">
@@ -224,18 +205,14 @@
 </div>
 
 <script>
-    // [ATOMIC]: DOMContentLoaded is slightly faster than window.onload. It fires the millisecond the HTML text is parsed, without waiting for massive background images to finish downloading.
     document.addEventListener('DOMContentLoaded', function() {
-        // [ATOMIC]: Queries the local OS hard drive cache. If the exact string 'cookies_accepted' does NOT exist, execution proceeds to un-hide the banner.
         if (!localStorage.getItem('cookies_accepted')) {
             document.getElementById('cookie-banner').style.display = 'flex';
         }
     });
     
     function acceptCookies() {
-        // [ATOMIC]: Writes string directly to physical OS storage. Future visits will now bypass the banner logic indefinitely.
         localStorage.setItem('cookies_accepted', 'true');
-        // [ATOMIC]: Reverts Node to 0x0 geometry, deleting it from view.
         document.getElementById('cookie-banner').style.display = 'none';
     }
 </script>
