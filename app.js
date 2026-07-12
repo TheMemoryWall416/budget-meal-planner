@@ -3455,3 +3455,15 @@ async function submitMessage() {
         if (messageInput) messageInput.value = '';
     }
 }
+
+async function incrementViewCount(id) {
+    try {
+        const { data } = await myDatabase.from('meals').select('views').eq('id', id).single();
+        if (data) {
+            const newViews = (data.views || 0) + 1;
+            await myDatabase.from('meals').update({ views: newViews }).eq('id', id);
+        }
+    } catch (err) {
+        console.error("View count update failed, but site is stable:", err);
+    }
+}
