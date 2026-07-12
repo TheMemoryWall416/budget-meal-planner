@@ -1758,6 +1758,7 @@ async function submitPendingPhoto(recipeId, event) {
 }
 
 async function viewRecipe(id) {
+    incrementViewCount(id);
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Loading Recipe...</h1></div>`;
 
