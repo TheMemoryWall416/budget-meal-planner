@@ -45,7 +45,7 @@
         nav a:hover { filter: brightness(90%); }
         
         /* [ATOMIC]: display: flex combined with align-items: center and justify-content: center forces absolute mathematical dead-centering of elements inside the placeholder box. */
-        .ad-placeholder { display: flex; align-items: center; justify-content: center; height: 250px; background: #f0f0f0; border: 2px dashed #999; color: #666; font-weight: bold; text-align: center; padding: 10px; }
+        .ad-placeholder { display: flex; align-items: center; justify-content: center; height: 250px; background: #f0f0f0; border: 2px dashed #999; color: #666; font-weight: bold; text-align: center; padding: 10px; box-sizing: border-box; }
         
         /* [CLEANUP]: Added text-align: center; to force center alignment on all buttons globally */
         button { cursor: pointer; background: var(--btn-grey); color: var(--text); border: 2px solid var(--border); padding: 8px 16px; font-size: 0.85rem; font-weight: bold; margin: 8px 8px 8px 0; box-sizing: border-box; text-align: center; }
