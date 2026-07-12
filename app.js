@@ -1834,7 +1834,7 @@ async function viewRecipe(id) {
         <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
-            <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date}</p>
+           <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date} | 👀 ${data.views || 0} Views</p>
         </div>
         
         <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
