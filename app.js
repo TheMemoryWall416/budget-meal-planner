@@ -2927,6 +2927,15 @@ async function saveEdit() {
 // ==========================================
 //        FRONTEND UTILITIES (COOKBOOK/FAVS)
 // ==========================================
+function showActionModal(message) {
+    const overlay = document.getElementById('action-modal-overlay');
+    const modalText = document.getElementById('modal-text');
+    if (overlay && modalText) {
+        modalText.innerText = message;
+        overlay.style.display = 'flex';
+    }
+}
+
 async function checkFavoriteStatus(recipeId) {
     if (!currentUser) return;
     const btn = document.getElementById(`fav-btn-${recipeId}`);
@@ -2948,7 +2957,11 @@ async function toggleFavorite(recipeId) {
         if (!error) { btn.innerHTML = '⭐ Save to Favorites'; btn.dataset.saved = 'false'; }
     } else {
         const { error } = await myDatabase.from('favorites').insert([{ user_email: currentUser.email, recipe_id: recipeId }]);
-        if (!error) { btn.innerHTML = '⭐ Saved to Favorites'; btn.dataset.saved = 'true'; }
+        if (!error) { 
+            btn.innerHTML = '⭐ Saved to Favorites'; 
+            btn.dataset.saved = 'true'; 
+            showActionModal("Added to your personal cookbook. Please go to your profile to find it.");
+        }
     }
     btn.disabled = false;
 }
@@ -3404,4 +3417,41 @@ async function renderFamilyPage() {
         html += `</div>`;
     }
     view.innerHTML = html;
+}
+
+// ==========================================
+//        CONTACT FORM LOGIC
+// ==========================================
+async function submitMessage() {
+    const nameInput = document.getElementById('contact-name');
+    const emailInput = document.getElementById('contact-email');
+    const messageInput = document.getElementById('contact-message');
+    
+    if (!nameInput || !emailInput || !messageInput) {
+        alert("Contact form fields not found.");
+        return;
+    }
+    
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const message = messageInput.value.trim();
+    
+    if (!name || !email || !message) return alert("Please fill in all fields.");
+    
+    const { error } = await myDatabase.from('messages').insert([{
+        name: name,
+        email: email,
+        recipient_email: 'admin',
+        message: message,
+        is_read: false
+    }]);
+    
+    if (error) {
+        alert("Error sending message: " + error.message);
+    } else {
+        alert("Message sent successfully!");
+        if (nameInput) nameInput.value = '';
+        if (emailInput) emailInput.value = '';
+        if (messageInput) messageInput.value = '';
+    }
 }
