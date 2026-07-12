@@ -1285,7 +1285,6 @@ async function loadBudgetMeals(filter = 'all') {
 }
 
 async function viewBudgetMeal(id) {
-    incrementViewCount(id);
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Loading...</h1></div>`;
 
@@ -1381,9 +1380,7 @@ async function viewBudgetMeal(id) {
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
             </div>
-            <p style="font-size: 0.9rem; color: #666; margin-top: 10px; margin-bottom:0;">
-                Posted by: ${data.author || 'Community'} | 👀 ${data.views || 0} Views
-            </p>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 10px; margin-bottom:0;">Posted by: ${data.author || 'Community'}</p>
         </div>
         
         <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
@@ -1761,7 +1758,6 @@ async function submitPendingPhoto(recipeId, event) {
 }
 
 async function viewRecipe(id) {
-    incrementViewCount(id);
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Loading Recipe...</h1></div>`;
 
@@ -1837,7 +1833,7 @@ async function viewRecipe(id) {
         <button onclick="loadSubcategory('${data.category}', '${parentCat}')" style="margin-bottom: 15px;">← Back</button>
         <div class="window-box" style="width: 100%; max-width: 650px; box-sizing: border-box; background: var(--nav-color); padding: 15px 20px; text-align: center;">
             <h1 style="font-size: 2rem; margin-top: 0; margin-bottom: 5px;">${data.title}</h1>
-           <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date} | 👀 ${data.views || 0} Views</p>
+            <p style="font-size: 1rem; color: #666; margin-top: 0;">By ${author} • ${date}</p>
         </div>
         
         <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
@@ -3457,17 +3453,5 @@ async function submitMessage() {
         if (nameInput) nameInput.value = '';
         if (emailInput) emailInput.value = '';
         if (messageInput) messageInput.value = '';
-    }
-}
-
-async function incrementViewCount(id) {
-    try {
-        const { data } = await myDatabase.from('meals').select('views').eq('id', id).single();
-        if (data) {
-            const newViews = (data.views || 0) + 1;
-            await myDatabase.from('meals').update({ views: newViews }).eq('id', id);
-        }
-    } catch (err) {
-        console.error("View count update failed, but site is stable:", err);
     }
 }
