@@ -1381,7 +1381,9 @@ async function viewBudgetMeal(id) {
             <div style="font-size: 1.2rem; padding: 10px; background: #e0e0e0; border: 2px solid var(--border); display: inline-block;">
                 <strong>${currencyMap[selectedCountry]}${costPer}</strong> per person (Feeds ${data.servings} for ${currencyMap[selectedCountry]}${data.cost})
             </div>
-            <p style="font-size: 0.9rem; color: #666; margin-top: 10px; margin-bottom:0;">Posted by: ${data.author || 'Community'}</p>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 10px; margin-bottom:0;">
+                Posted by: ${data.author || 'Community'} | 👀 ${data.views || 0} Views
+            </p>
         </div>
         
         <div style="width: 100%; max-width: 650px; box-sizing: border-box;">
