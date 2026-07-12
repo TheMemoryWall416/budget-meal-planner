@@ -1285,6 +1285,7 @@ async function loadBudgetMeals(filter = 'all') {
 }
 
 async function viewBudgetMeal(id) {
+    incrementViewCount(id);
     const view = document.getElementById('main-view');
     view.innerHTML = `<div class="window-box"><h1>Loading...</h1></div>`;
 
