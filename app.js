@@ -262,49 +262,34 @@ async function fetchStats() {
     const navCounter = document.getElementById('nav-counter');
     if (!navCounter) return;
 
-    let totalShared = 0; 
-    let totalLikes = 0;
-
+    // 1. Live Recipes (Isolated)
     try {
-        // 1. Fetch Live Approved Recipes
-        const { count: liveCount, error: recipeError } = await myDatabase
-            .from('meals')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'approved');
-        if (!recipeError && liveCount !== null) totalApprovedRecipes = liveCount;
+        const { count } = await myDatabase.from('meals').select('id', { count: 'exact', head: true }).eq('status', 'approved');
+        if (count !== null) totalApprovedRecipes = count;
+    } catch (e) { console.log("Recipes check failed:", e.message); }
 
-        // 2. Fetch Visitor Count
-        const { data: vData, error: vError } = await myDatabase
-            .from('site_stats')
-            .select('visitor_count')
-            .eq('id', 1)
-            .single();
-        if (!vError && vData && vData.visitor_count) totalVisitors = vData.visitor_count;
+    // 2. Total Visits (Isolated)
+    try {
+        const { data } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
+        if (data && data.visitor_count) totalVisitors = data.visitor_count;
+    } catch (e) { console.log("Visits check failed - using default:", e.message); }
 
-        // 3. Fetch Likes and Shares directly from tables (bypassing RPC math bottlenecks)
-        const { data: interactionData, error: iError } = await myDatabase
-            .from('meals')
-            .select('likes, shares')
-            .eq('status', 'approved');
-            
-        if (!iError && interactionData) {
-            interactionData.forEach(meal => {
+    // 3. Likes & Shares (Isolated - reads directly from meals table to bypass broken RPC scripts)
+    let totalShared = 0;
+    let totalLikes = 0;
+    try {
+        const { data } = await myDatabase.from('meals').select('likes, shares').eq('status', 'approved');
+        if (data) {
+            data.forEach(meal => {
                 totalLikes += (Number(meal.likes) || 0);
                 totalShared += (Number(meal.shares) || 0);
             });
         }
-    } catch (err) {
-        console.error("Network delay fallback triggered in fetchStats:", err.message);
-    }
+    } catch (e) { console.log("Likes/Shares check failed:", e.message); }
 
-    // 4. Preserve and execute site_config background and photo logic
+    // 4. Site Config & Photos (Isolated)
     try {
-        const { data: configData } = await myDatabase
-            .from('site_config')
-            .select('team_photo_url, main_background_url')
-            .eq('id', 1)
-            .single();
-        
+        const { data: configData } = await myDatabase.from('site_config').select('team_photo_url, main_background_url').eq('id', 1).single();
         if (configData) {
             if (configData.team_photo_url) {
                 teamPhotoUrl = configData.team_photo_url;
@@ -320,11 +305,9 @@ async function fetchStats() {
                 document.body.style.backgroundRepeat = 'no-repeat';
             }
         }
-    } catch (err) {
-        console.error("Site config load error:", err.message);
-    }
+    } catch (e) { console.log("Config load failed:", e.message); }
 
-    // 5. Render to UI
+    // 5. Render to UI immediately
     navCounter.innerHTML = `
         <div style="margin-bottom: 12px; text-align: center;">
             <div style="font-size: 1.1rem; font-weight: bold; color: #000;">🌍 ${totalApprovedRecipes}</div>
@@ -1461,14 +1444,9 @@ async function likeMeal(id, btnElement) {
     btnElement.style.opacity = '0.6';
     btnElement.innerHTML = `❤️ Liked (${currentLikes})`;
 
-    try {
-        const { data } = await myDatabase.from('meals').select('likes').eq('id', id).single();
-        const dbLikes = (data && data.likes ? data.likes : 0) + 1;
-        const { error } = await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
-        if (error) console.error("Database update failed for likeMeal:", error.message);
-    } catch (err) {
-        console.error("likeMeal execution error:", err.message);
-    }
+    const { data } = await myDatabase.from('meals').select('likes').eq('id', id).single();
+    const dbLikes = (data && data.likes ? data.likes : 0) + 1;
+    await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
 }
 
 async function reportRecipe(title, id) {
@@ -1694,14 +1672,9 @@ async function likeComment(commentId, btnElement) {
     btnElement.style.opacity = '0.6';
     btnElement.innerHTML = `👍 Liked (${currentLikes})`;
 
-    try {
-        const { data } = await myDatabase.from('comments').select('likes').eq('id', commentId).single();
-        const dbLikes = (data && data.likes ? data.likes : 0) + 1;
-        const { error } = await myDatabase.from('comments').update({ likes: dbLikes }).eq('id', commentId);
-        if (error) console.error("Database update failed for likeComment:", error.message);
-    } catch (err) {
-        console.error("likeComment execution error:", err.message);
-    }
+    const { data } = await myDatabase.from('comments').select('likes').eq('id', commentId).single();
+    const dbLikes = (data && data.likes ? data.likes : 0) + 1;
+    await myDatabase.from('comments').update({ likes: dbLikes }).eq('id', commentId);
 }
 
 async function reportComment(commentId, commentText) {
