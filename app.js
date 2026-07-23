@@ -259,55 +259,90 @@ async function handleVisitorSession() {
 }
 
 async function fetchStats() {
-    const { count: liveCount } = await myDatabase.from('meals').select('*', { count: 'exact', head: true }).eq('status', 'approved');
-    if (liveCount !== null) totalApprovedRecipes = liveCount;
-
-    const { data: vData } = await myDatabase.from('site_stats').select('visitor_count').eq('id', 1).single();
-    if (vData) totalVisitors = vData.visitor_count;
-
-    let totalShared = 0; let totalLikes = 0;
-    const { data: interactionStats } = await myDatabase.rpc('get_kitchen_stats');
-    if (interactionStats) { totalShared = interactionStats.total_shared; totalLikes = interactionStats.total_likes; }
-
-    const { data: configData } = await myDatabase.from('site_config').select('team_photo_url, main_background_url').eq('id', 1).single();
-    
-    if (configData) {
-        if (configData.team_photo_url) {
-            teamPhotoUrl = configData.team_photo_url;
-            localStorage.setItem('cached_team_photo', teamPhotoUrl); 
-            const homePhoto = document.getElementById('home-team-photo');
-            if (homePhoto && homePhoto.src !== teamPhotoUrl) homePhoto.src = teamPhotoUrl;
-        }
-        if (configData.main_background_url) {
-            document.body.style.backgroundImage = `url('${configData.main_background_url}')`;
-            document.body.style.backgroundSize = 'cover';
-            document.body.style.backgroundPosition = 'center center';
-            document.body.style.backgroundAttachment = 'fixed';
-            document.body.style.backgroundRepeat = 'no-repeat';
-        }
-    }
-
     const navCounter = document.getElementById('nav-counter');
-    if (navCounter) {
-        navCounter.innerHTML = `
-            <div style="margin-bottom: 12px; text-align: center;">
-                <div style="font-size: 1.1rem; font-weight: bold; color: #000;">🌍 ${totalApprovedRecipes}</div>
-                <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Live Recipes</div>
-            </div>
-            <div style="margin-bottom: 12px; text-align: center;">
-                <div style="font-size: 1.1rem; font-weight: bold; color: #000;">📤 ${totalShared}</div>
-                <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Shared</div>
-            </div>
-            <div style="margin-bottom: 12px; text-align: center;">
-                <div style="font-size: 1.1rem; font-weight: bold; color: #000;">❤️ ${totalLikes}</div>
-                <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Likes</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 1.1rem; font-weight: bold; color: #000;">👀 ${totalVisitors.toLocaleString()}</div>
-                <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Visits</div>
-            </div>
-        `;
+    if (!navCounter) return;
+
+    let totalShared = 0; 
+    let totalLikes = 0;
+
+    try {
+        // 1. Fetch Live Approved Recipes
+        const { count: liveCount, error: recipeError } = await myDatabase
+            .from('meals')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'approved');
+        if (!recipeError && liveCount !== null) totalApprovedRecipes = liveCount;
+
+        // 2. Fetch Visitor Count
+        const { data: vData, error: vError } = await myDatabase
+            .from('site_stats')
+            .select('visitor_count')
+            .eq('id', 1)
+            .single();
+        if (!vError && vData && vData.visitor_count) totalVisitors = vData.visitor_count;
+
+        // 3. Fetch Likes and Shares directly from tables (bypassing RPC math bottlenecks)
+        const { data: interactionData, error: iError } = await myDatabase
+            .from('meals')
+            .select('likes, shares')
+            .eq('status', 'approved');
+            
+        if (!iError && interactionData) {
+            interactionData.forEach(meal => {
+                totalLikes += (Number(meal.likes) || 0);
+                totalShared += (Number(meal.shares) || 0);
+            });
+        }
+    } catch (err) {
+        console.error("Network delay fallback triggered in fetchStats:", err.message);
     }
+
+    // 4. Preserve and execute site_config background and photo logic
+    try {
+        const { data: configData } = await myDatabase
+            .from('site_config')
+            .select('team_photo_url, main_background_url')
+            .eq('id', 1)
+            .single();
+        
+        if (configData) {
+            if (configData.team_photo_url) {
+                teamPhotoUrl = configData.team_photo_url;
+                localStorage.setItem('cached_team_photo', teamPhotoUrl); 
+                const homePhoto = document.getElementById('home-team-photo');
+                if (homePhoto && homePhoto.src !== teamPhotoUrl) homePhoto.src = teamPhotoUrl;
+            }
+            if (configData.main_background_url) {
+                document.body.style.backgroundImage = `url('${configData.main_background_url}')`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center center';
+                document.body.style.backgroundAttachment = 'fixed';
+                document.body.style.backgroundRepeat = 'no-repeat';
+            }
+        }
+    } catch (err) {
+        console.error("Site config load error:", err.message);
+    }
+
+    // 5. Render to UI
+    navCounter.innerHTML = `
+        <div style="margin-bottom: 12px; text-align: center;">
+            <div style="font-size: 1.1rem; font-weight: bold; color: #000;">🌍 ${totalApprovedRecipes}</div>
+            <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Live Recipes</div>
+        </div>
+        <div style="margin-bottom: 12px; text-align: center;">
+            <div style="font-size: 1.1rem; font-weight: bold; color: #000;">📤 ${totalShared}</div>
+            <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Shared</div>
+        </div>
+        <div style="margin-bottom: 12px; text-align: center;">
+            <div style="font-size: 1.1rem; font-weight: bold; color: #000;">❤️ ${totalLikes}</div>
+            <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Likes</div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 1.1rem; font-weight: bold; color: #000;">👀 ${totalVisitors.toLocaleString()}</div>
+            <div style="font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase;">Total Visits</div>
+        </div>
+    `;
 }
 
 function confirmCountry() {
@@ -1426,9 +1461,14 @@ async function likeMeal(id, btnElement) {
     btnElement.style.opacity = '0.6';
     btnElement.innerHTML = `❤️ Liked (${currentLikes})`;
 
-    const { data } = await myDatabase.from('meals').select('likes').eq('id', id).single();
-    const dbLikes = (data && data.likes ? data.likes : 0) + 1;
-    await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
+    try {
+        const { data } = await myDatabase.from('meals').select('likes').eq('id', id).single();
+        const dbLikes = (data && data.likes ? data.likes : 0) + 1;
+        const { error } = await myDatabase.from('meals').update({ likes: dbLikes }).eq('id', id);
+        if (error) console.error("Database update failed for likeMeal:", error.message);
+    } catch (err) {
+        console.error("likeMeal execution error:", err.message);
+    }
 }
 
 async function reportRecipe(title, id) {
@@ -1654,9 +1694,14 @@ async function likeComment(commentId, btnElement) {
     btnElement.style.opacity = '0.6';
     btnElement.innerHTML = `👍 Liked (${currentLikes})`;
 
-    const { data } = await myDatabase.from('comments').select('likes').eq('id', commentId).single();
-    const dbLikes = (data && data.likes ? data.likes : 0) + 1;
-    await myDatabase.from('comments').update({ likes: dbLikes }).eq('id', commentId);
+    try {
+        const { data } = await myDatabase.from('comments').select('likes').eq('id', commentId).single();
+        const dbLikes = (data && data.likes ? data.likes : 0) + 1;
+        const { error } = await myDatabase.from('comments').update({ likes: dbLikes }).eq('id', commentId);
+        if (error) console.error("Database update failed for likeComment:", error.message);
+    } catch (err) {
+        console.error("likeComment execution error:", err.message);
+    }
 }
 
 async function reportComment(commentId, commentText) {
